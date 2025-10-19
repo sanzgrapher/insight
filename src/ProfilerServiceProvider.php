@@ -27,6 +27,7 @@ class ProfilerServiceProvider extends ServiceProvider
             $profiler->addCollector(new \Doppar\Insight\Collectors\SessionCollector());
             $profiler->addCollector(new \Doppar\Insight\Collectors\CacheCollector());
             $profiler->addCollector(new \Doppar\Insight\Collectors\HttpRequestCollector());
+            $profiler->addCollector(new \Doppar\Insight\Collectors\LogCollector());
 
             return $profiler;
         });
@@ -59,6 +60,9 @@ class ProfilerServiceProvider extends ServiceProvider
 
             // Register Axios hook to track HTTP requests
             $this->registerAxiosHook();
+
+            // Hook into the logger to capture logs
+            $this->hookLogger();
 
             // Install PDO statement class hook to capture SQL timings without touching the framework
             try {
@@ -125,6 +129,41 @@ class ProfilerServiceProvider extends ServiceProvider
             );
         } catch (\Throwable) {
             // Silently fail if Axios is not installed or hook fails
+        }
+    }
+
+    protected function hookLogger(): void
+    {
+        try {
+            // Create a persistent profiler handler
+            $profilerHandler = new \Doppar\Insight\Handlers\ProfilerLogHandler();
+            
+            // Create a persistent handler wrapper
+            $persistentHandler = new class($profilerHandler) implements \Phaseolies\Logger\Contracts\LogHandlerInterface {
+                private \Doppar\Insight\Handlers\ProfilerLogHandler $handler;
+                
+                public function __construct(\Doppar\Insight\Handlers\ProfilerLogHandler $handler)
+                {
+                    $this->handler = $handler;
+                }
+                
+                public function configureHandler(\Monolog\Logger $logger, string $channel): void
+                {
+                    $logger->pushHandler($this->handler);
+                }
+            };
+            
+            // Wrap the logger service to persist our handler across reset() calls
+            $this->app->extend('log', function ($logger) use ($persistentHandler) {
+                if (!$logger instanceof \Phaseolies\Support\LoggerService) {
+                    return $logger;
+                }
+                
+                // Return our wrapper that re-adds the handler before each log call
+                return new \Doppar\Insight\Support\ProfilerLoggerWrapper($logger, $persistentHandler);
+            });
+        } catch (\Throwable $e) {
+            // Silently fail if logger is not configured
         }
     }
 }

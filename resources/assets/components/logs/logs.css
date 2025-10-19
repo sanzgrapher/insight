@@ -1,0 +1,134 @@
+/* Logs Component Styles */
+
+.logs-list {
+    margin-top: 12px;
+}
+
+.log-item {
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+.log-item:last-child {
+    margin-bottom: 0;
+}
+
+.log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.log-level-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.log-level-badge.log-debug {
+    background: #4b5563;
+    color: #d1d5db;
+}
+
+.log-level-badge.log-info {
+    background: #1e40af;
+    color: #93c5fd;
+}
+
+.log-level-badge.log-notice {
+    background: #0e7490;
+    color: #67e8f9;
+}
+
+.log-level-badge.log-warning {
+    background: #b45309;
+    color: #fcd34d;
+}
+
+.log-level-badge.log-error {
+    background: #991b1b;
+    color: #fca5a5;
+}
+
+.log-level-badge.log-critical {
+    background: #7f1d1d;
+    color: #fca5a5;
+}
+
+.log-level-badge.log-alert {
+    background: #7f1d1d;
+    color: #fca5a5;
+}
+
+.log-level-badge.log-emergency {
+    background: #7f1d1d;
+    color: #fca5a5;
+}
+
+.log-level-text {
+    line-height: 1;
+}
+
+.log-time {
+    font-size: 12px;
+    color: #9ca3af;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.log-message {
+    color: #e5e7eb;
+    font-size: 13px;
+    line-height: 1.7;
+    word-break: break-word;
+    background: #0f172a;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.log-context {
+    margin-top: 8px;
+}
+
+.log-context summary {
+    cursor: pointer;
+    color: #9ca3af;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    user-select: none;
+    padding: 4px 0;
+    transition: color 0.2s ease;
+}
+
+.log-context summary:hover {
+    color: #e5e7eb;
+}
+
+.log-context[open] summary {
+    margin-bottom: 8px;
+}
+
+.log-context-data {
+    font-size: 12px;
+    color: #9ca3af;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    background: #0f172a;
+    padding: 8px 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    line-height: 1.5;
+    margin: 0;
+}

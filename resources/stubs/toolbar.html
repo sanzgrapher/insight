@@ -1,5 +1,5 @@
 <!-- Doppar Profiler (Shadow DOM isolated) -->
-<div id="doppar-profiler" data-request-id="{{ID}}" data-is-redirect="{{IS_REDIRECT}}" data-redirect-url="{{REDIRECT_URL}}" data-redirect-chain="{{REDIRECT_CHAIN}}" data-auth-authenticated="{{AUTH_AUTHENTICATED}}" data-auth-user-name="{{AUTH_USER_NAME}}" data-auth-user-email="{{AUTH_USER_EMAIL}}">
+<div id="doppar-profiler" data-request-id="{{ID}}" data-is-redirect="{{IS_REDIRECT}}" data-redirect-url="{{REDIRECT_URL}}" data-redirect-chain="{{REDIRECT_CHAIN}}" data-auth-authenticated="{{AUTH_AUTHENTICATED}}" data-auth-user-name="{{AUTH_USER_NAME}}" data-auth-user-email="{{AUTH_USER_EMAIL}}" data-logs-count="{{LOGS_COUNT}}">
   <template id="dp-template">
     <style>{{CSS}}</style>
     <div class="dp-root">
@@ -14,6 +14,7 @@
         <span class="dp-item dp-version"><img src="https://doppar.com/logo.png" alt="Doppar Logo" width="16" height="16"> v{{FRAMEWORK_VERSION}}</span>
         <span class="dp-item">{{DURATION}} ms</span>
         <span class="dp-item dp-sql">🗄️ {{SQL_COUNT}} queries ({{SQL_TIME}} ms)</span>
+        <span class="dp-item dp-logs" style="display:none">{{LOGS_COUNT}} logs</span>
         <button class="dp-btn" onclick="DopparProfiler.openDetailsPage()">Details</button>
         <button class="dp-btn" onclick="DopparProfiler.toggle()">Quick View</button>
       </div>
@@ -46,6 +47,12 @@
           authNameEl.textContent=host.dataset.authUserName || 'User';
           authEl.style.display='inline-block';
         }
+      }
+      // Show logs count if there are logs
+      var logsCount=parseInt(host.dataset.logsCount||'0',10);
+      if(logsCount>0){
+        var logsEl=root.querySelector('.dp-logs');
+        if(logsEl){logsEl.style.display='inline-block';}
       }
     }catch(e){}
   })();</script>

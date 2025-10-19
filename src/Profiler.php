@@ -180,6 +180,7 @@ class Profiler
         $id = htmlspecialchars($d['id'] ?? '', ENT_QUOTES, 'UTF-8');
         $sqlCount = (int)($d['sql_total_count'] ?? 0);
         $sqlTime = number_format($d['sql_total_time_ms'] ?? 0, 1);
+        $logsCount = (int)($d['logs_total_count'] ?? 0);
         
         // Check for redirect
         $isRedirect = ($d['is_redirect'] ?? false) ? 'true' : 'false';
@@ -217,6 +218,7 @@ class Profiler
             '{{DURATION}}' => $duration,
             '{{SQL_COUNT}}' => (string)$sqlCount,
             '{{SQL_TIME}}' => $sqlTime,
+            '{{LOGS_COUNT}}' => (string)$logsCount,
             '{{FRAMEWORK_VERSION}}' => $frameworkVersion,
             '{{PHP_VERSION}}' => $phpVersion,
             '{{IS_REDIRECT}}' => $isRedirect,
