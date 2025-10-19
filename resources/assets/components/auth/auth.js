@@ -23,6 +23,6 @@ class AuthComponent extends InsightComponent {
     }
     
     buildGuest() {
-        return '<div class="auth-guest"><span>Not Authenticated</span></div>';
+        return '<div class="no-data">Not Authenticated</div>';
     }
 }
