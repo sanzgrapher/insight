@@ -8,21 +8,22 @@ class ProfilerServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->mergeConfig(__DIR__ . '/../config/insight.php', 'insight');
+
         if (! $this->isEnabled()) {
             return;
         }
 
-        $this->mergeConfig(__DIR__ . '/../config/insight.php', 'insight');
         $this->registerProfiler();
     }
 
     public function boot(): void
     {
+        $this->publishConfiguration();
+
         if (! $this->isEnabled()) {
             return;
         }
-
-        $this->publishConfiguration();
 
         /** @var Profiler $profiler */
         $profiler = $this->app->make(Profiler::class);
