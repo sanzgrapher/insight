@@ -19,17 +19,17 @@ Doppar Insight Profiler is an advanced debugging and performance monitoring tool
   <tr>
     <td width="50%">
       <h3 align="center">Queries</h3>
-      <img src="ressources/1.png" alt="SQL Queries Profiling" width="100%">
+      <img src="resources/1.png" alt="SQL Queries Profiling" width="100%">
     </td>
     <td width="50%">
       <h3 align="center">Session</h3>
-      <img src="ressources/2.png" alt="Session Information" width="100%">
+      <img src="resources/2.png" alt="Session Information" width="100%">
     </td>
   </tr>
   <tr>
     <td colspan="2">
       <h3 align="center">Main Toolbar</h3>
-      <img src="ressources/3.png" alt="Doppar Insight Toolbar" width="100%">
+      <img src="resources/3.png" alt="Doppar Insight Toolbar" width="100%">
     </td>
   </tr>
 </table>
