@@ -28,7 +28,15 @@ function jsonViewer(json, collapsible=false) {
         
         var element = TEMPLATES[tpl].replace('%KEY%', key);
 
-        element = element.replace('%VALUE%', type);
+        // Improve label: distinguish arrays and objects
+        var label = type;
+        if (Array.isArray(value)) {
+            label = 'array[' + value.length + ']';
+        } else if (type === 'object') {
+            label = 'object';
+        }
+
+        element = element.replace('%VALUE%', label);
         element = element.replace('%TYPE%', type);
         element = element.replace('%CHILDREN%', children);
 
@@ -49,9 +57,10 @@ function jsonViewer(json, collapsible=false) {
     }
 
     function handleItem(key, value) {
-        var type = typeof value;
+        var isArray = Array.isArray(value);
+        var type = isArray ? 'array' : typeof value;
 
-        if(typeof value === 'object') {        
+        if (value !== null && (type === 'object' || isArray)) {
             return handleChildren(key, value, type);
         }
 

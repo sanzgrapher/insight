@@ -68,15 +68,26 @@ class CacheComponent extends InsightComponent {
         const type = operation.type || 'unknown';
         const key = operation.key || 'N/A';
         const value = operation.value !== null && operation.value !== undefined ? operation.value : '';
+        const valueJson = operation.value_json || null;
         const hit = operation.hit;
         
         const hitBadge = type === 'get' 
             ? `<span class="cache-hit-badge ${hit ? 'cache-hit' : 'cache-miss'}">${hit ? 'HIT' : 'MISS'}</span>`
             : '';
         
-        const valueHtml = value !== '' 
-            ? `<div class="cache-value">Value: ${this.escapeHtml(String(value))}</div>` 
-            : '';
+        let valueHtml = '';
+        if (valueJson) {
+            // Prefer rich JSON rendering like session viewer
+            try {
+                const parsed = JSON.parse(valueJson);
+                valueHtml = `<div class="cache-value"><div style="margin-bottom:6px;color:#9ca3af;font-size:12px;">Value (JSON)</div>${jsonViewer(parsed, false)}</div>`;
+            } catch (e) {
+                // Fallback: show preformatted JSON string
+                valueHtml = `<div class="cache-value"><div style="margin-bottom:6px;color:#9ca3af;font-size:12px;">Value (JSON)</div><pre style="white-space:pre-wrap;word-break:break-word;">${this.escapeHtml(String(valueJson))}</pre></div>`;
+            }
+        } else if (value !== '') {
+            valueHtml = `<div class="cache-value">Value: ${this.escapeHtml(String(value))}</div>`;
+        }
         
         return `
             <div class="cache-item">

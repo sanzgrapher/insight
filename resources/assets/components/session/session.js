@@ -13,7 +13,7 @@ class SessionComponent extends InsightComponent {
             return this.buildEmptyState();
         }
 
-        return jsonViewer(data.session_data, true);
+        return jsonViewer(data.session_data, false);
     }
     
     buildEmptyState() {
