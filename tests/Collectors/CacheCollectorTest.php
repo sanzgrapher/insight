@@ -162,15 +162,15 @@ class CacheCollectorTest extends TestCase
 
     public function testTruncatesLongStringValues(): void
     {
-        $longValue = str_repeat('x', 150);
+        $longValue = str_repeat('x', 3000);
         
         $this->collector->registerOperation('get', 'key', $longValue, true);
         
         $data = $this->collector->toArray();
         
         $value = $data['cache_operations'][0]['value'];
-        $this->assertStringEndsWith('...', $value);
-        $this->assertLessThanOrEqual(103, strlen($value)); // 100 + '...'
+        $this->assertStringEndsWith('…', $value);
+        $this->assertLessThanOrEqual(2003, strlen($value)); // 2000 + '…' (UTF-8 ellipsis is 3 bytes)
     }
 
     public function testFormatsArrayValues(): void
@@ -181,7 +181,7 @@ class CacheCollectorTest extends TestCase
         
         $data = $this->collector->toArray();
         
-        $this->assertEquals('[array]', $data['cache_operations'][0]['value']);
+        $this->assertEquals('{"key1":"value1","key2":"value2"}', $data['cache_operations'][0]['value']);
     }
 
     public function testFormatsObjectValues(): void
@@ -192,7 +192,7 @@ class CacheCollectorTest extends TestCase
         
         $data = $this->collector->toArray();
         
-        $this->assertEquals('[object]', $data['cache_operations'][0]['value']);
+        $this->assertEquals('{"prop":"value"}', $data['cache_operations'][0]['value']);
     }
 
     public function testToArrayStructure(): void
