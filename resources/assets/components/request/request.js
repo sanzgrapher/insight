@@ -13,7 +13,7 @@ class RequestComponent extends InsightComponent {
         html += this.buildSection('Request Body', this.buildRequestBody(data.request_body));
         html += this.buildSection('Cookies', this.buildTable(data.request_cookies, ['Cookie', 'Value']));
         html += this.buildFilesSection(data.request_files);
-        html += this.buildSection('Server Variables', this.buildTable(data.request_server, ['Variable', 'Value']));
+        html += this.buildSection('Server', this.buildTable(data.request_server, ['Variable', 'Value']));
         
         return html || this.buildEmptyState();
     }

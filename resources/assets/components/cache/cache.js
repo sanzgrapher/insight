@@ -129,7 +129,7 @@ class CacheComponent extends InsightComponent {
                     <div class="cache-stat-label">Hit Rate</div>
                 </div>
             </div>
-            <div style="color: #9ca3af; font-size: 13px;">
+            <div style="color: #101010; font-size: 13px;">
                 See Cache tab for detailed operations.
             </div>
         `;
