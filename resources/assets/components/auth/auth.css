@@ -1,14 +1,84 @@
 .auth-authenticated {
-    background: #1f2937;
-    border: 1px solid #374151;
-    border-radius: 8px;
-    padding: 16px;
+    position: relative;
+    overflow: hidden;
+}
+
+.auth-authenticated::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 6px;
+    height: 100%;
+}
+
+.auth-authenticated::after {
+    content: '✓ AUTHENTICATED';
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: #d1fae5;
+    color: #065f46;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 6px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
 }
 
 .auth-guest {
-    background: #1f2937;
-    border: 1px solid #374151;
-    border-radius: 8px;
-    padding: 16px;
-    color: #9ca3af;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 28px;
+    margin-bottom: 24px;
+    color: #64748b;
+    box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.04),
+        0 10px 15px -3px rgba(0, 0, 0, 0.06),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.9);
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+}
+
+.auth-guest::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 6px;
+    height: 100%;
+    background: linear-gradient(180deg, #94a3b8 0%, #cbd5e1 100%);
+}
+
+.auth-guest::after {
+    content: 'GUEST USER';
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: #e2e8f0;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 6px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    box-shadow: 0 2px 4px rgba(148, 163, 184, 0.2);
+}
+
+.auth-guest .guest-message {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #475569;
+}
+
+.auth-guest .guest-submessage {
+    font-size: 14px;
+    color: #64748b;
+    opacity: 0.8;
 }

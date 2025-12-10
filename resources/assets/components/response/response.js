@@ -15,7 +15,7 @@ class ResponseComponent extends InsightComponent {
             if (data.response_body_size !== undefined) {
                 info['Body Size'] = this.formatBytes(data.response_body_size);
             }
-            html += this.buildSection('Response Info', this.buildTable(info, ['Property', 'Value']));
+            html += this.buildSection('Response', this.buildTable(info, ['Property', 'Value']));
         }
         
         // Headers
