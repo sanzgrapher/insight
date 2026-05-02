@@ -195,6 +195,7 @@ window.DopparProfiler = {
           const output = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
           return `<pre class="code-block">${escapeHtml(output)}</pre>`;
         };
+        const requestUrl = data.url || data.route || '/';
         const buildJsonViewerItem = (key, value) => {
           const isArray = Array.isArray(value);
           const type = isArray ? 'array' : typeof value;
@@ -429,6 +430,10 @@ window.DopparProfiler = {
             flex-wrap: wrap;
             margin-bottom: 14px;
           }
+          .hero-top > div {
+            min-width: 0;
+            flex: 1 1 420px;
+          }
           .eyebrow {
             font-size: 11px;
             letter-spacing: .18em;
@@ -444,6 +449,88 @@ window.DopparProfiler = {
             letter-spacing: -.04em;
             margin: 0 0 8px;
             color: #152238;
+          }
+          .hero-request-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-sizing: border-box;
+            width: 100%;
+            max-width: 100%;
+            min-height: 60px;
+            padding: 12px 16px;
+            border-radius: 16px;
+            background: #ffffff;
+            border: 1px solid rgba(17, 40, 61, 0.1);
+            box-shadow:
+              0 1px 2px rgba(15, 23, 42, 0.04),
+              0 10px 20px rgba(37, 51, 77, 0.04),
+              inset 0 1px 0 rgba(255,255,255,0.96);
+            margin: 0 0 12px;
+            overflow: hidden;
+          }
+          .hero-method-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 56px;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: linear-gradient(180deg, #d8f8e7, #cdf6df);
+            border: 1px solid rgba(20, 125, 100, 0.08);
+            color: #0f7a66;
+            font-size: 12px;
+            font-weight: 900;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+            flex: 0 0 auto;
+          }
+          .hero-url {
+            min-width: 0;
+            flex: 1 1 auto;
+            color: #5d6b80;
+            font: 13px/1.5 "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .hero-request-copy {
+            appearance: none;
+            border: 0;
+            background: transparent;
+            color: #69778f;
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex: 0 0 34px;
+            margin-left: auto;
+            transition: background .18s ease, color .18s ease, transform .18s ease;
+          }
+          .hero-request-copy:hover {
+            background: rgba(240, 244, 255, 0.72);
+            color: #475672;
+            transform: translateY(-1px);
+          }
+          .hero-request-copy.is-success {
+            background: rgba(20, 125, 100, 0.12);
+            color: #147d64;
+          }
+          .hero-request-copy.is-error {
+            background: rgba(191, 60, 68, 0.12);
+            color: #bf3c44;
+          }
+          .hero-request-copy-icon {
+            width: 18px;
+            height: 18px;
+            display: inline-flex;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 18px 18px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2369778f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='9' y='9' width='11' height='11' rx='2'/%3E%3Cpath d='M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'/%3E%3C/svg%3E");
           }
           .hero-title small {
             display: inline-flex;
@@ -1449,7 +1536,13 @@ window.DopparProfiler = {
                   <div class="hero-top">
                     <div>
                       <div class="eyebrow">Quick View</div>
-                      <div class="hero-title"><small>${escapeHtml(data.method)}</small>${escapeHtml(data.route)}</div>
+                      <div class="hero-request-bar">
+                        <span class="hero-method-pill">${escapeHtml(data.method)}</span>
+                        <div class="hero-url" title="${escapeHtml(requestUrl)}">${escapeHtml(requestUrl)}</div>
+                        <button class="hero-request-copy" type="button" data-action="copy-request-url" aria-label="Copy request URL">
+                          <span class="hero-request-copy-icon" aria-hidden="true"></span>
+                        </button>
+                      </div>
                       <div class="hero-copy">A focused operational dashboard for this request, built for fast triage and deeper follow-up.</div>
                     </div>
                     <span class="hero-status ${statusClass}">
@@ -1537,6 +1630,20 @@ window.DopparProfiler = {
             }
             window.setTimeout(() => {
               this.setCopyButtonState(button, 'idle');
+            }, 1600);
+          });
+        });
+        wrap.querySelectorAll('[data-action="copy-request-url"]').forEach((button) => {
+          button.addEventListener('click', async () => {
+            button.classList.remove('is-success', 'is-error');
+            try {
+              await this.copyText(String(requestUrl));
+              button.classList.add('is-success');
+            } catch (error) {
+              button.classList.add('is-error');
+            }
+            window.setTimeout(() => {
+              button.classList.remove('is-success', 'is-error');
             }, 1600);
           });
         });
