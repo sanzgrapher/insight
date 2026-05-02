@@ -195,6 +195,47 @@ window.DopparProfiler = {
           const output = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
           return `<pre class="code-block">${escapeHtml(output)}</pre>`;
         };
+        const buildJsonViewerItem = (key, value) => {
+          const isArray = Array.isArray(value);
+          const type = isArray ? 'array' : typeof value;
+          const keyHtml = escapeHtml(String(key));
+
+          if(value !== null && (type === 'object' || isArray)){
+            const label = isArray ? `array[${value.length}]` : 'object';
+            const children = Object.entries(value).map(([childKey, childValue]) => buildJsonViewerItem(childKey, childValue)).join('');
+
+            return `
+              <label class="json__item json__item--collapsible">
+                <input type="checkbox" class="json__toggle" />
+                <div class="json__key">${keyHtml}</div>
+                <div class="json__value json__value--type-${type}">${escapeHtml(label)}</div>
+                ${children}
+              </label>
+            `;
+          }
+
+          const valueOutput = type === 'string'
+            ? `"${escapeHtml(String(value))}"`
+            : escapeHtml(String(value));
+
+          return `
+            <div class="json__item">
+              <div class="json__key">${keyHtml}</div>
+              <div class="json__value json__value--${type}">${valueOutput}</div>
+            </div>
+          `;
+        };
+        const buildJsonViewer = (value) => {
+          if(!value || typeof value !== 'object'){
+            return buildCodeBlock(value);
+          }
+
+          return `
+            <div class="json">
+              ${Object.entries(value).map(([key, childValue]) => buildJsonViewerItem(key, childValue)).join('')}
+            </div>
+          `;
+        };
         const css = `
           :host{all:initial}
 
@@ -772,6 +813,89 @@ window.DopparProfiler = {
             border-radius: 12px;
             font-size: 11px;
           }
+          .json {
+            font: 12px/1.6 "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
+            color: #172033;
+            background: rgba(246,248,255,0.96);
+            border: 1px solid rgba(132,134,255,0.1);
+            border-radius: 16px;
+            padding: 14px 16px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+          }
+          .json > .json__item {
+            display: block;
+          }
+          .json__item {
+            display: none;
+            margin-top: 8px;
+            padding-left: 18px;
+          }
+          .json__item--collapsible {
+            display: block;
+            cursor: pointer;
+            position: relative;
+          }
+          .json__item--collapsible::before {
+            content: "+";
+            position: absolute;
+            left: 2px;
+            top: 0;
+            color: #5a5ef0;
+            font-weight: 800;
+            user-select: none;
+          }
+          .json__item--collapsible::after {
+            content: "";
+            position: absolute;
+            left: 6px;
+            top: 22px;
+            width: 1px;
+            height: calc(100% - 18px);
+            background: rgba(17, 40, 61, 0.16);
+          }
+          .json__item--collapsible:hover > .json__key,
+          .json__item--collapsible:hover > .json__value {
+            text-decoration: underline;
+          }
+          .json__toggle {
+            display: none;
+          }
+          .json__toggle:checked ~ .json__item {
+            display: block;
+          }
+          .json__item--collapsible:has(.json__toggle:checked)::before {
+            content: "-";
+          }
+          .json__key {
+            color: #5a5ef0;
+            display: inline;
+            font-weight: 700;
+          }
+          .json__key::after {
+            content: ": ";
+            color: #7f8ca3;
+          }
+          .json__value {
+            display: inline;
+          }
+          .json__value--string {
+            color: #147d64;
+          }
+          .json__value--number {
+            color: #7c3aed;
+          }
+          .json__value--boolean {
+            color: #b66912;
+          }
+          .json__value--object,
+          .json__value--type-object,
+          .json__value--type-array {
+            color: #c05621;
+          }
+          .json__value--undefined {
+            color: #8391a8;
+            font-style: italic;
+          }
           .log-list {
             display: grid;
             gap: 12px;
@@ -1147,9 +1271,16 @@ window.DopparProfiler = {
               </div>
               <div class="section-stack" style="margin-top:14px;">
                 ${cacheOperations.map((operation, index) => {
-                  const valueOutput = operation.value_json
-                    ? buildCodeBlock(operation.value_json)
-                    : (operation.value !== null && operation.value !== undefined && operation.value !== '' ? buildCodeBlock(String(operation.value)) : '');
+                  let valueOutput = '';
+                  if(operation.value_json){
+                    try {
+                      valueOutput = buildJsonViewer(JSON.parse(operation.value_json));
+                    } catch (error) {
+                      valueOutput = buildCodeBlock(operation.value_json);
+                    }
+                  } else if(operation.value !== null && operation.value !== undefined && operation.value !== ''){
+                    valueOutput = buildCodeBlock(String(operation.value));
+                  }
                   return `
                     <div class="subsection">
                       <div class="subsection-title">${escapeHtml(operation.type || 'unknown')} #${index + 1}</div>
