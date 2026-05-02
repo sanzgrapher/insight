@@ -98,6 +98,7 @@ window.DopparProfiler = {
     if(this.open){
       const id = document.getElementById('doppar-profiler').dataset.requestId;
       fetch('/_insight/api/' + id).then(r=>r.json()).then(data=>{
+        const toolbarLogo = document.getElementById('doppar-profiler')?.shadowRoot?.querySelector('.dp-launcher-mark img')?.getAttribute('src') || '';
         const escapeHtml = (value) => {
           const div = document.createElement('div');
           div.textContent = String(value ?? '');
@@ -262,9 +263,6 @@ window.DopparProfiler = {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            border-radius: 12px;
-            background: linear-gradient(180deg, #8f92ff, #7479ff);
-            box-shadow: 0 10px 18px rgba(132, 134, 255, 0.22);
           }
           .sidebar-mark img {
             width: 18px;
@@ -1217,7 +1215,6 @@ window.DopparProfiler = {
               </div>
               <div class="api-response-shell">
                 <div class="api-response-head">
-                  <div class="api-response-title">Response Body</div>
                   <button class="dp-btn dp-btn-primary copy-action" type="button" data-action="json-api-copy">
                     <span class="copy-icon" aria-hidden="true"></span>
                     Copy Payload
@@ -1260,14 +1257,18 @@ window.DopparProfiler = {
           ? 'err'
           : (Number(data.status) >= 300 ? 'warn' : 'ok');
 
+        const sidebarLogo = toolbarLogo
+          ? `<img src="${escapeHtml(toolbarLogo)}" alt="Doppar Logo" width="18" height="18">`
+          : 'D';
+
         wrap.innerHTML = `
           <div class="workspace">
             <aside class="sidebar">
               <div class="sidebar-brand">
-                <span class="sidebar-mark">D</span>
+                <span class="sidebar-mark">${sidebarLogo}</span>
                 <div>
-                  <div class="sidebar-title">Quick View</div>
-                  <div class="sidebar-copy">Doppar request workspace</div>
+                  <div class="sidebar-title">Insight</div>
+                  <div class="sidebar-copy">Request profiler</div>
                 </div>
               </div>
               <nav class="sidebar-nav">
