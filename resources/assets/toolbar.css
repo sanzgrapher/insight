@@ -28,7 +28,7 @@
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(245, 247, 255, 0.92)),
     rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(132, 134, 255, 0.72);
+  border: 1px solid rgba(132, 134, 255, 0.24);
   border-radius: 18px;
   box-shadow:
     0 18px 40px rgba(76, 87, 130, 0.16),
@@ -51,16 +51,6 @@
   background:
     radial-gradient(circle at top left, rgba(132, 134, 255, 0.15), transparent 26%),
     radial-gradient(circle at bottom right, rgba(15, 139, 141, 0.08), transparent 24%);
-}
-
-.dp-root::after {
-  content: "";
-  position: absolute;
-  inset: 0 18px auto 18px;
-  height: 2px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, rgba(132, 134, 255, 0.76), rgba(132, 134, 255, 0.12));
-  pointer-events: none;
 }
 
 .dp-launcher {
