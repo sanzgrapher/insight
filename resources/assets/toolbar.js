@@ -47,6 +47,31 @@ window.DopparProfiler = {
     }
     button.innerHTML = '<span class="copy-icon" aria-hidden="true"></span>Copy Payload';
   },
+  getQuickViewTheme(){
+    try {
+      return window.localStorage.getItem('doppar.insight.quickview.theme') === 'dark' ? 'dark' : 'light';
+    } catch (error) {
+      return 'light';
+    }
+  },
+  setQuickViewTheme(panel, theme){
+    if(!panel){
+      return;
+    }
+    const resolved = theme === 'dark' ? 'dark' : 'light';
+    panel.setAttribute('data-theme', resolved);
+    panel.querySelectorAll('[data-action="toggle-theme"]').forEach((button) => {
+      button.setAttribute('data-theme-mode', resolved);
+      button.setAttribute('aria-pressed', resolved === 'dark' ? 'true' : 'false');
+      button.setAttribute('aria-label', resolved === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+      button.innerHTML = resolved === 'dark'
+        ? '<span class="theme-switch-icon theme-switch-icon-dark" aria-hidden="true"></span>'
+        : '<span class="theme-switch-icon theme-switch-icon-light" aria-hidden="true"></span>';
+    });
+    try {
+      window.localStorage.setItem('doppar.insight.quickview.theme', resolved);
+    } catch (error) {}
+  },
   getToolbarBounds(){
     const host = document.getElementById('doppar-profiler');
     if(!host || !host.shadowRoot){
@@ -442,6 +467,13 @@ window.DopparProfiler = {
             font-weight: 800;
             margin-bottom: 8px;
           }
+          .hero-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 8px;
+          }
           .hero-title {
             font-size: 28px;
             line-height: 1.15;
@@ -547,6 +579,50 @@ window.DopparProfiler = {
           .hero-copy {
             color: #5e6d85;
             max-width: 520px;
+          }
+          .hero-top-actions {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+          }
+          .theme-switch {
+            appearance: none;
+            border: 1px solid rgba(132,134,255,0.14);
+            background: rgba(255,255,255,0.82);
+            color: #4f5d75;
+            width: 38px;
+            height: 38px;
+            min-height: 38px;
+            padding: 0;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.82);
+            transition: background .18s ease, color .18s ease, border-color .18s ease, transform .18s ease;
+            flex: 0 0 38px;
+          }
+          .theme-switch:hover {
+            transform: translateY(-1px);
+            background: rgba(248,250,255,0.96);
+            color: #273550;
+          }
+          .theme-switch-icon {
+            width: 16px;
+            height: 16px;
+            display: inline-flex;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 16px 16px;
+          }
+          .theme-switch-icon-light {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235a5ef0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2v2'/%3E%3Cpath d='M12 20v2'/%3E%3Cpath d='m4.93 4.93 1.41 1.41'/%3E%3Cpath d='m17.66 17.66 1.41 1.41'/%3E%3Cpath d='M2 12h2'/%3E%3Cpath d='M20 12h2'/%3E%3Cpath d='m6.34 17.66-1.41 1.41'/%3E%3Cpath d='m19.07 4.93-1.41 1.41'/%3E%3C/svg%3E");
+          }
+          .theme-switch-icon-dark {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d9e4ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3a6 6 0 1 0 9 9 9 9 0 1 1-9-9Z'/%3E%3C/svg%3E");
           }
           .hero-status {
             display: inline-flex;
@@ -1144,11 +1220,182 @@ window.DopparProfiler = {
             border: 1px dashed rgba(132,134,255,0.18);
           }
 
+          .panel[data-theme="dark"] {
+            color: #d8e2f2;
+            background:
+              radial-gradient(circle at top right, rgba(132, 134, 255, 0.18), transparent 22%),
+              radial-gradient(circle at bottom left, rgba(15, 139, 141, 0.18), transparent 26%),
+              linear-gradient(180deg, rgba(14, 22, 35, 0.98), rgba(18, 28, 42, 0.96));
+            border-color: rgba(132, 134, 255, 0.18);
+            box-shadow:
+              0 28px 64px rgba(4, 8, 16, 0.42),
+              inset 0 1px 0 rgba(255,255,255,0.04);
+          }
+          .panel[data-theme="dark"]::before {
+            background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent 22%);
+          }
+          .panel[data-theme="dark"] .hero,
+          .panel[data-theme="dark"] .section,
+          .panel[data-theme="dark"] .summary-card,
+          .panel[data-theme="dark"] .metric,
+          .panel[data-theme="dark"] .api-shell,
+          .panel[data-theme="dark"] .api-operation,
+          .panel[data-theme="dark"] .api-response-shell,
+          .panel[data-theme="dark"] .sql-item,
+          .panel[data-theme="dark"] .redirect-chain-item,
+          .panel[data-theme="dark"] .log-card,
+          .panel[data-theme="dark"] .cache-op-card,
+          .panel[data-theme="dark"] .property-table,
+          .panel[data-theme="dark"] .row,
+          .panel[data-theme="dark"] .api-path {
+            background: linear-gradient(180deg, rgba(23, 34, 52, 0.9), rgba(18, 28, 42, 0.9));
+            border-color: rgba(132,134,255,0.16);
+            box-shadow:
+              inset 0 1px 0 rgba(255,255,255,0.04),
+              0 10px 22px rgba(3, 8, 18, 0.18);
+          }
+          .panel[data-theme="dark"] .hero-request-bar,
+          .panel[data-theme="dark"] .code-block,
+          .panel[data-theme="dark"] .json,
+          .panel[data-theme="dark"] .sql-query,
+          .panel[data-theme="dark"] .sql-bindings,
+          .panel[data-theme="dark"] .redirect-chain-arrow {
+            background: linear-gradient(180deg, rgba(15, 23, 36, 0.98), rgba(12, 19, 30, 0.96));
+            border-color: rgba(132,134,255,0.18);
+            color: #dbe7fb;
+            box-shadow:
+              inset 0 1px 0 rgba(255,255,255,0.05),
+              0 8px 18px rgba(3, 8, 18, 0.18);
+          }
+          .panel[data-theme="dark"] .hero-url,
+          .panel[data-theme="dark"] .hero-copy,
+          .panel[data-theme="dark"] .summary-note,
+          .panel[data-theme="dark"] .metric-note,
+          .panel[data-theme="dark"] .key,
+          .panel[data-theme="dark"] .log-time,
+          .panel[data-theme="dark"] .api-meta-chip,
+          .panel[data-theme="dark"] .sql-bindings,
+          .panel[data-theme="dark"] .redirect-chain-arrow,
+          .panel[data-theme="dark"] .muted-value,
+          .panel[data-theme="dark"] .no-data,
+          .panel[data-theme="dark"] .eyebrow,
+          .panel[data-theme="dark"] .subsection-title,
+          .panel[data-theme="dark"] .property-table th,
+          .panel[data-theme="dark"] .pill {
+            color: #9fb0ca;
+          }
+          .panel[data-theme="dark"] .hero-title,
+          .panel[data-theme="dark"] .summary-value,
+          .panel[data-theme="dark"] .metric-value,
+          .panel[data-theme="dark"] .section-title-main,
+          .panel[data-theme="dark"] .val,
+          .panel[data-theme="dark"] .log-message,
+          .panel[data-theme="dark"] .sql-query,
+          .panel[data-theme="dark"] .redirect-chain-path,
+          .panel[data-theme="dark"] .api-response-title,
+          .panel[data-theme="dark"] .api-path,
+          .panel[data-theme="dark"] .property-table td,
+          .panel[data-theme="dark"] .json,
+          .panel[data-theme="dark"] .json__value {
+            color: #e6eefc;
+          }
+          .panel[data-theme="dark"] .theme-switch,
+          .panel[data-theme="dark"] .hero-status,
+          .panel[data-theme="dark"] .hero-request-copy {
+            background: linear-gradient(180deg, rgba(18, 28, 43, 0.96), rgba(14, 22, 34, 0.94));
+            border-color: rgba(132,134,255,0.16);
+            color: #d8e2f2;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+          }
+          .panel[data-theme="dark"] .hero-request-copy:hover,
+          .panel[data-theme="dark"] .theme-switch:hover {
+            background: linear-gradient(180deg, rgba(27, 40, 60, 0.98), rgba(20, 31, 48, 0.96));
+          }
+          .panel[data-theme="dark"] .hero-method-pill,
+          .panel[data-theme="dark"] .api-method {
+            background: linear-gradient(180deg, rgba(33, 119, 97, 0.34), rgba(27, 104, 85, 0.28));
+            border-color: rgba(94, 220, 176, 0.14);
+            color: #9bf0ca;
+          }
+          .panel[data-theme="dark"] .summary-card,
+          .panel[data-theme="dark"] .metric {
+            border-color: rgba(132,134,255,0.14);
+          }
+          .panel[data-theme="dark"] .api-meta-chip,
+          .panel[data-theme="dark"] .pill,
+          .panel[data-theme="dark"] .sql-rows,
+          .panel[data-theme="dark"] .redirect-chain-method,
+          .panel[data-theme="dark"] .redirect-chain-status {
+            background: rgba(132,134,255,0.12);
+            border-color: rgba(132,134,255,0.16);
+            color: #afbdd6;
+          }
+          .panel[data-theme="dark"] .sql-time,
+          .panel[data-theme="dark"] .redirect-chain-duration,
+          .panel[data-theme="dark"] .badge-success {
+            background: rgba(27, 119, 97, 0.24);
+            border-color: rgba(94, 220, 176, 0.14);
+            color: #93efc5;
+          }
+          .panel[data-theme="dark"] .badge-info {
+            background: rgba(132,134,255,0.16);
+            border-color: rgba(132,134,255,0.18);
+            color: #bac5ff;
+          }
+          .panel[data-theme="dark"] .badge-warning {
+            background: rgba(196, 130, 36, 0.24);
+            border-color: rgba(255, 210, 119, 0.14);
+            color: #ffd277;
+          }
+          .panel[data-theme="dark"] .hero-dot {
+            background: currentColor;
+          }
+          .panel[data-theme="dark"] .property-table th {
+            background: rgba(132,134,255,0.12);
+          }
+          .panel[data-theme="dark"] .no-data {
+            background: linear-gradient(180deg, rgba(28, 40, 59, 0.9), rgba(22, 32, 48, 0.92));
+            border-color: rgba(132,134,255,0.18);
+            color: #a8b7cf;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+          }
+          .panel[data-theme="dark"] .section-copy,
+          .panel[data-theme="dark"] .metric-label,
+          .panel[data-theme="dark"] .summary-label {
+            color: #7f92ae;
+          }
+          .panel[data-theme="dark"] .hero-request-copy-icon {
+            filter: brightness(1.35);
+          }
+          .panel[data-theme="dark"] .json__item--collapsible::after {
+            background: rgba(214, 225, 246, 0.16);
+          }
+          .panel[data-theme="dark"] .json__key {
+            color: #aeb9ff;
+          }
+          .panel[data-theme="dark"] .json__value--string {
+            color: #8ef0bd;
+          }
+          .panel[data-theme="dark"] .json__value--number {
+            color: #c8a8ff;
+          }
+          .panel[data-theme="dark"] .json__value--boolean {
+            color: #ffd277;
+          }
+          .panel[data-theme="dark"] .json__value--object,
+          .panel[data-theme="dark"] .json__value--type-object,
+          .panel[data-theme="dark"] .json__value--type-array {
+            color: #ffb980;
+          }
+
           @media (max-width: 820px) {
             .panel { width: 100%; padding: 12px; }
             .workspace { grid-template-columns: 1fr; }
             .sidebar-nav { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
             .hero-top, .row { flex-direction: column; }
+            .hero-head {
+              width: 100%;
+            }
             .metrics,
             .stats-grid { grid-template-columns: 1fr; }
             .key { min-width: 0; }
@@ -1535,7 +1782,12 @@ window.DopparProfiler = {
                 <div class="hero">
                   <div class="hero-top">
                     <div>
-                      <div class="eyebrow">Quick View</div>
+                      <div class="hero-head">
+                        <div class="eyebrow">Quick View</div>
+                        <button class="theme-switch" type="button" data-action="toggle-theme" data-theme-mode="light" aria-pressed="false" aria-label="Switch to dark mode">
+                          <span class="theme-switch-icon theme-switch-icon-light" aria-hidden="true"></span>
+                        </button>
+                      </div>
                       <div class="hero-request-bar">
                         <span class="hero-method-pill">${escapeHtml(data.method)}</span>
                         <div class="hero-url" title="${escapeHtml(requestUrl)}">${escapeHtml(requestUrl)}</div>
@@ -1545,10 +1797,12 @@ window.DopparProfiler = {
                       </div>
                       <div class="hero-copy">A focused operational dashboard for this request, built for fast triage and deeper follow-up.</div>
                     </div>
-                    <span class="hero-status ${statusClass}">
-                      <span class="hero-dot"></span>
-                      HTTP ${escapeHtml(data.status)}
-                    </span>
+                    <div class="hero-top-actions">
+                      <span class="hero-status ${statusClass}">
+                        <span class="hero-dot"></span>
+                        HTTP ${escapeHtml(data.status)}
+                      </span>
+                    </div>
                   </div>
                   <div class="metrics">
                     <div class="metric">
@@ -1647,6 +1901,13 @@ window.DopparProfiler = {
             }, 1600);
           });
         });
+        wrap.querySelectorAll('[data-action="toggle-theme"]').forEach((button) => {
+          button.addEventListener('click', () => {
+            const current = wrap.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+            this.setQuickViewTheme(wrap, current === 'dark' ? 'light' : 'dark');
+          });
+        });
+        this.setQuickViewTheme(wrap, this.getQuickViewTheme());
         this.syncPanelPosition();
       }).catch(()=>{});
     } else {
