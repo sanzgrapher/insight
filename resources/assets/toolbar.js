@@ -1,5 +1,29 @@
 window.DopparProfiler = {
   open: false,
+  getToolbarBounds(){
+    const host = document.getElementById('doppar-profiler');
+    if(!host || !host.shadowRoot){
+      return null;
+    }
+    const toolbar = host.shadowRoot.querySelector('.dp-root');
+    return toolbar ? toolbar.getBoundingClientRect() : null;
+  },
+  syncPanelPosition(){
+    const host = document.getElementById('doppar-profiler-panel');
+    const bounds = this.getToolbarBounds();
+    if(!host || !bounds){
+      return;
+    }
+
+    const gap = 14;
+    const availableHeight = Math.max(220, bounds.top - gap - 12);
+
+    host.style.left = bounds.left + 'px';
+    host.style.right = 'auto';
+    host.style.width = bounds.width + 'px';
+    host.style.bottom = (window.innerHeight - bounds.top + gap) + 'px';
+    host.style.setProperty('--dp-panel-available-height', availableHeight + 'px');
+  },
   ensurePanelRoot(){
     let host = document.getElementById('doppar-profiler-panel');
     if(!host){
@@ -8,11 +32,10 @@ window.DopparProfiler = {
       // Isolate the host from page CSS as much as possible
       host.style.all = 'initial';
       host.style.position = 'fixed';
-      host.style.right = '10px';
-      host.style.bottom = '48px';
       host.style.zIndex = '2147483647';
       document.body.appendChild(host);
     }
+    this.syncPanelPosition();
     if(!host.shadowRoot){
       host.attachShadow({mode:'open'});
     }
@@ -37,19 +60,21 @@ window.DopparProfiler = {
           :host{all:initial}
 
           .panel {
-            width: min(860px, calc(100vw - 48px));
-            max-height: 78vh;
+            width: 100%;
+            max-height: min(78vh, var(--dp-panel-available-height, 78vh));
             overflow: auto;
             border-radius: 26px;
-            padding: 22px;
-            color: #edf5fc;
+            padding: 14px;
+            color: #142133;
             font: 14px/1.65 "Aptos", "Segoe UI Variable", "Segoe UI", sans-serif;
             background:
-              radial-gradient(circle at top right, rgba(242, 193, 78, 0.18), transparent 22%),
-              radial-gradient(circle at bottom left, rgba(15, 139, 141, 0.22), transparent 28%),
-              linear-gradient(145deg, rgba(7, 17, 31, 0.98), rgba(12, 31, 46, 0.96) 56%, rgba(14, 62, 81, 0.94));
-            border: 1px solid rgba(255,255,255,0.12);
-            box-shadow: 0 30px 80px rgba(2, 10, 18, 0.36), inset 0 1px 0 rgba(255,255,255,0.06);
+              radial-gradient(circle at top right, rgba(132, 134, 255, 0.16), transparent 22%),
+              radial-gradient(circle at bottom left, rgba(15, 139, 141, 0.14), transparent 26%),
+              linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(245, 247, 255, 0.95));
+            border: 1px solid rgba(132, 134, 255, 0.24);
+            box-shadow:
+              0 28px 64px rgba(57, 72, 102, 0.18),
+              inset 0 1px 0 rgba(255,255,255,0.8);
             backdrop-filter: blur(16px);
             position: relative;
           }
@@ -60,16 +85,115 @@ window.DopparProfiler = {
             inset: 0;
             border-radius: 26px;
             pointer-events: none;
-            background: linear-gradient(180deg, rgba(255,255,255,0.06), transparent 32%);
+            background: linear-gradient(180deg, rgba(255,255,255,0.56), transparent 22%);
           }
 
-          .hero, .section { position: relative; z-index: 1; }
-          .hero {
-            padding: 20px;
-            border-radius: 22px;
+          .workspace {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: 210px minmax(0, 1fr);
+            gap: 14px;
+            min-height: 420px;
+          }
+          .sidebar {
+            padding: 12px;
+            border-radius: 20px;
+            background:
+              linear-gradient(180deg, rgba(20, 31, 48, 0.96), rgba(19, 34, 51, 0.94)),
+              #182633;
+            border: 1px solid rgba(132, 134, 255, 0.16);
+            color: #e6eef9;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+          }
+          .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px 14px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+          }
+          .sidebar-mark {
+            width: 34px;
+            height: 34px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            background: linear-gradient(180deg, #8f92ff, #7479ff);
+            box-shadow: 0 10px 18px rgba(132, 134, 255, 0.22);
+          }
+          .sidebar-mark img {
+            width: 18px;
+            height: 18px;
+          }
+          .sidebar-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: #ffffff;
+          }
+          .sidebar-copy {
+            font-size: 11px;
+            color: rgba(230, 238, 249, 0.66);
+          }
+          .sidebar-nav {
+            display: grid;
+            gap: 6px;
+          }
+          .nav-button {
+            appearance: none;
+            border: 0;
+            width: 100%;
+            text-align: left;
+            padding: 12px 12px;
+            border-radius: 14px;
+            background: transparent;
+            color: rgba(230, 238, 249, 0.76);
+            font: inherit;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+          }
+          .nav-button:hover {
             background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.08);
-            margin-bottom: 18px;
+            color: #ffffff;
+          }
+          .nav-button.active {
+            background: linear-gradient(135deg, rgba(132, 134, 255, 0.22), rgba(132, 134, 255, 0.1));
+            color: #ffffff;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+          }
+          .nav-kicker {
+            font-size: 10px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: rgba(230, 238, 249, 0.52);
+          }
+          .canvas {
+            min-width: 0;
+            padding: 8px 2px 2px;
+          }
+          .view-section {
+            display: none;
+          }
+          .view-section.active {
+            display: block;
+          }
+          .hero {
+            padding: 18px;
+            border-radius: 22px;
+            background: rgba(255,255,255,0.72);
+            border: 1px solid rgba(132,134,255,0.12);
+            box-shadow:
+              inset 0 1px 0 rgba(255,255,255,0.8),
+              0 8px 20px rgba(37, 51, 77, 0.06);
+            margin-bottom: 16px;
           }
           .hero-top {
             display: flex;
@@ -77,37 +201,38 @@ window.DopparProfiler = {
             gap: 16px;
             align-items: flex-start;
             flex-wrap: wrap;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
           }
           .eyebrow {
             font-size: 11px;
             letter-spacing: .18em;
             text-transform: uppercase;
-            color: rgba(237,245,252,0.62);
+            color: #6b7890;
             font-weight: 800;
             margin-bottom: 8px;
           }
           .hero-title {
-            font-size: 24px;
+            font-size: 28px;
             line-height: 1.15;
             font-weight: 800;
             letter-spacing: -.04em;
             margin: 0 0 8px;
+            color: #152238;
           }
           .hero-title small {
             display: inline-flex;
             margin-right: 10px;
             padding: 7px 10px;
             border-radius: 999px;
-            background: rgba(242, 193, 78, 0.16);
-            color: #ffe8a7;
-            border: 1px solid rgba(242, 193, 78, 0.18);
+            background: rgba(132, 134, 255, 0.1);
+            color: #5a5ef0;
+            border: 1px solid rgba(132, 134, 255, 0.16);
             font-size: 11px;
             letter-spacing: .14em;
             text-transform: uppercase;
           }
           .hero-copy {
-            color: rgba(237,245,252,0.76);
+            color: #5e6d85;
             max-width: 520px;
           }
           .hero-status {
@@ -116,8 +241,8 @@ window.DopparProfiler = {
             gap: 8px;
             padding: 8px 12px;
             border-radius: 999px;
-            border: 1px solid rgba(255,255,255,0.12);
-            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(132,134,255,0.14);
+            background: rgba(255,255,255,0.76);
             font-weight: 800;
           }
           .hero-dot {
@@ -132,43 +257,46 @@ window.DopparProfiler = {
 
           .metrics {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 12px;
           }
           .metric {
             padding: 14px;
             border-radius: 18px;
-            background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(255,255,255,0.08);
+            background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(246,248,255,0.9));
+            border: 1px solid rgba(132,134,255,0.12);
+            box-shadow: 0 4px 12px rgba(37, 51, 77, 0.05);
           }
           .metric-label {
             font-size: 10px;
             text-transform: uppercase;
             letter-spacing: .16em;
-            color: rgba(237,245,252,0.62);
+            color: #74829a;
             font-weight: 800;
             margin-bottom: 8px;
           }
           .metric-value {
-            font-size: 24px;
+            font-size: 26px;
             line-height: 1;
             font-weight: 800;
             letter-spacing: -.04em;
+            color: #172033;
           }
           .metric-note {
             margin-top: 8px;
-            color: rgba(237,245,252,0.68);
+            color: #66758d;
             font-size: 12px;
           }
 
           .section {
-            margin-bottom: 18px;
             padding: 18px;
-            border-radius: 20px;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 22px;
+            background: rgba(255,255,255,0.74);
+            border: 1px solid rgba(132,134,255,0.12);
+            box-shadow:
+              inset 0 1px 0 rgba(255,255,255,0.82),
+              0 10px 24px rgba(37, 51, 77, 0.05);
           }
-          .section:last-child { margin-bottom: 0; }
           .section-title {
             font-size: 17px;
             font-weight: 800;
@@ -183,9 +311,10 @@ window.DopparProfiler = {
             display: inline-flex;
             align-items: center;
             gap: 10px;
+            color: #172033;
           }
           .section-copy {
-            color: rgba(237,245,252,0.72);
+            color: #607089;
             margin-bottom: 14px;
           }
 
@@ -201,9 +330,9 @@ window.DopparProfiler = {
             letter-spacing: .12em;
             border: 1px solid transparent;
           }
-          .badge-info { background: rgba(42, 114, 212, 0.14); color: #8ec5ff; border-color: rgba(42, 114, 212, 0.18); }
-          .badge-success { background: rgba(20, 125, 100, 0.16); color: #9ef3c8; border-color: rgba(158, 243, 200, 0.16); }
-          .badge-warning { background: rgba(242, 193, 78, 0.14); color: #ffd277; border-color: rgba(242, 193, 78, 0.18); }
+          .badge-info { background: rgba(132, 134, 255, 0.1); color: #5a5ef0; border-color: rgba(132, 134, 255, 0.16); }
+          .badge-success { background: rgba(20, 125, 100, 0.12); color: #147d64; border-color: rgba(20, 125, 100, 0.16); }
+          .badge-warning { background: rgba(242, 193, 78, 0.18); color: #b66912; border-color: rgba(242, 193, 78, 0.18); }
 
           .row {
             margin: 10px 0;
@@ -212,12 +341,12 @@ window.DopparProfiler = {
             gap: 14px;
             padding: 12px 14px;
             border-radius: 14px;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.06);
+            background: rgba(255,255,255,0.78);
+            border: 1px solid rgba(132,134,255,0.1);
           }
           .key {
             min-width: 108px;
-            color: rgba(237,245,252,0.58);
+            color: #728198;
             font-size: 11px;
             font-weight: 800;
             letter-spacing: .12em;
@@ -225,9 +354,81 @@ window.DopparProfiler = {
           }
           .val {
             flex: 1;
-            color: #f7fbff;
+            color: #172033;
             font-weight: 700;
             word-break: break-word;
+          }
+
+          .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+          }
+          .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+          }
+          .summary-card {
+            padding: 16px;
+            border-radius: 18px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(246,248,255,0.92));
+            border: 1px solid rgba(132,134,255,0.12);
+            box-shadow: 0 6px 14px rgba(37, 51, 77, 0.05);
+          }
+          .summary-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .16em;
+            font-weight: 800;
+            color: #76829a;
+            margin-bottom: 10px;
+          }
+          .summary-value {
+            color: #172033;
+            font-size: 22px;
+            line-height: 1.08;
+            letter-spacing: -.03em;
+            font-weight: 800;
+          }
+          .summary-note {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #63738b;
+          }
+
+          .property-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            overflow: hidden;
+            border-radius: 16px;
+            border: 1px solid rgba(132,134,255,0.12);
+            background: rgba(255,255,255,0.86);
+          }
+          .property-table th,
+          .property-table td {
+            padding: 13px 14px;
+            text-align: left;
+            border-bottom: 1px solid rgba(132,134,255,0.08);
+            vertical-align: top;
+          }
+          .property-table th {
+            background: rgba(132,134,255,0.08);
+            color: #53617a;
+            font-size: 11px;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            font-weight: 800;
+          }
+          .property-table td {
+            color: #172033;
+            font-size: 13px;
+            font-weight: 600;
+            word-break: break-word;
+          }
+          .property-table tr:last-child td {
+            border-bottom: 0;
           }
 
           .sql-list { display: grid; gap: 12px; }
@@ -235,8 +436,8 @@ window.DopparProfiler = {
           .redirect-chain-item {
             padding: 16px;
             border-radius: 16px;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.86);
+            border: 1px solid rgba(132,134,255,0.12);
           }
           .sql-header,
           .redirect-chain-header {
@@ -248,12 +449,12 @@ window.DopparProfiler = {
           }
           .sql-time,
           .redirect-chain-duration {
-            color: #9ef3c8;
+            color: #147d64;
             font-weight: 800;
             font-size: 12px;
             padding: 4px 10px;
             border-radius: 999px;
-            background: rgba(20, 125, 100, 0.16);
+            background: rgba(20, 125, 100, 0.12);
           }
           .sql-rows,
           .redirect-chain-method,
@@ -262,51 +463,55 @@ window.DopparProfiler = {
             font-weight: 800;
             border-radius: 999px;
             padding: 4px 10px;
-            background: rgba(255,255,255,0.08);
-            color: rgba(237,245,252,0.76);
+            background: rgba(132,134,255,0.08);
+            color: #596883;
           }
           .sql-query,
           .sql-bindings,
           .redirect-chain-arrow {
-            background: rgba(5, 12, 22, 0.32);
-            border: 1px solid rgba(255,255,255,0.06);
+            background: rgba(246,248,255,0.96);
+            border: 1px solid rgba(132,134,255,0.1);
             border-radius: 14px;
             padding: 12px 14px;
             font-family: "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
           }
           .sql-query,
           .redirect-chain-path {
-            color: #f7fbff;
+            color: #172033;
             word-break: break-word;
           }
           .sql-bindings,
           .redirect-chain-arrow {
             margin-top: 10px;
-            color: rgba(237,245,252,0.72);
+            color: #607089;
             font-size: 12px;
           }
           .sql-error {
             margin-top: 10px;
-            color: #ffb6b0;
-            background: rgba(191, 60, 68, 0.16);
-            border: 1px solid rgba(191, 60, 68, 0.2);
+            color: #bf3c44;
+            background: rgba(191, 60, 68, 0.08);
+            border: 1px solid rgba(191, 60, 68, 0.14);
             border-radius: 12px;
             padding: 10px 12px;
             font-weight: 700;
           }
           .no-data {
-            color: rgba(237,245,252,0.62);
+            color: #728198;
             font-style: italic;
             text-align: center;
             padding: 30px 16px;
-            background: rgba(255,255,255,0.04);
+            background: rgba(255,255,255,0.56);
             border-radius: 16px;
-            border: 1px dashed rgba(255,255,255,0.1);
+            border: 1px dashed rgba(132,134,255,0.18);
           }
 
           @media (max-width: 820px) {
-            .panel { width: calc(100vw - 24px); padding: 16px; }
+            .panel { width: 100%; padding: 12px; }
+            .workspace { grid-template-columns: 1fr; }
+            .sidebar-nav { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
             .hero-top, .row { flex-direction: column; }
+            .metrics,
+            .stats-grid { grid-template-columns: 1fr; }
             .key { min-width: 0; }
           }
         `;
@@ -431,7 +636,7 @@ window.DopparProfiler = {
         }
         
         // Build auth section
-        let authSection = '';
+        let authSection = '<div class="section"><div class="section-title"><span class="section-title-main">Authentication</span></div><div class="no-data">No authenticated user context captured for this request</div></div>';
         if (data.auth_authenticated) {
           const userName = escapeHtml(data.auth_user_name || 'User');
           const userEmail = escapeHtml(data.auth_user_email || '');
@@ -446,42 +651,8 @@ window.DopparProfiler = {
             </div>
           `;
         }
-        
-        const statusClass = Number(data.status) >= 500 || Number(data.status) >= 400
-          ? 'err'
-          : (Number(data.status) >= 300 ? 'warn' : 'ok');
 
-        wrap.innerHTML = `
-          <div class="hero">
-            <div class="hero-top">
-              <div>
-                <div class="eyebrow">Quick View</div>
-                <div class="hero-title"><small>${escapeHtml(data.method)}</small>${escapeHtml(data.route)}</div>
-                <div class="hero-copy">A fast operational snapshot of this request, optimized for immediate debugging.</div>
-              </div>
-              <span class="hero-status ${statusClass}">
-                <span class="hero-dot"></span>
-                HTTP ${escapeHtml(data.status)}
-              </span>
-            </div>
-            <div class="metrics">
-              <div class="metric">
-                <div class="metric-label">Duration</div>
-                <div class="metric-value">${escapeHtml(data.duration_ms?.toFixed?.(1) ?? data.duration_ms)}</div>
-                <div class="metric-note">milliseconds</div>
-              </div>
-              <div class="metric">
-                <div class="metric-label">Peak Memory</div>
-                <div class="metric-value">${((data.memory_peak || 0) / (1024*1024)).toFixed(2)}</div>
-                <div class="metric-note">MB</div>
-              </div>
-              <div class="metric">
-                <div class="metric-label">SQL Queries</div>
-                <div class="metric-value">${escapeHtml(data.sql_total_count || 0)}</div>
-                <div class="metric-note">${escapeHtml(data.sql_total_time_ms?.toFixed?.(2) ?? data.sql_total_time_ms ?? 0)} ms total</div>
-              </div>
-            </div>
-          </div>
+        const requestInfoSection = `
           <div class="section">
             <div class="section-title"><span class="section-title-main">Request Information</span></div>
             <div class="row"><span class="key">Request ID:</span> <span class="val">${escapeHtml(data.id)}</span></div>
@@ -492,15 +663,146 @@ window.DopparProfiler = {
             <div class="row"><span class="key">Duration:</span> <span class="val">${escapeHtml(data.duration_ms?.toFixed?.(1) ?? data.duration_ms)} ms</span></div>
             <div class="row"><span class="key">Memory Peak:</span> <span class="val">${((data.memory_peak || 0) / (1024*1024)).toFixed(2)} MB</span></div>
           </div>
-          ${authSection}
-          ${redirectChainSection}
-          ${sqlSection}
+        `;
+
+        const performanceSection = `
+          <div class="section">
+            <div class="section-title"><span class="section-title-main">Performance Profile</span></div>
+            <div class="summary-grid">
+              <div class="summary-card">
+                <div class="summary-label">Duration</div>
+                <div class="summary-value">${escapeHtml(data.duration_ms?.toFixed?.(1) ?? data.duration_ms)} ms</div>
+                <div class="summary-note">Total application runtime for this request.</div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-label">Peak Memory</div>
+                <div class="summary-value">${((data.memory_peak || 0) / (1024*1024)).toFixed(2)} MB</div>
+                <div class="summary-note">Maximum memory footprint recorded.</div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-label">SQL Time</div>
+                <div class="summary-value">${escapeHtml(data.sql_total_time_ms?.toFixed?.(2) ?? data.sql_total_time_ms ?? 0)} ms</div>
+                <div class="summary-note">Time spent in database calls.</div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-label">Queries</div>
+                <div class="summary-value">${escapeHtml(data.sql_total_count || 0)}</div>
+                <div class="summary-note">Executed SQL statements in this lifecycle.</div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        const statusClass = Number(data.status) >= 500 || Number(data.status) >= 400
+          ? 'err'
+          : (Number(data.status) >= 300 ? 'warn' : 'ok');
+
+        wrap.innerHTML = `
+          <div class="workspace">
+            <aside class="sidebar">
+              <div class="sidebar-brand">
+                <span class="sidebar-mark">D</span>
+                <div>
+                  <div class="sidebar-title">Quick View</div>
+                  <div class="sidebar-copy">Doppar request workspace</div>
+                </div>
+              </div>
+              <nav class="sidebar-nav">
+                <button class="nav-button active" type="button" data-view="overview"><span>Overview</span><span class="nav-kicker">Summary</span></button>
+                <button class="nav-button" type="button" data-view="request"><span>Request</span><span class="nav-kicker">${escapeHtml(data.method)}</span></button>
+                <button class="nav-button" type="button" data-view="performance"><span>Performance</span><span class="nav-kicker">${escapeHtml(data.duration_ms?.toFixed?.(1) ?? data.duration_ms)} ms</span></button>
+                <button class="nav-button" type="button" data-view="database"><span>Database</span><span class="nav-kicker">${escapeHtml(data.sql_total_count || 0)} queries</span></button>
+                <button class="nav-button" type="button" data-view="redirects"><span>Redirects</span><span class="nav-kicker">${(chainData && chainData !== '[]') || (data.is_redirect && data.redirect_url) ? 'Active' : 'None'}</span></button>
+                <button class="nav-button" type="button" data-view="auth"><span>Auth</span><span class="nav-kicker">${data.auth_authenticated ? 'User' : 'Guest'}</span></button>
+              </nav>
+            </aside>
+            <main class="canvas">
+              <section class="view-section active" data-view-section="overview">
+                <div class="hero">
+                  <div class="hero-top">
+                    <div>
+                      <div class="eyebrow">Quick View</div>
+                      <div class="hero-title"><small>${escapeHtml(data.method)}</small>${escapeHtml(data.route)}</div>
+                      <div class="hero-copy">A focused operational dashboard for this request, built for fast triage and deeper follow-up.</div>
+                    </div>
+                    <span class="hero-status ${statusClass}">
+                      <span class="hero-dot"></span>
+                      HTTP ${escapeHtml(data.status)}
+                    </span>
+                  </div>
+                  <div class="metrics">
+                    <div class="metric">
+                      <div class="metric-label">Duration</div>
+                      <div class="metric-value">${escapeHtml(data.duration_ms?.toFixed?.(1) ?? data.duration_ms)}</div>
+                      <div class="metric-note">milliseconds</div>
+                    </div>
+                    <div class="metric">
+                      <div class="metric-label">Peak Memory</div>
+                      <div class="metric-value">${((data.memory_peak || 0) / (1024*1024)).toFixed(2)}</div>
+                      <div class="metric-note">MB</div>
+                    </div>
+                    <div class="metric">
+                      <div class="metric-label">SQL Queries</div>
+                      <div class="metric-value">${escapeHtml(data.sql_total_count || 0)}</div>
+                      <div class="metric-note">${escapeHtml(data.sql_total_time_ms?.toFixed?.(2) ?? data.sql_total_time_ms ?? 0)} ms total</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="stats-grid">
+                  ${requestInfoSection}
+                  ${performanceSection}
+                </div>
+              </section>
+              <section class="view-section" data-view-section="request">
+                ${requestInfoSection}
+              </section>
+              <section class="view-section" data-view-section="performance">
+                ${performanceSection}
+              </section>
+              <section class="view-section" data-view-section="database">
+                ${sqlSection}
+              </section>
+              <section class="view-section" data-view-section="redirects">
+                ${redirectChainSection || '<div class="section"><div class="section-title"><span class="section-title-main">Redirects</span></div><div class="no-data">No redirects were detected for this request chain</div></div>'}
+              </section>
+              <section class="view-section" data-view-section="auth">
+                ${authSection}
+              </section>
+            </main>
+          </div>
         `;
         root.appendChild(style);
         root.appendChild(wrap);
+        const navButtons = wrap.querySelectorAll('[data-view]');
+        const viewSections = wrap.querySelectorAll('[data-view-section]');
+        navButtons.forEach((button) => {
+          button.addEventListener('click', () => {
+            const target = button.getAttribute('data-view');
+            navButtons.forEach((item) => item.classList.toggle('active', item === button));
+            viewSections.forEach((section) => {
+              section.classList.toggle('active', section.getAttribute('data-view-section') === target);
+            });
+          });
+        });
+        this.syncPanelPosition();
       }).catch(()=>{});
     } else {
       root.innerHTML = '';
     }
+  },
+  bindLayoutSync(){
+    if(this.layoutSyncBound){
+      return;
+    }
+    this.layoutSyncBound = true;
+    const sync = () => {
+      if(this.open){
+        this.syncPanelPosition();
+      }
+    };
+    window.addEventListener('resize', sync);
+    window.addEventListener('scroll', sync, { passive: true });
   }
 };
+
+window.DopparProfiler.bindLayoutSync();
