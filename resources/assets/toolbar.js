@@ -1,5 +1,52 @@
 window.DopparProfiler = {
   open: false,
+  async copyText(text){
+    if(navigator.clipboard && window.isSecureContext){
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', 'readonly');
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    textarea.style.pointerEvents = 'none';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+
+    let copied = false;
+    try {
+      copied = document.execCommand('copy');
+    } finally {
+      document.body.removeChild(textarea);
+    }
+
+    if(!copied){
+      throw new Error('Copy command failed');
+    }
+
+    return true;
+  },
+  setCopyButtonState(button, state){
+    if(!button){
+      return;
+    }
+    button.classList.remove('is-success', 'is-error');
+    if(state === 'success'){
+      button.classList.add('is-success');
+      button.innerHTML = '<span class="copy-icon copy-icon-success" aria-hidden="true"></span>Copied';
+      return;
+    }
+    if(state === 'error'){
+      button.classList.add('is-error');
+      button.innerHTML = '<span class="copy-icon copy-icon-error" aria-hidden="true"></span>Copy failed';
+      return;
+    }
+    button.innerHTML = '<span class="copy-icon" aria-hidden="true"></span>Copy Payload';
+  },
   getToolbarBounds(){
     const host = document.getElementById('doppar-profiler');
     if(!host || !host.shadowRoot){
@@ -261,6 +308,7 @@ window.DopparProfiler = {
           .nav-icon-performance { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 16a8 8 0 1 1 15 0'/%3E%3Cpath d='M12 12 9 15'/%3E%3Cpath d='M12 12h5'/%3E%3C/svg%3E"); }
           .nav-icon-session { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='16' height='16' rx='2'/%3E%3Cpath d='M8 9h8'/%3E%3Cpath d='M8 13h8'/%3E%3Cpath d='M8 17h5'/%3E%3C/svg%3E"); }
           .nav-icon-logs { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3h8l4 4v14H4V3h4'/%3E%3Cpath d='M14 3v5h5'/%3E%3Cpath d='M8 13h8'/%3E%3Cpath d='M8 17h6'/%3E%3C/svg%3E"); }
+          .nav-icon-json { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 8c-1.5 0-2.5 1-2.5 2.5v3C5.5 15 4.5 16 3 16'/%3E%3Cpath d='M16 8c1.5 0 2.5 1 2.5 2.5v3c0 1 1 2 2.5 2'/%3E%3Cpath d='M10 6 8 18'/%3E%3Cpath d='M14 6l2 12'/%3E%3C/svg%3E"); }
           .nav-label {
             color: inherit;
             font-size: 13px;
@@ -441,6 +489,141 @@ window.DopparProfiler = {
           .section-copy {
             color: #607089;
             margin-bottom: 14px;
+          }
+          .api-shell {
+            display: grid;
+            gap: 16px;
+          }
+          .api-operation {
+            display: grid;
+            gap: 12px;
+            padding: 18px;
+            border-radius: 18px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(246,248,255,0.92));
+            border: 1px solid rgba(132,134,255,0.14);
+            box-shadow: 0 8px 18px rgba(37, 51, 77, 0.05);
+          }
+          .api-line {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+          }
+          .api-method {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 56px;
+            padding: 7px 12px;
+            border-radius: 999px;
+            background: rgba(20, 125, 100, 0.12);
+            color: #147d64;
+            border: 1px solid rgba(20, 125, 100, 0.16);
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+          }
+          .api-path {
+            display: inline-flex;
+            align-items: center;
+            min-height: 40px;
+            padding: 0 14px;
+            border-radius: 14px;
+            background: rgba(248, 250, 255, 0.98);
+            border: 1px solid rgba(132,134,255,0.12);
+            color: #172033;
+            font: 13px/1.4 "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
+            word-break: break-all;
+          }
+          .api-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+          }
+          .api-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+          }
+          .api-meta-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 10px;
+            border-radius: 999px;
+            background: rgba(132,134,255,0.08);
+            border: 1px solid rgba(132,134,255,0.12);
+            color: #54627c;
+            font-size: 11px;
+            font-weight: 700;
+          }
+          .api-response-shell {
+            display: grid;
+            gap: 12px;
+          }
+          .api-response-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+          }
+          .api-response-title {
+            color: #172033;
+            font-size: 16px;
+            font-weight: 800;
+          }
+          .copy-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 152px;
+            justify-content: center;
+            transition:
+              transform .16s ease,
+              box-shadow .2s ease,
+              background .2s ease,
+              border-color .2s ease;
+            box-shadow:
+              0 12px 22px rgba(90, 94, 240, 0.18),
+              inset 0 1px 0 rgba(255,255,255,0.2);
+          }
+          .copy-action:hover {
+            transform: translateY(-1px);
+            box-shadow:
+              0 16px 28px rgba(90, 94, 240, 0.24),
+              inset 0 1px 0 rgba(255,255,255,0.22);
+          }
+          .copy-action.is-success {
+            background: linear-gradient(180deg, #22ae82, #157b64);
+            border-color: rgba(21, 123, 100, 0.85);
+            box-shadow:
+              0 12px 24px rgba(21, 123, 100, 0.22),
+              inset 0 1px 0 rgba(255,255,255,0.2);
+          }
+          .copy-action.is-error {
+            background: linear-gradient(180deg, #e06a78, #bf3c44);
+            border-color: rgba(191, 60, 68, 0.84);
+            box-shadow:
+              0 12px 24px rgba(191, 60, 68, 0.22),
+              inset 0 1px 0 rgba(255,255,255,0.2);
+          }
+          .copy-icon {
+            width: 14px;
+            height: 14px;
+            flex: 0 0 14px;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 14px 14px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='9' y='9' width='11' height='11' rx='2'/%3E%3Cpath d='M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'/%3E%3C/svg%3E");
+          }
+          .copy-icon-success {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 4 4L19 6'/%3E%3C/svg%3E");
+          }
+          .copy-icon-error {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 6 6 18'/%3E%3Cpath d='m6 6 12 12'/%3E%3C/svg%3E");
           }
           .section-stack {
             display: grid;
@@ -1014,6 +1197,38 @@ window.DopparProfiler = {
         `;
 
         const outgoingRequests = Array.isArray(data.http_requests) ? data.http_requests : [];
+        const jsonApiPath = `/_insight/api/${escapeHtml(data.id)}`;
+        const jsonApiSection = `
+          <div class="section">
+            <div class="section-title">
+              <span class="section-title-main">JSON API</span>
+            </div>
+            <div class="api-shell">
+              <div class="api-operation">
+                <div class="api-line">
+                  <span class="api-method">GET</span>
+                  <span class="api-path">${jsonApiPath}</span>
+                </div>
+                <div class="api-meta">
+                  <span class="api-meta-chip">Status 200</span>
+                  <span class="api-meta-chip">Content-Type application/json</span>
+                  <span class="api-meta-chip">Request ${escapeHtml(data.id)}</span>
+                </div>
+              </div>
+              <div class="api-response-shell">
+                <div class="api-response-head">
+                  <div class="api-response-title">Response Body</div>
+                  <button class="dp-btn dp-btn-primary copy-action" type="button" data-action="json-api-copy">
+                    <span class="copy-icon" aria-hidden="true"></span>
+                    Copy Payload
+                  </button>
+                </div>
+                ${buildCodeBlock(data)}
+              </div>
+            </div>
+          </div>
+        `;
+
         const httpSection = `
           <div class="section-stack">
             ${redirectChainSection || '<div class="section"><div class="section-title"><span class="section-title-main">Redirect Chain</span></div><div class="no-data">No redirects were detected for this request chain</div></div>'}
@@ -1066,6 +1281,7 @@ window.DopparProfiler = {
                 <button class="nav-button" type="button" data-view="performance"><span class="nav-main"><span class="nav-icon nav-icon-performance"></span><span class="nav-label">Performance</span></span></button>
                 <button class="nav-button" type="button" data-view="session"><span class="nav-main"><span class="nav-icon nav-icon-session"></span><span class="nav-label">Session</span></span></button>
                 <button class="nav-button" type="button" data-view="logs"><span class="nav-main"><span class="nav-icon nav-icon-logs"></span><span class="nav-label">Logs</span></span></button>
+                <button class="nav-button" type="button" data-view="json-api"><span class="nav-main"><span class="nav-icon nav-icon-json"></span><span class="nav-label">JSON API</span></span></button>
               </nav>
             </aside>
             <main class="canvas">
@@ -1132,6 +1348,9 @@ window.DopparProfiler = {
               <section class="view-section" data-view-section="logs">
                 ${logsSection}
               </section>
+              <section class="view-section" data-view-section="json-api">
+                ${jsonApiSection}
+              </section>
             </main>
           </div>
         `;
@@ -1146,6 +1365,20 @@ window.DopparProfiler = {
             viewSections.forEach((section) => {
               section.classList.toggle('active', section.getAttribute('data-view-section') === target);
             });
+          });
+        });
+        wrap.querySelectorAll('[data-action="json-api-copy"]').forEach((button) => {
+          button.addEventListener('click', async () => {
+            const payload = JSON.stringify(data, null, 2);
+            try {
+              await this.copyText(payload);
+              this.setCopyButtonState(button, 'success');
+            } catch (error) {
+              this.setCopyButtonState(button, 'error');
+            }
+            window.setTimeout(() => {
+              this.setCopyButtonState(button, 'idle');
+            }, 1600);
           });
         });
         this.syncPanelPosition();
