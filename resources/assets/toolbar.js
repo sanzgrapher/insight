@@ -205,12 +205,15 @@ window.DopparProfiler = {
             const children = Object.entries(value).map(([childKey, childValue]) => buildJsonViewerItem(childKey, childValue)).join('');
 
             return `
-              <label class="json__item json__item--collapsible">
-                <input type="checkbox" class="json__toggle" />
-                <div class="json__key">${keyHtml}</div>
-                <div class="json__value json__value--type-${type}">${escapeHtml(label)}</div>
-                ${children}
-              </label>
+              <details class="json__node">
+                <summary class="json__item json__item--collapsible">
+                  <span class="json__key">${keyHtml}</span>
+                  <span class="json__value json__value--type-${type}">${escapeHtml(label)}</span>
+                </summary>
+                <div class="json__children">
+                  ${children}
+                </div>
+              </details>
             `;
           }
 
@@ -825,8 +828,22 @@ window.DopparProfiler = {
           .json > .json__item {
             display: block;
           }
-          .json__item {
+          .json__node {
+            display: block;
+            margin-top: 8px;
+          }
+          .json__node:first-child {
+            margin-top: 0;
+          }
+          .json__children {
             display: none;
+            padding-left: 18px;
+          }
+          .json__node[open] > .json__children {
+            display: block;
+          }
+          .json__item {
+            display: block;
             margin-top: 8px;
             padding-left: 18px;
           }
@@ -834,6 +851,11 @@ window.DopparProfiler = {
             display: block;
             cursor: pointer;
             position: relative;
+            list-style: none;
+            margin-top: 0;
+          }
+          .json__item--collapsible::-webkit-details-marker {
+            display: none;
           }
           .json__item--collapsible::before {
             content: "+";
@@ -857,13 +879,7 @@ window.DopparProfiler = {
           .json__item--collapsible:hover > .json__value {
             text-decoration: underline;
           }
-          .json__toggle {
-            display: none;
-          }
-          .json__toggle:checked ~ .json__item {
-            display: block;
-          }
-          .json__item--collapsible:has(.json__toggle:checked)::before {
+          .json__node[open] > .json__item--collapsible::before {
             content: "-";
           }
           .json__key {
