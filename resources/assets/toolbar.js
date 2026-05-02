@@ -56,6 +56,97 @@ window.DopparProfiler = {
           div.textContent = String(value ?? '');
           return div.innerHTML;
         };
+        const formatBytes = (bytes) => {
+          const size = Number(bytes || 0);
+          if(!size){
+            return '0 Bytes';
+          }
+          const units = ['Bytes', 'KB', 'MB', 'GB'];
+          const index = Math.min(units.length - 1, Math.floor(Math.log(size) / Math.log(1024)));
+          return `${Math.round((size / Math.pow(1024, index)) * 100) / 100} ${units[index]}`;
+        };
+        const prettyJson = (value) => escapeHtml(JSON.stringify(value, null, 2));
+        const hasEntries = (value) => {
+          if(Array.isArray(value)){
+            return value.length > 0;
+          }
+          return !!value && typeof value === 'object' && Object.keys(value).length > 0;
+        };
+        const formatCellValue = (value) => {
+          if(value === null || value === undefined || value === ''){
+            return '<span class="muted-value">N/A</span>';
+          }
+          if(typeof value === 'object'){
+            return `<pre class="code-block code-block-compact">${prettyJson(value)}</pre>`;
+          }
+          return escapeHtml(String(value));
+        };
+        const buildPropertyTable = (dataset, keyHeader = 'Property', valueHeader = 'Value') => {
+          if(!hasEntries(dataset)){
+            return '';
+          }
+          const rows = Object.entries(dataset).map(([key, value]) => `
+            <tr>
+              <td>${escapeHtml(key)}</td>
+              <td>${formatCellValue(value)}</td>
+            </tr>
+          `).join('');
+          return `
+            <table class="property-table">
+              <thead>
+                <tr>
+                  <th>${escapeHtml(keyHeader)}</th>
+                  <th>${escapeHtml(valueHeader)}</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          `;
+        };
+        const buildFilesTable = (files) => {
+          if(!hasEntries(files)){
+            return '';
+          }
+          const rows = Object.entries(files).map(([key, file]) => `
+            <tr>
+              <td>${escapeHtml(key)}</td>
+              <td>${escapeHtml(file?.name || 'N/A')}</td>
+              <td>${escapeHtml(file?.type || 'N/A')}</td>
+              <td>${file?.size ? `${(Number(file.size) / 1024).toFixed(2)} KB` : 'N/A'}</td>
+            </tr>
+          `).join('');
+          return `
+            <table class="property-table">
+              <thead>
+                <tr>
+                  <th>Field</th>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>Size</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          `;
+        };
+        const buildSubsection = (title, content) => {
+          if(!content){
+            return '';
+          }
+          return `
+            <div class="subsection">
+              <div class="subsection-title">${escapeHtml(title)}</div>
+              ${content}
+            </div>
+          `;
+        };
+        const buildCodeBlock = (value) => {
+          if(value === null || value === undefined || value === ''){
+            return '';
+          }
+          const output = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+          return `<pre class="code-block">${escapeHtml(output)}</pre>`;
+        };
         const css = `
           :host{all:initial}
 
@@ -95,8 +186,12 @@ window.DopparProfiler = {
             grid-template-columns: 210px minmax(0, 1fr);
             gap: 14px;
             min-height: 420px;
+            align-items: start;
           }
           .sidebar {
+            position: sticky;
+            top: 0;
+            align-self: start;
             padding: 12px;
             border-radius: 20px;
             background:
@@ -141,6 +236,36 @@ window.DopparProfiler = {
             display: grid;
             gap: 6px;
           }
+          .nav-main {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+          }
+          .nav-icon {
+            width: 18px;
+            height: 18px;
+            flex: 0 0 18px;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 18px 18px;
+            opacity: 0.9;
+          }
+          .nav-icon-overview { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='7' height='7' rx='1.5'/%3E%3Crect x='14' y='3' width='7' height='7' rx='1.5'/%3E%3Crect x='3' y='14' width='7' height='7' rx='1.5'/%3E%3Crect x='14' y='14' width='7' height='7' rx='1.5'/%3E%3C/svg%3E"); }
+          .nav-icon-http { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M3 12h18'/%3E%3Cpath d='M12 3a15 15 0 0 1 0 18'/%3E%3Cpath d='M12 3a15 15 0 0 0 0 18'/%3E%3C/svg%3E"); }
+          .nav-icon-database { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cellipse cx='12' cy='5' rx='7' ry='3'/%3E%3Cpath d='M5 5v14c0 1.7 3.1 3 7 3s7-1.3 7-3V5'/%3E%3Cpath d='M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3'/%3E%3C/svg%3E"); }
+          .nav-icon-cache { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3 4 7l8 4 8-4-8-4Z'/%3E%3Cpath d='m4 12 8 4 8-4'/%3E%3Cpath d='m4 17 8 4 8-4'/%3E%3C/svg%3E"); }
+          .nav-icon-auth { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3 5 6v6c0 5 3.4 8 7 9 3.6-1 7-4 7-9V6l-7-3Z'/%3E%3Cpath d='m9.5 12 1.7 1.7L14.8 10'/%3E%3C/svg%3E"); }
+          .nav-icon-request { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 4v14'/%3E%3Cpath d='m7 13 5 5 5-5'/%3E%3Cpath d='M5 5h14'/%3E%3C/svg%3E"); }
+          .nav-icon-response { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 20V6'/%3E%3Cpath d='m17 11-5-5-5 5'/%3E%3Cpath d='M5 19h14'/%3E%3C/svg%3E"); }
+          .nav-icon-performance { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 16a8 8 0 1 1 15 0'/%3E%3Cpath d='M12 12 9 15'/%3E%3Cpath d='M12 12h5'/%3E%3C/svg%3E"); }
+          .nav-icon-session { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='16' height='16' rx='2'/%3E%3Cpath d='M8 9h8'/%3E%3Cpath d='M8 13h8'/%3E%3Cpath d='M8 17h5'/%3E%3C/svg%3E"); }
+          .nav-icon-logs { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3h8l4 4v14H4V3h4'/%3E%3Cpath d='M14 3v5h5'/%3E%3Cpath d='M8 13h8'/%3E%3Cpath d='M8 17h6'/%3E%3C/svg%3E"); }
+          .nav-label {
+            color: inherit;
+            font-size: 13px;
+            font-weight: 800;
+          }
           .nav-button {
             appearance: none;
             border: 0;
@@ -156,7 +281,7 @@ window.DopparProfiler = {
             cursor: pointer;
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: flex-start;
             gap: 12px;
             transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
           }
@@ -317,6 +442,21 @@ window.DopparProfiler = {
             color: #607089;
             margin-bottom: 14px;
           }
+          .section-stack {
+            display: grid;
+            gap: 16px;
+          }
+          .subsection {
+            display: grid;
+            gap: 10px;
+          }
+          .subsection-title {
+            color: #4f5d75;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+          }
 
           .badge {
             display: inline-flex;
@@ -396,6 +536,10 @@ window.DopparProfiler = {
             font-size: 12px;
             color: #63738b;
           }
+          .muted-value {
+            color: #8391a8;
+            font-style: italic;
+          }
 
           .property-table {
             width: 100%;
@@ -429,6 +573,82 @@ window.DopparProfiler = {
           }
           .property-table tr:last-child td {
             border-bottom: 0;
+          }
+          .code-block {
+            margin: 0;
+            padding: 14px 16px;
+            border-radius: 16px;
+            border: 1px solid rgba(132,134,255,0.1);
+            background: rgba(246,248,255,0.96);
+            color: #172033;
+            font: 12px/1.7 "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-x: auto;
+          }
+          .code-block-compact {
+            padding: 10px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+          }
+          .log-list {
+            display: grid;
+            gap: 12px;
+          }
+          .log-card {
+            padding: 14px;
+            border-radius: 16px;
+            border: 1px solid rgba(132,134,255,0.1);
+            background: rgba(255,255,255,0.82);
+          }
+          .log-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+          }
+          .log-level {
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 10px;
+            border-radius: 999px;
+            font-size: 10px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            font-weight: 800;
+            background: rgba(132,134,255,0.1);
+            color: #5a5ef0;
+          }
+          .log-time {
+            color: #728198;
+            font-size: 12px;
+            font-weight: 700;
+          }
+          .log-message {
+            color: #172033;
+            font-weight: 700;
+            margin-bottom: 10px;
+            word-break: break-word;
+          }
+          .pill-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+          }
+          .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(132,134,255,0.08);
+            border: 1px solid rgba(132,134,255,0.12);
+            color: #4f5d75;
+            font-size: 11px;
+            font-weight: 700;
           }
 
           .sql-list { display: grid; gap: 12px; }
@@ -640,6 +860,9 @@ window.DopparProfiler = {
         if (data.auth_authenticated) {
           const userName = escapeHtml(data.auth_user_name || 'User');
           const userEmail = escapeHtml(data.auth_user_email || '');
+          const authMeta = {};
+          if (data.auth_user_id !== null && data.auth_user_id !== undefined) authMeta['User ID'] = data.auth_user_id;
+          if (data.auth_guard) authMeta['Guard'] = data.auth_guard;
           authSection = `
             <div class="section">
               <div class="section-title">
@@ -648,6 +871,8 @@ window.DopparProfiler = {
               </div>
               <div class="row"><span class="key">User:</span> <span class="val">${userName}</span></div>
               ${userEmail ? `<div class="row"><span class="key">Email:</span> <span class="val">${userEmail}</span></div>` : ''}
+              ${hasEntries(authMeta) ? buildSubsection('Metadata', buildPropertyTable(authMeta, 'Property', 'Value')) : ''}
+              ${hasEntries(data.auth_user) ? buildSubsection('User Payload', buildPropertyTable(data.auth_user, 'Property', 'Value')) : ''}
             </div>
           `;
         }
@@ -662,6 +887,22 @@ window.DopparProfiler = {
             ${redirectSection}
             <div class="row"><span class="key">Duration:</span> <span class="val">${escapeHtml(data.duration_ms?.toFixed?.(1) ?? data.duration_ms)} ms</span></div>
             <div class="row"><span class="key">Memory Peak:</span> <span class="val">${((data.memory_peak || 0) / (1024*1024)).toFixed(2)} MB</span></div>
+          </div>
+        `;
+
+        const requestDetailsSection = `
+          <div class="section">
+            <div class="section-title"><span class="section-title-main">Request Payload</span></div>
+            <div class="section-stack">
+              ${buildSubsection('Headers', buildPropertyTable(data.request_headers, 'Header', 'Value'))}
+              ${buildSubsection('Query Parameters', buildPropertyTable(data.request_query, 'Parameter', 'Value'))}
+              ${buildSubsection('POST Parameters', buildPropertyTable(data.request_params, 'Parameter', 'Value'))}
+              ${buildSubsection('Request Body', buildCodeBlock(data.request_body))}
+              ${buildSubsection('Cookies', buildPropertyTable(data.request_cookies, 'Cookie', 'Value'))}
+              ${buildSubsection('Uploaded Files', buildFilesTable(data.request_files))}
+              ${buildSubsection('Server', buildPropertyTable(data.request_server, 'Variable', 'Value'))}
+            </div>
+            ${!hasEntries(data.request_headers) && !hasEntries(data.request_query) && !hasEntries(data.request_params) && !data.request_body && !hasEntries(data.request_cookies) && !hasEntries(data.request_files) && !hasEntries(data.request_server) ? '<div class="no-data">No detailed request payload captured</div>' : ''}
           </div>
         `;
 
@@ -693,6 +934,113 @@ window.DopparProfiler = {
           </div>
         `;
 
+        const responseInfo = {};
+        if (data.response_status !== undefined) responseInfo['Status Code'] = data.response_status;
+        if (data.response_content_type) responseInfo['Content Type'] = data.response_content_type;
+        if (data.response_body_size !== undefined) responseInfo['Body Size'] = formatBytes(data.response_body_size);
+
+        const responseSection = `
+          <div class="section">
+            <div class="section-title"><span class="section-title-main">Response Details</span></div>
+            <div class="section-stack">
+              ${buildSubsection('Response', buildPropertyTable(responseInfo, 'Property', 'Value'))}
+              ${buildSubsection('Headers', buildPropertyTable(data.response_headers, 'Header', 'Value'))}
+              ${(data.is_redirect && data.redirect_url) ? `<div class="row"><span class="key">Redirect to:</span><span class="val">→ ${escapeHtml(data.redirect_url)}</span></div>` : ''}
+            </div>
+            ${!hasEntries(responseInfo) && !hasEntries(data.response_headers) && !(data.is_redirect && data.redirect_url) ? '<div class="no-data">No response details available</div>' : ''}
+          </div>
+        `;
+
+        const cacheOperations = Array.isArray(data.cache_operations) ? data.cache_operations : [];
+        const cacheReads = Number(data.cache_hits || 0) + Number(data.cache_misses || 0);
+        const cacheHitRate = cacheReads > 0 ? ((Number(data.cache_hits || 0) / cacheReads) * 100).toFixed(1) : '0.0';
+        const cacheSection = `
+          <div class="section">
+            <div class="section-title"><span class="section-title-main">Cache Activity</span></div>
+            ${cacheOperations.length ? `
+              <div class="summary-grid">
+                <div class="summary-card"><div class="summary-label">Operations</div><div class="summary-value">${escapeHtml(data.cache_total || cacheOperations.length)}</div><div class="summary-note">Total captured cache events.</div></div>
+                <div class="summary-card"><div class="summary-label">Hit Rate</div><div class="summary-value">${cacheHitRate}%</div><div class="summary-note">${escapeHtml(data.cache_hits || 0)} hits / ${escapeHtml(data.cache_misses || 0)} misses</div></div>
+                <div class="summary-card"><div class="summary-label">Writes</div><div class="summary-value">${escapeHtml(data.cache_writes || 0)}</div><div class="summary-note">Set and forever style writes.</div></div>
+                <div class="summary-card"><div class="summary-label">Deletes</div><div class="summary-value">${escapeHtml(data.cache_deletes || 0)}</div><div class="summary-note">Forget and delete operations.</div></div>
+              </div>
+              <div class="section-stack" style="margin-top:14px;">
+                ${cacheOperations.map((operation, index) => {
+                  const valueOutput = operation.value_json
+                    ? buildCodeBlock(operation.value_json)
+                    : (operation.value !== null && operation.value !== undefined && operation.value !== '' ? buildCodeBlock(String(operation.value)) : '');
+                  return `
+                    <div class="subsection">
+                      <div class="subsection-title">${escapeHtml(operation.type || 'unknown')} #${index + 1}</div>
+                      <div class="pill-row">
+                        <span class="pill">Key: ${escapeHtml(operation.key || 'N/A')}</span>
+                        ${operation.type === 'get' ? `<span class="pill">${operation.hit ? 'HIT' : 'MISS'}</span>` : ''}
+                      </div>
+                      ${valueOutput}
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            ` : '<div class="no-data">No cache operations detected</div>'}
+          </div>
+        `;
+
+        const sessionSection = `
+          <div class="section">
+            <div class="section-title"><span class="section-title-main">Session Snapshot</span></div>
+            ${hasEntries(data.session_data) ? buildCodeBlock(data.session_data) : '<div class="no-data">No session data available</div>'}
+          </div>
+        `;
+
+        const logsList = Array.isArray(data.logs) ? data.logs : [];
+        const logsSection = `
+          <div class="section">
+            <div class="section-title"><span class="section-title-main">Runtime Logs</span></div>
+            ${logsList.length ? `
+              <div class="log-list">
+                ${logsList.map((log) => `
+                  <div class="log-card">
+                    <div class="log-head">
+                      <span class="log-level">${escapeHtml((log.level || 'info').toUpperCase())}</span>
+                      <span class="log-time">${escapeHtml(log.time || '')}</span>
+                    </div>
+                    <div class="log-message">${escapeHtml(log.message || '')}</div>
+                    ${hasEntries(log.context) ? buildCodeBlock(log.context) : ''}
+                  </div>
+                `).join('')}
+              </div>
+            ` : '<div class="no-data">No logs captured during this request</div>'}
+          </div>
+        `;
+
+        const outgoingRequests = Array.isArray(data.http_requests) ? data.http_requests : [];
+        const httpSection = `
+          <div class="section-stack">
+            ${redirectChainSection || '<div class="section"><div class="section-title"><span class="section-title-main">Redirect Chain</span></div><div class="no-data">No redirects were detected for this request chain</div></div>'}
+            <div class="section">
+              <div class="section-title"><span class="section-title-main">Outgoing HTTP Requests</span></div>
+              ${outgoingRequests.length ? `
+                <div class="section-stack">
+                  ${outgoingRequests.map((request, index) => `
+                    <div class="subsection">
+                      <div class="subsection-title">Request #${index + 1}</div>
+                      <div class="pill-row">
+                        <span class="pill">${escapeHtml(request.method || 'GET')}</span>
+                        <span class="pill">${escapeHtml(request.status ?? 'N/A')}</span>
+                        <span class="pill">${escapeHtml(request.duration_ms?.toFixed?.(1) ?? request.duration_ms ?? 0)} ms</span>
+                        ${request.successful === true ? '<span class="pill">Successful</span>' : ''}
+                        ${request.successful === false ? '<span class="pill">Failed</span>' : ''}
+                      </div>
+                      <div class="row"><span class="key">URL:</span><span class="val">${escapeHtml(request.url || 'unknown')}</span></div>
+                      ${request.error ? `<div class="row"><span class="key">Error:</span><span class="val">${escapeHtml(request.error)}</span></div>` : ''}
+                    </div>
+                  `).join('')}
+                </div>
+              ` : '<div class="no-data">No outgoing HTTP requests recorded</div>'}
+            </div>
+          </div>
+        `;
+
         const statusClass = Number(data.status) >= 500 || Number(data.status) >= 400
           ? 'err'
           : (Number(data.status) >= 300 ? 'warn' : 'ok');
@@ -708,12 +1056,16 @@ window.DopparProfiler = {
                 </div>
               </div>
               <nav class="sidebar-nav">
-                <button class="nav-button active" type="button" data-view="overview"><span>Overview</span><span class="nav-kicker">Summary</span></button>
-                <button class="nav-button" type="button" data-view="request"><span>Request</span><span class="nav-kicker">${escapeHtml(data.method)}</span></button>
-                <button class="nav-button" type="button" data-view="performance"><span>Performance</span><span class="nav-kicker">${escapeHtml(data.duration_ms?.toFixed?.(1) ?? data.duration_ms)} ms</span></button>
-                <button class="nav-button" type="button" data-view="database"><span>Database</span><span class="nav-kicker">${escapeHtml(data.sql_total_count || 0)} queries</span></button>
-                <button class="nav-button" type="button" data-view="redirects"><span>Redirects</span><span class="nav-kicker">${(chainData && chainData !== '[]') || (data.is_redirect && data.redirect_url) ? 'Active' : 'None'}</span></button>
-                <button class="nav-button" type="button" data-view="auth"><span>Auth</span><span class="nav-kicker">${data.auth_authenticated ? 'User' : 'Guest'}</span></button>
+                <button class="nav-button active" type="button" data-view="overview"><span class="nav-main"><span class="nav-icon nav-icon-overview"></span><span class="nav-label">Overview</span></span></button>
+                <button class="nav-button" type="button" data-view="http"><span class="nav-main"><span class="nav-icon nav-icon-http"></span><span class="nav-label">HTTP</span></span></button>
+                <button class="nav-button" type="button" data-view="database"><span class="nav-main"><span class="nav-icon nav-icon-database"></span><span class="nav-label">Database</span></span></button>
+                <button class="nav-button" type="button" data-view="cache"><span class="nav-main"><span class="nav-icon nav-icon-cache"></span><span class="nav-label">Cache</span></span></button>
+                <button class="nav-button" type="button" data-view="auth"><span class="nav-main"><span class="nav-icon nav-icon-auth"></span><span class="nav-label">Auth</span></span></button>
+                <button class="nav-button" type="button" data-view="request"><span class="nav-main"><span class="nav-icon nav-icon-request"></span><span class="nav-label">Request</span></span></button>
+                <button class="nav-button" type="button" data-view="response"><span class="nav-main"><span class="nav-icon nav-icon-response"></span><span class="nav-label">Response</span></span></button>
+                <button class="nav-button" type="button" data-view="performance"><span class="nav-main"><span class="nav-icon nav-icon-performance"></span><span class="nav-label">Performance</span></span></button>
+                <button class="nav-button" type="button" data-view="session"><span class="nav-main"><span class="nav-icon nav-icon-session"></span><span class="nav-label">Session</span></span></button>
+                <button class="nav-button" type="button" data-view="logs"><span class="nav-main"><span class="nav-icon nav-icon-logs"></span><span class="nav-label">Logs</span></span></button>
               </nav>
             </aside>
             <main class="canvas">
@@ -753,8 +1105,14 @@ window.DopparProfiler = {
                   ${performanceSection}
                 </div>
               </section>
+              <section class="view-section" data-view-section="http">
+                ${httpSection}
+              </section>
               <section class="view-section" data-view-section="request">
-                ${requestInfoSection}
+                ${requestDetailsSection}
+              </section>
+              <section class="view-section" data-view-section="response">
+                ${responseSection}
               </section>
               <section class="view-section" data-view-section="performance">
                 ${performanceSection}
@@ -762,11 +1120,17 @@ window.DopparProfiler = {
               <section class="view-section" data-view-section="database">
                 ${sqlSection}
               </section>
-              <section class="view-section" data-view-section="redirects">
-                ${redirectChainSection || '<div class="section"><div class="section-title"><span class="section-title-main">Redirects</span></div><div class="no-data">No redirects were detected for this request chain</div></div>'}
+              <section class="view-section" data-view-section="cache">
+                ${cacheSection}
               </section>
               <section class="view-section" data-view-section="auth">
                 ${authSection}
+              </section>
+              <section class="view-section" data-view-section="session">
+                ${sessionSection}
+              </section>
+              <section class="view-section" data-view-section="logs">
+                ${logsSection}
               </section>
             </main>
           </div>
