@@ -302,11 +302,20 @@ window.DopparProfiler = {
             border-bottom: 1px solid rgba(255,255,255,0.08);
           }
           .sidebar-mark {
-            width: 34px;
-            height: 34px;
+            width: 40px;
+            height: 40px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            flex: 0 0 40px;
+            border-radius: 14px;
+            background:
+              linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)),
+              linear-gradient(180deg, rgba(143,146,255,0.22), rgba(116,121,255,0.18));
+            border: 1px solid rgba(132, 134, 255, 0.2);
+            box-shadow:
+              0 10px 20px rgba(132, 134, 255, 0.24),
+              inset 0 1px 0 rgba(255,255,255,0.14);
           }
           .sidebar-mark img {
             width: 18px;
@@ -316,8 +325,10 @@ window.DopparProfiler = {
             font-size: 15px;
             font-weight: 800;
             color: #ffffff;
+            line-height: 1.08;
           }
           .sidebar-copy {
+            margin-top: 4px;
             font-size: 11px;
             color: rgba(230, 238, 249, 0.66);
           }

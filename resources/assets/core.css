@@ -380,12 +380,50 @@ a {
 
 .tab-nav {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
-    align-items: center;
+    align-items: flex-start;
     padding: 16px;
     border-bottom: 1px solid var(--dp-line);
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(249, 251, 248, 0.72));
     overflow-x: auto;
+}
+
+.tab-nav-brand {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 4px 14px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--dp-line);
+}
+
+.tab-nav-mark {
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 34px;
+}
+
+.tab-nav-mark img {
+    width: 18px;
+    height: 18px;
+}
+
+.tab-nav-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--dp-text);
+    line-height: 1.1;
+}
+
+.tab-nav-copy {
+    margin-top: 3px;
+    font-size: 11px;
+    color: var(--dp-text-soft);
 }
 
 .tab-button {
