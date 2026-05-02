@@ -3,7 +3,7 @@
   <template id="dp-template">
     <style>{{CSS}}</style>
     <div class="dp-root">
-      <button class="dp-launcher" type="button" aria-label="Expand Doppar Insight">
+      <button class="dp-launcher" type="button" aria-label="Toggle Doppar Insight">
         <span class="dp-launcher-mark">
           <img src="{{LOGO}}" alt="Doppar Logo" width="18" height="18">
         </span>
@@ -12,22 +12,17 @@
       <div class="dp-main">
         <div class="dp-left">
           <span class="dp-badge">{{STATUS}}</span>
-          <span class="dp-badge dp-badge-warning dp-redirect" style="display:none">Redirect</span>
+          <span class="dp-badge dp-badge-warning dp-redirect" style="display:none" title="Redirect response">Redirect</span>
           <span class="dp-item dp-meta">{{METHOD}}</span>
-          <span class="dp-item dp-route">{{PATH}}</span>
+          <span class="dp-item dp-route" title="{{PATH}}">{{PATH}}</span>
         </div>
         <div class="dp-right">
-          <span class="dp-item dp-auth" style="display:none"><span class="dp-auth-name"></span></span>
-          <span class="dp-item dp-version"> PHP {{PHP_VERSION}}</span>
-          <span class="dp-item dp-version"><img src="{{LOGO}}" alt="Doppar Logo" width="16" height="16"> v{{FRAMEWORK_VERSION}}</span>
+          <span class="dp-item dp-memory">Peak {{MEMORY_PEAK}}</span>
           <span class="dp-item">{{DURATION}} ms</span>
           <span class="dp-item dp-sql">🗄️ {{SQL_COUNT}} queries ({{SQL_TIME}} ms)</span>
           <span class="dp-item dp-logs" style="display:none">{{LOGS_COUNT}} logs</span>
           <button class="dp-btn dp-btn-primary" onclick="DopparProfiler.openDetailsPage()">Details</button>
           <button class="dp-btn" onclick="DopparProfiler.toggle()">Quick View</button>
-          <button class="dp-btn dp-btn-icon dp-collapse-toggle" type="button" aria-label="Collapse Doppar Insight">
-            <span class="dp-collapse-glyph">−</span>
-          </button>
         </div>
       </div>
     </div>
@@ -51,15 +46,6 @@
         var redirectEl=root.querySelector('.dp-redirect');
         if(redirectEl){redirectEl.style.display='inline-block';}
       }
-      // Show auth info if user is authenticated
-      if(host.dataset.authAuthenticated==='true'){
-        var authEl=root.querySelector('.dp-auth');
-        var authNameEl=root.querySelector('.dp-auth-name');
-        if(authEl && authNameEl){
-          authNameEl.textContent=host.dataset.authUserName || 'User';
-          authEl.style.display='inline-block';
-        }
-      }
       // Show logs count if there are logs
       var logsCount=parseInt(host.dataset.logsCount||'0',10);
       if(logsCount>0){
@@ -69,25 +55,19 @@
       var storageKey='doppar.insight.toolbar.collapsed';
       var rootEl=root.querySelector('.dp-root');
       var launcherEl=root.querySelector('.dp-launcher');
-      var collapseToggleEl=root.querySelector('.dp-collapse-toggle');
       var setCollapsed=function(collapsed){
         if(!rootEl){return}
         rootEl.classList.toggle('dp-root-collapsed', !!collapsed);
-        if(collapseToggleEl){
-          collapseToggleEl.setAttribute('aria-label', collapsed ? 'Expand Doppar Insight' : 'Collapse Doppar Insight');
+        if(launcherEl){
+          launcherEl.setAttribute('aria-label', collapsed ? 'Expand Doppar Insight' : 'Collapse Doppar Insight');
         }
         try{
           window.localStorage.setItem(storageKey, collapsed ? '1' : '0');
         }catch(e){}
       };
-      if(collapseToggleEl){
-        collapseToggleEl.addEventListener('click', function(){
-          setCollapsed(!rootEl.classList.contains('dp-root-collapsed'));
-        });
-      }
       if(launcherEl){
         launcherEl.addEventListener('click', function(){
-          setCollapsed(false);
+          setCollapsed(!rootEl.classList.contains('dp-root-collapsed'));
         });
       }
       try{
