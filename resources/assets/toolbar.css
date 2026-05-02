@@ -218,6 +218,27 @@
   border-color: rgba(20, 125, 100, 0.16);
 }
 
+.dp-cache {
+  gap: 7px;
+  color: #6b4fd8;
+  background: linear-gradient(180deg, rgba(243, 238, 255, 0.96), rgba(249, 246, 255, 0.92));
+  border-color: rgba(132, 134, 255, 0.18);
+}
+
+.dp-chip-icon {
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 14px 14px;
+}
+
+.dp-chip-icon-cache {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b4fd8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3 4 7l8 4 8-4-8-4Z'/%3E%3Cpath d='m4 12 8 4 8-4'/%3E%3Cpath d='m4 17 8 4 8-4'/%3E%3C/svg%3E");
+}
+
 .dp-logs {
   color: #b66912;
   background: linear-gradient(180deg, rgba(255, 248, 232, 0.96), rgba(255, 252, 243, 0.92));

@@ -56,6 +56,7 @@ class ToolbarRenderer
             '{{MEMORY_PEAK}}' => $this->formatMemoryPeak($data),
             '{{SQL_COUNT}}' => (string)($data['sql_total_count'] ?? 0),
             '{{SQL_TIME}}' => number_format($data['sql_total_time_ms'] ?? 0, 1),
+            '{{CACHE_SUMMARY}}' => $this->formatCacheSummary($data),
             '{{LOGS_COUNT}}' => (string)($data['logs_total_count'] ?? 0),
             '{{FRAMEWORK_VERSION}}' => $this->escape($data['framework_version'] ?? 'unknown'),
             '{{PHP_VERSION}}' => $this->escape($data['php_version'] ?? PHP_VERSION),
@@ -90,6 +91,18 @@ class ToolbarRenderer
         $memoryPeak = (float) ($data['memory_peak'] ?? 0);
 
         return number_format($memoryPeak / (1024 * 1024), 1) . ' MB';
+    }
+
+    /**
+     * Format cache activity summary from profiler data
+     *
+     * @param array<string, mixed> $data
+     */
+    protected function formatCacheSummary(array $data): string
+    {
+        $total = (int) ($data['cache_total'] ?? 0);
+
+        return $total . ' cache ' . ($total === 1 ? 'op' : 'ops');
     }
 
     /**
