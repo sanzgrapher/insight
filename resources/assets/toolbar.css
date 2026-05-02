@@ -16,7 +16,7 @@
   all: unset;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 14px;
   width: 100%;
   padding: 12px 16px;
@@ -32,6 +32,56 @@
   -webkit-backdrop-filter: blur(18px);
   box-sizing: border-box;
   pointer-events: auto;
+  transition: width 0.22s ease, padding 0.22s ease, border-radius 0.22s ease, box-shadow 0.22s ease;
+}
+
+.dp-main {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  min-width: 0;
+}
+
+.dp-launcher {
+  all: unset;
+  display: none;
+  align-items: center;
+  cursor: pointer;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  padding: 0;
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.05)),
+    rgba(12, 28, 44, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 16px 36px rgba(4, 14, 24, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.dp-launcher:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.2);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06)),
+    rgba(12, 28, 44, 0.94);
+}
+
+.dp-launcher-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.05));
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .dp-left,
@@ -154,11 +204,51 @@
   border-color: rgba(255, 221, 164, 0.2);
 }
 
+.dp-btn-icon {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  justify-content: center;
+}
+
+.dp-collapse-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 18px;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
+.dp-root.dp-root-collapsed {
+  width: fit-content;
+  padding: 8px;
+  border-radius: 22px;
+  box-shadow:
+    0 18px 44px rgba(4, 14, 24, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.dp-root.dp-root-collapsed .dp-main {
+  display: none;
+}
+
+.dp-root.dp-root-collapsed .dp-launcher {
+  display: inline-flex;
+}
+
 @media (max-width: 1120px) {
   :host {
     left: 10px;
     right: 10px;
     bottom: 10px;
+  }
+
+  .dp-main {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .dp-root {
@@ -173,5 +263,10 @@
 
   .dp-route {
     max-width: none;
+  }
+
+  .dp-root.dp-root-collapsed {
+    width: fit-content;
+    align-items: flex-start;
   }
 }
