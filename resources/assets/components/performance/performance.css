@@ -1,4 +1,9 @@
-/* Performance component specific styles */
 .performance-metric {
-    margin-bottom: 12px;
+    min-height: 100%;
+}
+
+.performance-note {
+    margin-top: 10px;
+    color: var(--dp-text-soft);
+    font-size: 13px;
 }

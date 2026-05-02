@@ -1,4 +1,7 @@
-/* Request component specific styles */
 .request-section {
     margin-bottom: 24px;
+}
+
+.request-section:last-child {
+    margin-bottom: 0;
 }

@@ -6,7 +6,8 @@
       <div class="dp-left">
         <span class="dp-badge">{{STATUS}}</span>
         <span class="dp-badge dp-badge-warning dp-redirect" style="display:none">Redirect</span>
-        <span class="dp-item">{{METHOD}} {{PATH}}</span>
+        <span class="dp-item dp-meta">{{METHOD}}</span>
+        <span class="dp-item dp-route">{{PATH}}</span>
       </div>
       <div class="dp-right">
         <span class="dp-item dp-auth" style="display:none"><span class="dp-auth-name"></span></span>
@@ -15,7 +16,7 @@
         <span class="dp-item">{{DURATION}} ms</span>
         <span class="dp-item dp-sql">🗄️ {{SQL_COUNT}} queries ({{SQL_TIME}} ms)</span>
         <span class="dp-item dp-logs" style="display:none">{{LOGS_COUNT}} logs</span>
-        <button class="dp-btn" onclick="DopparProfiler.openDetailsPage()">Details</button>
+        <button class="dp-btn dp-btn-primary" onclick="DopparProfiler.openDetailsPage()">Details</button>
         <button class="dp-btn" onclick="DopparProfiler.toggle()">Quick View</button>
       </div>
     </div>

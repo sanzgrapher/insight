@@ -1,10 +1,15 @@
-@import url('https://fonts.googleapis.com/css?family=Source+Code+Pro');
-
 .json {
-    font-family: 'Source Code Pro', monospace;
-    font-size: 14px;
-    color: #e5e7eb;
+    font-family: var(--dp-font-mono);
+    font-size: 13px;
+    color: var(--dp-text);
     line-height: 1.6;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(251, 252, 248, 0.92)),
+        var(--dp-panel-strong);
+    border: 1px solid rgba(17, 40, 61, 0.08);
+    border-radius: 18px;
+    padding: 16px 18px;
+    box-shadow: var(--dp-shadow-sm);
 }
 
 .json > .json__item {
@@ -14,7 +19,7 @@
 .json__item {
     display: none;
     margin-top: 10px;
-    padding-left: 20px;
+    padding-left: 22px;
 }
 
 .json__item--collapsible {
@@ -23,17 +28,17 @@
 }
 
 .json__item--collapsible::before {
-    content: '+';
+    content: "+";
     position: absolute;
     left: 5px;
-    color: #60a5fa;
-    font-weight: bold;
+    color: var(--dp-info);
+    font-weight: 800;
     user-select: none;
 }
 
 .json__item--collapsible::after {
-    background-color: #374151;
-    content: '';
+    background-color: rgba(17, 40, 61, 0.18);
+    content: "";
     height: 100%;
     left: 9px;
     position: absolute;
@@ -47,7 +52,7 @@
 }
 
 .json__item--collapsible:hover::before {
-    color: #93c5fd;
+    color: #5f9ef0;
 }
 
 .json__toggle {
@@ -59,18 +64,18 @@
 }
 
 .json__item--collapsible:has(.json__toggle:checked)::before {
-    content: '-';
+    content: "-";
 }
 
 .json__key {
-    color: #93c5fd;
+    color: var(--dp-info);
     display: inline;
-    font-weight: 500;
+    font-weight: 700;
 }
 
 .json__key::after {
-    content: ': ';
-    color: #9ca3af;
+    content: ": ";
+    color: var(--dp-text-faint);
 }
 
 .json__value {
@@ -78,23 +83,23 @@
 }
 
 .json__value--string {
-    color: #6ee7b7;
+    color: var(--dp-success);
 }
 
 .json__value--number {
-    color: #60a5fa;
+    color: var(--dp-accent-strong);
 }
 
 .json__value--boolean {
-    color: #fbbf24;
+    color: var(--dp-warning);
 }
 
 .json__value--object,
 .json__value--type-object {
-    color: #c084fc;
+    color: var(--dp-accent-warm);
 }
 
 .json__value--undefined {
-    color: #9ca3af;
+    color: var(--dp-text-faint);
     font-style: italic;
 }

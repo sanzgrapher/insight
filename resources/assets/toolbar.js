@@ -28,371 +28,286 @@ window.DopparProfiler = {
     if(this.open){
       const id = document.getElementById('doppar-profiler').dataset.requestId;
       fetch('/_insight/api/' + id).then(r=>r.json()).then(data=>{
-        // Shadow DOM content
+        const escapeHtml = (value) => {
+          const div = document.createElement('div');
+          div.textContent = String(value ?? '');
+          return div.innerHTML;
+        };
         const css = `
           :host{all:initial}
 
           .panel {
-              background: linear-gradient(135deg, #ddd 0%, #f8fafc 100%);
-              color: #1f2937;
-              border: 2px solid #e5e7eb;
-              border-radius: 16px;
-              padding: 24px;
-              width: 720px;
-              max-height: 75vh;
-              overflow: auto;
-              box-shadow: 
-                  0 20px 60px rgba(0, 0, 0, 0.15),
-                  0 8px 32px rgba(0, 0, 0, 0.1),
-                  inset 0 1px 0 rgba(255, 255, 255, 0.8);
-              font: 14px/1.6 system-ui, Segoe UI, Roboto, Helvetica, Arial;
-              position: relative;
-              backdrop-filter: blur(10px);
+            width: min(860px, calc(100vw - 48px));
+            max-height: 78vh;
+            overflow: auto;
+            border-radius: 26px;
+            padding: 22px;
+            color: #edf5fc;
+            font: 14px/1.65 "Aptos", "Segoe UI Variable", "Segoe UI", sans-serif;
+            background:
+              radial-gradient(circle at top right, rgba(242, 193, 78, 0.18), transparent 22%),
+              radial-gradient(circle at bottom left, rgba(15, 139, 141, 0.22), transparent 28%),
+              linear-gradient(145deg, rgba(7, 17, 31, 0.98), rgba(12, 31, 46, 0.96) 56%, rgba(14, 62, 81, 0.94));
+            border: 1px solid rgba(255,255,255,0.12);
+            box-shadow: 0 30px 80px rgba(2, 10, 18, 0.36), inset 0 1px 0 rgba(255,255,255,0.06);
+            backdrop-filter: blur(16px);
+            position: relative;
           }
 
           .panel::before {
-              content: '';
-              position: absolute;
-              top: 0;
-              left: 0;
-              right: 0;
-              height: 4px;
-              background-size: 200% 100%;
-              animation: gradientShift 3s ease infinite;
-              border-radius: 16px 16px 0 0;
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 26px;
+            pointer-events: none;
+            background: linear-gradient(180deg, rgba(255,255,255,0.06), transparent 32%);
           }
 
-          @keyframes gradientShift {
-              0% { background-position: 0% 50%; }
-              50% { background-position: 100% 50%; }
-              100% { background-position: 0% 50%; }
+          .hero, .section { position: relative; z-index: 1; }
+          .hero {
+            padding: 20px;
+            border-radius: 22px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.08);
+            margin-bottom: 18px;
+          }
+          .hero-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+          }
+          .eyebrow {
+            font-size: 11px;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+            color: rgba(237,245,252,0.62);
+            font-weight: 800;
+            margin-bottom: 8px;
+          }
+          .hero-title {
+            font-size: 24px;
+            line-height: 1.15;
+            font-weight: 800;
+            letter-spacing: -.04em;
+            margin: 0 0 8px;
+          }
+          .hero-title small {
+            display: inline-flex;
+            margin-right: 10px;
+            padding: 7px 10px;
+            border-radius: 999px;
+            background: rgba(242, 193, 78, 0.16);
+            color: #ffe8a7;
+            border: 1px solid rgba(242, 193, 78, 0.18);
+            font-size: 11px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+          }
+          .hero-copy {
+            color: rgba(237,245,252,0.76);
+            max-width: 520px;
+          }
+          .hero-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.08);
+            font-weight: 800;
+          }
+          .hero-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: currentColor;
+          }
+          .hero-status.ok { color: #8ef0bd; }
+          .hero-status.warn { color: #ffd277; }
+          .hero-status.err { color: #ff9f97; }
+
+          .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+          }
+          .metric {
+            padding: 14px;
+            border-radius: 18px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.08);
+          }
+          .metric-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .16em;
+            color: rgba(237,245,252,0.62);
+            font-weight: 800;
+            margin-bottom: 8px;
+          }
+          .metric-value {
+            font-size: 24px;
+            line-height: 1;
+            font-weight: 800;
+            letter-spacing: -.04em;
+          }
+          .metric-note {
+            margin-top: 8px;
+            color: rgba(237,245,252,0.68);
+            font-size: 12px;
           }
 
           .section {
-              margin-bottom: 24px;
-              padding-bottom: 20px;
-              border-bottom: 2px solid #f3f4f6;
-              position: relative;
+            margin-bottom: 18px;
+            padding: 18px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
           }
-
-          .section:last-child {
-              border-bottom: none;
-              margin-bottom: 0;
-          }
-
+          .section:last-child { margin-bottom: 0; }
           .section-title {
-              font-size: 16px;
-              font-weight: 700;
-              color: #1f2937;
-              margin-bottom: 16px;
-              display: flex;
-              align-items: center;
-              gap: 12px;
-              padding-left: 12px;
+            font-size: 17px;
+            font-weight: 800;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+          }
+          .section-title-main {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+          }
+          .section-copy {
+            color: rgba(237,245,252,0.72);
+            margin-bottom: 14px;
           }
 
           .badge {
-              display: inline-flex;
-              align-items: center;
-              gap: 6px;
-              padding: 6px 14px;
-              border-radius: 20px;
-              font-size: 12px;
-              font-weight: 700;
-              text-transform: uppercase;
-              letter-spacing: 0.5px;
-              border: 1px solid transparent;
-              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .12em;
+            border: 1px solid transparent;
           }
-
-          .badge-info {
-              background: linear-gradient(135deg, #eff6ff, #dbeafe);
-              color: #1e40af;
-              border-color: #93c5fd;
-          }
-
-          .badge-success {
-              background: linear-gradient(135deg, #d1fae5, #a7f3d0);
-              color: #065f46;
-              border-color: #6ee7b7;
-          }
-
-          .badge-warning {
-              background: linear-gradient(135deg, #fef3c7, #fde68a);
-              color: #92400e;
-              border-color: #fbbf24;
-          }
-
-          .badge-error {
-              background: linear-gradient(135deg, #fee2e2, #fecaca);
-              color: #991b1b;
-              border-color: #fca5a5;
-          }
+          .badge-info { background: rgba(42, 114, 212, 0.14); color: #8ec5ff; border-color: rgba(42, 114, 212, 0.18); }
+          .badge-success { background: rgba(20, 125, 100, 0.16); color: #9ef3c8; border-color: rgba(158, 243, 200, 0.16); }
+          .badge-warning { background: rgba(242, 193, 78, 0.14); color: #ffd277; border-color: rgba(242, 193, 78, 0.18); }
 
           .row {
-              margin: 12px 0;
-              display: flex;
-              align-items: center;
-              gap: 16px;
-              padding: 10px 16px;
-              background: #f9fafb;
-              border-radius: 10px;
-              border: 1px solid #e5e7eb;
-              transition: all 0.2s ease;
+            margin: 10px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.06);
           }
-
-          .row:hover {
-              background: #ffffff;
-              border-color: #d1d5db;
-              transform: translateY(-1px);
-              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-          }
-
           .key {
-              color: #6b7280;
-              display: inline-block;
-              min-width: 140px;
-              font-weight: 600;
-              font-size: 13px;
-              text-transform: uppercase;
-              letter-spacing: 0.5px;
+            min-width: 108px;
+            color: rgba(237,245,252,0.58);
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: .12em;
+            text-transform: uppercase;
           }
-
           .val {
-              color: #1f2937;
-              flex: 1;
-              font-weight: 600;
-              font-size: 14px;
-              word-break: break-word;
+            flex: 1;
+            color: #f7fbff;
+            font-weight: 700;
+            word-break: break-word;
           }
 
-          .sql-list {
-              margin-top: 16px;
-          }
-
-          .sql-item {
-              border: 2px solid #e5e7eb;
-              border-radius: 12px;
-              padding: 18px;
-              margin-bottom: 12px;
-              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-              transition: all 0.3s ease;
-              position: relative;
-              overflow: hidden;
-          }
-
-          .sql-item:hover {
-              transform: translateY(-2px);
-              box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-          }
-
-          .sql-item:last-child {
-              margin-bottom: 0;
-          }
-
-          .sql-item::before {
-              content: '';
-              position: absolute;
-              top: 0;
-              left: 0;
-              width: 6px;
-              height: 100%;
-          }
-
-          .sql-header {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              margin-bottom: 12px;
-              flex-wrap: wrap;
-              gap: 12px;
-          }
-
-          .sql-time {
-              color: #059669;
-              font-weight: 800;
-              font-size: 14px;
-              background: #d1fae5;
-              padding: 4px 12px;
-              border-radius: 20px;
-              border: 1px solid #10b981;
-          }
-
-          .sql-rows {
-              color: #6b7280;
-              font-size: 12px;
-              margin-left: 12px;
-              font-weight: 600;
-              background: #f3f4f6;
-              padding: 4px 10px;
-              border-radius: 12px;
-          }
-
-          .sql-query {
-              color: #1f2937;
-              font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-              font-size: 13px;
-              line-height: 1.7;
-              word-break: break-all;
-              white-space: pre-wrap;
-              background: #f9fafb;
-              padding: 14px 16px;
-              border-radius: 10px;
-              margin-bottom: 12px;
-              border: 1px solid #e5e7eb;
-              font-weight: 500;
-          }
-
-          .sql-bindings {
-              font-size: 12px;
-              color: #6b7280;
-              font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-              background: #f3f4f6;
-              padding: 10px 14px;
-              border-radius: 8px;
-              border: 1px solid #e5e7eb;
-              margin-top: 8px;
-          }
-
-          .sql-error {
-              color: #dc2626;
-              font-size: 13px;
-              margin-top: 12px;
-              background: #fee2e2;
-              padding: 10px 14px;
-              border-radius: 8px;
-              border: 1px solid #fecaca;
-              font-weight: 600;
-          }
-
-          .no-data {
-              color: #9ca3af;
-              font-style: italic;
-              font-size: 14px;
-              text-align: center;
-              padding: 40px 20px;
-              background: #f9fafb;
-              border-radius: 12px;
-              border: 2px dashed #e5e7eb;
-          }
-
-          .redirect-row {
-              background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-              padding: 16px 20px;
-              margin: 16px 0;
-              border-radius: 12px;
-              border: 1px solid #dbeafe;
-              box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
-          }
-
-          .redirect-url {
-              color: #1e40af;
-              font-weight: 700;
-              word-break: break-all;
-              font-size: 14px;
-              font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-          }
-
-          .redirect-chain-list {
-              margin-top: 16px;
-          }
-
+          .sql-list { display: grid; gap: 12px; }
+          .sql-item,
           .redirect-chain-item {
-              background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-              border: 2px solid #e5e7eb;
-              border-radius: 12px;
-              padding: 18px;
-              margin-bottom: 12px;
-              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-              transition: all 0.2s ease;
-              position: relative;
+            padding: 16px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
           }
-
-          .redirect-chain-item:hover {
-              transform: translateY(-1px);
-              box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-              border-color: #d1d5db;
-          }
-
-          .redirect-chain-item:last-child {
-              margin-bottom: 0;
-          }
-
-          .redirect-chain-current::before {
-              position: absolute;
-              top: 16px;
-              right: 16px;
-              color: white;
-              font-size: 10px;
-              font-weight: 800;
-              padding: 4px 10px;
-              border-radius: 20px;
-              text-transform: uppercase;
-              letter-spacing: 0.5px;
-          }
-
+          .sql-header,
           .redirect-chain-header {
-              display: flex;
-              align-items: center;
-              gap: 12px;
-              flex-wrap: wrap;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 12px;
           }
-
-          .redirect-chain-status {
-              color: #f59e0b;
-              font-weight: 800;
-              font-size: 13px;
-              background: #fef3c7;
-              padding: 4px 12px;
-              border-radius: 20px;
-              border: 1px solid #fbbf24;
-          }
-
-          .redirect-chain-method {
-              color: #3b82f6;
-              font-size: 12px;
-              font-weight: 700;
-              background: #eff6ff;
-              padding: 4px 10px;
-              border-radius: 12px;
-              border: 1px solid #dbeafe;
-          }
-
-          .redirect-chain-path {
-              color: #1f2937;
-              font-size: 13px;
-              font-weight: 600;
-              flex: 1;
-              word-break: break-all;
-              font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-          }
-
+          .sql-time,
           .redirect-chain-duration {
-              color: #059669;
-              font-size: 12px;
-              font-weight: 800;
-              margin-left: auto;
-              background: #d1fae5;
-              padding: 4px 12px;
-              border-radius: 20px;
-              border: 1px solid #10b981;
+            color: #9ef3c8;
+            font-weight: 800;
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(20, 125, 100, 0.16);
           }
-
+          .sql-rows,
+          .redirect-chain-method,
+          .redirect-chain-status {
+            font-size: 11px;
+            font-weight: 800;
+            border-radius: 999px;
+            padding: 4px 10px;
+            background: rgba(255,255,255,0.08);
+            color: rgba(237,245,252,0.76);
+          }
+          .sql-query,
+          .sql-bindings,
           .redirect-chain-arrow {
-              color: #3b82f6;
-              font-size: 12px;
-              margin-top: 12px;
-              padding-left: 28px;
-              font-weight: 600;
-              display: flex;
-              align-items: center;
-              gap: 8px;
+            background: rgba(5, 12, 22, 0.32);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 14px;
+            padding: 12px 14px;
+            font-family: "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
+          }
+          .sql-query,
+          .redirect-chain-path {
+            color: #f7fbff;
+            word-break: break-word;
+          }
+          .sql-bindings,
+          .redirect-chain-arrow {
+            margin-top: 10px;
+            color: rgba(237,245,252,0.72);
+            font-size: 12px;
+          }
+          .sql-error {
+            margin-top: 10px;
+            color: #ffb6b0;
+            background: rgba(191, 60, 68, 0.16);
+            border: 1px solid rgba(191, 60, 68, 0.2);
+            border-radius: 12px;
+            padding: 10px 12px;
+            font-weight: 700;
+          }
+          .no-data {
+            color: rgba(237,245,252,0.62);
+            font-style: italic;
+            text-align: center;
+            padding: 30px 16px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 16px;
+            border: 1px dashed rgba(255,255,255,0.1);
           }
 
-          .redirect-chain-arrow::before {
-              content: '→';
-              font-size: 16px;
-              font-weight: 800;
+          @media (max-width: 820px) {
+            .panel { width: calc(100vw - 24px); padding: 16px; }
+            .hero-top, .row { flex-direction: column; }
+            .key { min-width: 0; }
           }
         `;
         root.innerHTML = '';
@@ -409,18 +324,20 @@ window.DopparProfiler = {
           sqlSection = `
             <div class="section">
               <div class="section-title">
-                <span>Database Queries</span>
-                <span class="badge badge-info">${totalCount} queries</span>
-                <span class="badge badge-success">${totalTime} ms</span>
+                <span class="section-title-main">Database Queries</span>
+                <span>
+                  <span class="badge badge-info">${totalCount} queries</span>
+                  <span class="badge badge-success">${totalTime} ms</span>
+                </span>
               </div>
               <div class="sql-list">
                 ${data.sql.map((q, idx) => {
                   const duration = q.duration_ms?.toFixed?.(2) ?? q.duration_ms ?? 0;
                   const rowCount = q.row_count !== null && q.row_count !== undefined ? q.row_count : '?';
                   const bindings = q.bindings && Object.keys(q.bindings).length > 0 
-                    ? JSON.stringify(q.bindings) 
+                    ? escapeHtml(JSON.stringify(q.bindings)) 
                     : '';
-                  const error = q.error ? `<div class="sql-error">Error: ${q.error}</div>` : '';
+                  const error = q.error ? `<div class="sql-error">Error: ${escapeHtml(q.error)}</div>` : '';
                   return `
                     <div class="sql-item">
                       <div class="sql-header">
@@ -430,7 +347,7 @@ window.DopparProfiler = {
                           <span class="sql-rows">${rowCount} rows</span>
                         </div>
                       </div>
-                      <div class="sql-query">${q.sql || 'N/A'}</div>
+                      <div class="sql-query">${escapeHtml(q.sql || 'N/A')}</div>
                       ${bindings ? `<div class="sql-bindings">Bindings: ${bindings}</div>` : ''}
                       ${error}
                     </div>
@@ -442,7 +359,7 @@ window.DopparProfiler = {
         } else {
           sqlSection = `
             <div class="section">
-              <div class="section-title">Database Queries</div>
+              <div class="section-title"><span class="section-title-main">Database Queries</span></div>
               <div class="no-data">No database queries detected</div>
             </div>
           `;
@@ -454,7 +371,7 @@ window.DopparProfiler = {
           redirectSection = `
             <div class="row redirect-row">
               <span class="key">Redirect to:</span> 
-              <span class="val redirect-url">→ ${data.redirect_url}</span>
+              <span class="val redirect-url">→ ${escapeHtml(data.redirect_url)}</span>
             </div>
           `;
         }
@@ -478,11 +395,11 @@ window.DopparProfiler = {
                     <div class="redirect-chain-header">
                       <span class="badge badge-info">#${idx + 1}</span>
                       <span class="redirect-chain-status">${itemStatus}</span>
-                      <span class="redirect-chain-method">${itemMethod}</span>
-                      <span class="redirect-chain-path">${itemPath}</span>
+                      <span class="redirect-chain-method">${escapeHtml(itemMethod)}</span>
+                      <span class="redirect-chain-path">${escapeHtml(itemPath)}</span>
                       <span class="redirect-chain-duration">${itemDuration} ms</span>
                     </div>
-                    ${itemRedirectUrl ? `<div class="redirect-chain-arrow">↓ Redirected to: ${itemRedirectUrl}</div>` : ''}
+                    ${itemRedirectUrl ? `<div class="redirect-chain-arrow">Redirected to: ${escapeHtml(itemRedirectUrl)}</div>` : ''}
                   </div>
                 `;
               }).join('');
@@ -490,7 +407,7 @@ window.DopparProfiler = {
               redirectChainSection = `
                 <div class="section">
                   <div class="section-title">
-                    <span>Redirect Chain</span>
+                    <span class="section-title-main">Redirect Chain</span>
                     <span class="badge badge-warning">${chain.length} redirect${chain.length > 1 ? 's' : ''}</span>
                   </div>
                   <div class="redirect-chain-list">
@@ -499,8 +416,8 @@ window.DopparProfiler = {
                       <div class="redirect-chain-header">
                         <span class="badge badge-success">Current</span>
                         <span class="redirect-chain-status">${data.status}</span>
-                        <span class="redirect-chain-method">${data.method}</span>
-                        <span class="redirect-chain-path">${data.route}</span>
+                        <span class="redirect-chain-method">${escapeHtml(data.method)}</span>
+                        <span class="redirect-chain-path">${escapeHtml(data.route)}</span>
                         <span class="redirect-chain-duration">${(data.duration_ms?.toFixed?.(1) ?? data.duration_ms)} ms</span>
                       </div>
                     </div>
@@ -516,12 +433,12 @@ window.DopparProfiler = {
         // Build auth section
         let authSection = '';
         if (data.auth_authenticated) {
-          const userName = data.auth_user_name || 'User';
-          const userEmail = data.auth_user_email || '';
+          const userName = escapeHtml(data.auth_user_name || 'User');
+          const userEmail = escapeHtml(data.auth_user_email || '');
           authSection = `
             <div class="section">
               <div class="section-title">
-                <span>Authentication</span>
+                <span class="section-title-main">Authentication</span>
                 <span class="badge badge-success">Authenticated</span>
               </div>
               <div class="row"><span class="key">User:</span> <span class="val">${userName}</span></div>
@@ -530,15 +447,49 @@ window.DopparProfiler = {
           `;
         }
         
+        const statusClass = Number(data.status) >= 500 || Number(data.status) >= 400
+          ? 'err'
+          : (Number(data.status) >= 300 ? 'warn' : 'ok');
+
         wrap.innerHTML = `
+          <div class="hero">
+            <div class="hero-top">
+              <div>
+                <div class="eyebrow">Quick View</div>
+                <div class="hero-title"><small>${escapeHtml(data.method)}</small>${escapeHtml(data.route)}</div>
+                <div class="hero-copy">A fast operational snapshot of this request, optimized for immediate debugging.</div>
+              </div>
+              <span class="hero-status ${statusClass}">
+                <span class="hero-dot"></span>
+                HTTP ${escapeHtml(data.status)}
+              </span>
+            </div>
+            <div class="metrics">
+              <div class="metric">
+                <div class="metric-label">Duration</div>
+                <div class="metric-value">${escapeHtml(data.duration_ms?.toFixed?.(1) ?? data.duration_ms)}</div>
+                <div class="metric-note">milliseconds</div>
+              </div>
+              <div class="metric">
+                <div class="metric-label">Peak Memory</div>
+                <div class="metric-value">${((data.memory_peak || 0) / (1024*1024)).toFixed(2)}</div>
+                <div class="metric-note">MB</div>
+              </div>
+              <div class="metric">
+                <div class="metric-label">SQL Queries</div>
+                <div class="metric-value">${escapeHtml(data.sql_total_count || 0)}</div>
+                <div class="metric-note">${escapeHtml(data.sql_total_time_ms?.toFixed?.(2) ?? data.sql_total_time_ms ?? 0)} ms total</div>
+              </div>
+            </div>
+          </div>
           <div class="section">
-            <div class="section-title">Request Information</div>
-            <div class="row"><span class="key">Request ID:</span> <span class="val">${data.id}</span></div>
-            <div class="row"><span class="key">Method:</span> <span class="val">${data.method}</span></div>
-            <div class="row"><span class="key">Path:</span> <span class="val">${data.route}</span></div>
-            <div class="row"><span class="key">Status:</span> <span class="val">${data.status}</span></div>
+            <div class="section-title"><span class="section-title-main">Request Information</span></div>
+            <div class="row"><span class="key">Request ID:</span> <span class="val">${escapeHtml(data.id)}</span></div>
+            <div class="row"><span class="key">Method:</span> <span class="val">${escapeHtml(data.method)}</span></div>
+            <div class="row"><span class="key">Path:</span> <span class="val">${escapeHtml(data.route)}</span></div>
+            <div class="row"><span class="key">Status:</span> <span class="val">${escapeHtml(data.status)}</span></div>
             ${redirectSection}
-            <div class="row"><span class="key">Duration:</span> <span class="val">${(data.duration_ms?.toFixed?.(1) ?? data.duration_ms)} ms</span></div>
+            <div class="row"><span class="key">Duration:</span> <span class="val">${escapeHtml(data.duration_ms?.toFixed?.(1) ?? data.duration_ms)} ms</span></div>
             <div class="row"><span class="key">Memory Peak:</span> <span class="val">${((data.memory_peak || 0) / (1024*1024)).toFixed(2)} MB</span></div>
           </div>
           ${authSection}

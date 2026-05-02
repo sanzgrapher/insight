@@ -3,367 +3,125 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Doppar Insight - Request {{ID}}</title>
-    <style>
-      {{CSS}}
-
-      /* Additional styles for enhanced layout */
-      .metrics-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 16px;
-        margin-bottom: 24px;
-      }
-
-      .metric-card {
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 10px;
-        padding: 20px;
-        text-align: center;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        box-shadow: 0 2px 8px rgba(0,0,0,.04);
-      }
-
-      .metric-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,.08);
-      }
-
-      .metric-value {
-        font-size: 28px;
-        font-weight: 800;
-        color: #1f2937;
-        margin-bottom: 8px;
-        line-height: 1;
-      }
-
-      .metric-label {
-        font-size: 12px;
-        color: #6b7280;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        font-weight: 600;
-      }
-
-      .metric-trend {
-        font-size: 12px;
-        margin-top: 6px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 4px;
-      }
-
-      .trend-up {
-        color: #059669;
-      }
-
-      .trend-down {
-        color: #dc2626;
-      }
-
-      .tab-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 24px;
-        padding-bottom: 16px;
-        border-bottom: 2px solid #f3f4f6;
-      }
-
-      .tab-stats {
-        display: flex;
-        gap: 12px;
-        align-items: center;
-      }
-
-      .card-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 20px;
-      }
-
-      .feature-card {
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 10px;
-        padding: 20px;
-        box-shadow: 0 2px 8px rgba(0,0,0,.04);
-      }
-
-      .feature-card .section-title {
-        margin-bottom: 16px;
-        color: #374151;
-        font-size: 16px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-
-      .feature-card .section-title i {
-        color: #3b82f6;
-      }
-
-      .chart-container {
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 10px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 8px rgba(0,0,0,.04);
-      }
-
-      .chart-placeholder {
-        height: 200px;
-        background: #f9fafb;
-        border-radius: 6px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #9ca3af;
-        font-style: italic;
-        border: 1px dashed #e5e7eb;
-      }
-
-      .status-indicator {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
-      }
-
-      .status-success {
-        background: #d1fae5;
-        color: #065f46;
-      }
-
-      .status-warning {
-        background: #fef3c7;
-        color: #92400e;
-      }
-
-      .status-error {
-        background: #fee2e2;
-        color: #991b1b;
-      }
-
-      .status-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-      }
-
-      .status-success .status-dot {
-        background: #10b981;
-      }
-
-      .status-warning .status-dot {
-        background: #f59e0b;
-      }
-
-      .status-error .status-dot {
-        background: #ef4444;
-      }
-
-      .pill-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 14px;
-        border-radius: 20px;
-        font-size: 13px;
-        font-weight: 600;
-        background: #f3f4f6;
-        color: #4b5563;
-      }
-
-      .pill-badge i {
-        font-size: 12px;
-      }
-
-      .action-buttons {
-        display: flex;
-        gap: 10px;
-        margin-top: 20px;
-      }
-
-      .action-btn {
-        padding: 8px 16px;
-        border-radius: 8px;
-        border: 1px solid #e5e7eb;
-        background: #ffffff;
-        color: #4b5563;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-
-      .action-btn:hover {
-        background: #f9fafb;
-        border-color: #d1d5db;
-      }
-
-      .action-btn-primary {
-        background: #3b82f6;
-        color: white;
-        border-color: #3b82f6;
-      }
-
-      .action-btn-primary:hover {
-        background: #2563eb;
-        border-color: #2563eb;
-      }
-
-      .timeline {
-        position: relative;
-        padding-left: 24px;
-        margin-top: 16px;
-      }
-
-      .timeline::before {
-        content: '';
-        position: absolute;
-        left: 8px;
-        top: 0;
-        bottom: 0;
-        width: 2px;
-        background: #e5e7eb;
-      }
-
-      .timeline-item {
-        position: relative;
-        padding-bottom: 20px;
-      }
-
-      .timeline-item:last-child {
-        padding-bottom: 0;
-      }
-
-      .timeline-dot {
-        position: absolute;
-        left: -24px;
-        top: 0;
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        background: #3b82f6;
-        border: 3px solid #ffffff;
-        box-shadow: 0 0 0 2px #3b82f6;
-      }
-
-      .timeline-content {
-        background: #f9fafb;
-        padding: 12px;
-        border-radius: 8px;
-        border: 1px solid #e5e7eb;
-      }
-
-      .empty-state {
-        text-align: center;
-        padding: 40px 20px;
-        color: #9ca3af;
-      }
-
-      .empty-state i {
-        font-size: 48px;
-        margin-bottom: 16px;
-        color: #d1d5db;
-      }
-
-      .empty-state h3 {
-        color: #6b7280;
-        margin-bottom: 8px;
-        font-weight: 600;
-      }
-
-      .icon-text {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-      }
-    </style>
+    <title>Doppar Insight · {{METHOD}} {{ROUTE}}</title>
+    <style>{{CSS}}</style>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
   </head>
   <body>
-    <div class="container">
-      <!-- Enhanced Header -->
-      <div class="header">
-        <div class="header-title">
-          <span class="icon-text">
-            <i class="fas fa-chart-line" style="color: #3b82f6"></i>
-          </span>
-          <span class="status-indicator status-success">
-            <span class="status-dot"></span>
-            {{STATUS}} OK
-          </span>
-        </div>
-        <div class="header-info">
-          <div class="info-item">
-            <span class="info-label">Request ID</span>
-            <span class="info-value">{{ID}}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">Endpoint</span>
-            <span class="info-value">
-              <span class="badge badge-info">{{METHOD}}</span>
-              <span style="margin-left: 8px">{{ROUTE}}</span>
+    <div class="page-glow"></div>
+    <div class="container shell">
+      <header class="hero">
+        <div class="hero-bar">
+          <div class="hero-brand">
+            <span class="hero-brand-mark">
+              <img src="{{LOGO}}" alt="Doppar logo" />
             </span>
+            <div>
+              <div class="hero-kicker">Doppar Insight</div>
+              <div class="hero-chip">
+                <i class="fa-solid fa-wave-square"></i>
+                Request Observatory
+              </div>
+            </div>
           </div>
-          <div class="info-item">
-            <span class="info-label">Performance</span>
-            <span class="info-value">
-              <span class="badge badge-success">{{DURATION}} ms</span>
-              <span class="badge badge-warning" style="margin-left: 8px"
-                >{{MEMORY_PEAK}} MB</span
-              >
-            </span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">Environment</span>
-            <span class="info-value">
-              PHP {{PHP_VERSION}} • <img src="{{LOGO}}" alt="logo" height="13" width="13"> Doppar v{{FRAMEWORK_VERSION}}
-            </span>
+          <div class="hero-actions">
+            <a class="insight-btn" href="/_insight/api/{{ID}}" target="_blank" rel="noreferrer">
+              <i class="fa-solid fa-code"></i>
+              JSON API
+            </a>
+            <button class="insight-btn insight-btn-primary" type="button" id="copy-request-id">
+              <i class="fa-regular fa-copy"></i>
+              Copy Request ID
+            </button>
           </div>
         </div>
-      </div>
 
-      <!-- Overview Metrics -->
+        <div class="hero-main">
+          <div>
+            <div class="hero-kicker">Captured Request</div>
+            <h1 class="hero-title">
+              <span class="method-chip">{{METHOD}}</span>
+              <span class="hero-title-text">{{ROUTE}}</span>
+            </h1>
+            <p class="hero-subtitle">
+              A live performance snapshot for request <strong>{{ID}}</strong>, including runtime,
+              database work, cache behavior, and framework telemetry.
+            </p>
+          </div>
+          <div class="hero-actions">
+            <span class="hero-status" id="hero-status" data-status="{{STATUS}}">
+              <span class="hero-status-dot"></span>
+              HTTP {{STATUS}}
+            </span>
+            <span class="hero-chip">
+              <i class="fa-brands fa-php"></i>
+              PHP {{PHP_VERSION}}
+            </span>
+            <span class="hero-chip">
+              <i class="fa-solid fa-cubes"></i>
+              Doppar v{{FRAMEWORK_VERSION}}
+            </span>
+          </div>
+        </div>
+
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <div class="hero-stat-label">Response Time</div>
+            <div class="hero-stat-value">{{DURATION}} ms</div>
+            <div class="hero-stat-note">End-to-end runtime for this request.</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-label">Peak Memory</div>
+            <div class="hero-stat-value">{{MEMORY_PEAK}} MB</div>
+            <div class="hero-stat-note">Peak footprint observed during execution.</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-label">Database Load</div>
+            <div class="hero-stat-value">{{SQL_TOTAL_COUNT}}</div>
+            <div class="hero-stat-note">{{SQL_TOTAL_TIME}} ms spent in SQL queries.</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-label">Route Signature</div>
+            <div class="hero-stat-value">{{METHOD}}</div>
+            <div class="hero-stat-note">{{ROUTE}}</div>
+          </div>
+        </div>
+
+        <div class="request-hero-footer">
+          <span><strong>Request ID:</strong> {{ID}}</span>
+          <span><strong>Snapshot:</strong> Runtime, cache, request, response, session, and logs</span>
+        </div>
+      </header>
+
       <div class="metrics-grid">
+        <div class="metric-card is-highlight">
+          <div class="metric-label">Request Health</div>
+          <div class="metric-value">{{STATUS}}</div>
+          <div class="metric-note">HTTP status returned to the caller.</div>
+        </div>
         <div class="metric-card">
+          <div class="metric-label">Profiler Window</div>
           <div class="metric-value">{{DURATION}} ms</div>
-          <div class="metric-label">Response Time</div>
+          <div class="metric-note">Use this as your first quick-read latency check.</div>
         </div>
         <div class="metric-card">
-          <div class="metric-value">{{SQL_TOTAL_COUNT}}</div>
           <div class="metric-label">SQL Queries</div>
+          <div class="metric-value">{{SQL_TOTAL_COUNT}}</div>
+          <div class="metric-note">{{SQL_TOTAL_TIME}} ms total query time.</div>
         </div>
         <div class="metric-card">
-          <div class="metric-value">{{MEMORY_PEAK}} MB</div>
-          <div class="metric-label">Memory Usage</div>
-        </div>
-        <div class="metric-card">
-          <div class="cache-hit-rate-vs-miss metric-value"></div>
-          <div class="metric-label">Cache Hit</div>
+          <div class="metric-label">Cache Hit Rate</div>
+          <div class="metric-value cache-hit-rate-vs-miss">0%</div>
+          <div class="metric-note">Updated from cache telemetry below.</div>
         </div>
       </div>
 
-      <!-- Tabs -->
-      <div class="tabs">
+      <div class="tabs surface">
         <div class="tab-nav">
-          <button class="tab-button active" data-tab="overview">
-            Overview
-          </button>
+          <button class="tab-button active" data-tab="overview">Overview</button>
           <button class="tab-button" data-tab="http">HTTP</button>
           <button class="tab-button" data-tab="database">Database</button>
           <button class="tab-button" data-tab="cache">Cache</button>
@@ -376,119 +134,249 @@
         </div>
 
         <div class="tab-content">
-          <!-- Overview Tab -->
           <div class="tab-pane active" id="overview">
-            <div class="section">
-              <div class="section-title">Request</div>
-              <div class="row">
-                <span class="key">Request ID:</span
-                ><span class="badge badge-success">{{ID}}</span>
-              </div>
-              <div class="row">
-                <span class="key">Method:</span
-                ><span class="badge badge-success">{{METHOD}}</span>
-              </div>
-              <div class="row">
-                <span class="key">Route:</span
-                ><span class="badge badge-success">{{ROUTE}}</span>
-              </div>
-              <div class="row">
-                <span class="key">Status Code:</span
-                ><span class="badge badge-success">{{STATUS}}</span>
-              </div>
-              <div class="row">
-                <span class="key">Duration:</span
-                ><span class="badge badge-success">{{DURATION}} ms</span>
-              </div>
-              <div class="row">
-                <span class="key">Memory Peak:</span
-                ><span class="badge badge-success">{{MEMORY_PEAK}} MB</span>
-              </div>
-            </div>
+            <div class="overview-grid">
+              <div class="overview-stack">
+                <section class="section">
+                  <div class="section-head">
+                    <div>
+                      <span class="section-eyebrow">Snapshot</span>
+                      <div class="section-title">
+                        <i class="fa-solid fa-compass-drafting"></i>
+                        Request Summary
+                      </div>
+                    </div>
+                    <span class="badge badge-success">{{METHOD}} · {{STATUS}}</span>
+                  </div>
 
-            <div class="section">
-              <div class="section-title">
-                <span>Database</span>
-                <span class="badge badge-info"
-                  >{{SQL_TOTAL_COUNT}} queries</span
-                >
-                <span class="badge badge-success">{{SQL_TOTAL_TIME}} ms</span>
-              </div>
-              <div id="overview-sql-summary"></div>
-            </div>
+                  <div class="mini-grid">
+                    <div class="summary-card">
+                      <div class="summary-card-label">Route</div>
+                      <div class="summary-card-value">{{ROUTE}}</div>
+                      <div class="summary-card-note">Captured endpoint path.</div>
+                    </div>
+                    <div class="summary-card">
+                      <div class="summary-card-label">Duration</div>
+                      <div class="summary-card-value">{{DURATION}} ms</div>
+                      <div class="summary-card-note">Total observed request time.</div>
+                    </div>
+                    <div class="summary-card">
+                      <div class="summary-card-label">Memory</div>
+                      <div class="summary-card-value">{{MEMORY_PEAK}} MB</div>
+                      <div class="summary-card-note">Peak memory during execution.</div>
+                    </div>
+                  </div>
+                </section>
 
-            <div class="section">
-              <div class="section-title">Cache</div>
-              <div id="overview-cache-summary"></div>
+                <section class="section">
+                  <div class="section-head">
+                    <div>
+                      <span class="section-eyebrow">Data Layer</span>
+                      <div class="section-title">
+                        <i class="fa-solid fa-database"></i>
+                        Database Activity
+                      </div>
+                    </div>
+                    <div class="hero-actions">
+                      <span class="badge badge-info">{{SQL_TOTAL_COUNT}} queries</span>
+                      <span class="badge badge-success">{{SQL_TOTAL_TIME}} ms</span>
+                    </div>
+                  </div>
+                  <p class="section-intro">
+                    The first few queries are surfaced here for fast triage. Jump into the
+                    Database tab for the full execution trace.
+                  </p>
+                  <div id="overview-sql-summary"></div>
+                </section>
+              </div>
+
+              <div class="overview-stack">
+                <section class="section">
+                  <div class="section-head">
+                    <div>
+                      <span class="section-eyebrow">Runtime</span>
+                      <div class="section-title">
+                        <i class="fa-solid fa-bolt"></i>
+                        Environment
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="row">
+                    <span class="key">Request ID</span>
+                    <span class="val">{{ID}}</span>
+                  </div>
+                  <div class="row">
+                    <span class="key">Method</span>
+                    <span class="val"><span class="badge badge-info">{{METHOD}}</span></span>
+                  </div>
+                  <div class="row">
+                    <span class="key">Framework</span>
+                    <span class="val">Doppar v{{FRAMEWORK_VERSION}}</span>
+                  </div>
+                  <div class="row">
+                    <span class="key">PHP</span>
+                    <span class="val">{{PHP_VERSION}}</span>
+                  </div>
+                </section>
+
+                <section class="section">
+                  <div class="section-head">
+                    <div>
+                      <span class="section-eyebrow">Caching</span>
+                      <div class="section-title">
+                        <i class="fa-solid fa-box-open"></i>
+                        Cache Operations
+                      </div>
+                    </div>
+                  </div>
+                  <p class="section-intro">
+                    Cache behavior is summarized here so you can judge hit quality before diving
+                    into the raw operation list.
+                  </p>
+                  <div id="overview-cache-summary"></div>
+                </section>
+              </div>
             </div>
           </div>
 
-          <!-- HTTP Tab -->
           <div class="tab-pane" id="http">
-            <div id="http-details"></div>
+            <section class="section">
+              <div class="section-head">
+                <div>
+                  <span class="section-eyebrow">Transport</span>
+                  <div class="section-title">
+                    <i class="fa-solid fa-globe"></i>
+                    HTTP Flow
+                  </div>
+                </div>
+              </div>
+              <div id="http-details"></div>
+            </section>
           </div>
 
-          <!-- Database Tab -->
           <div class="tab-pane" id="database">
-            <div class="section">
-              <div class="section-title">
-                <span>Queries</span>
-                <span class="badge badge-info"
-                  >{{SQL_TOTAL_COUNT}} queries</span
-                >
-                <span class="badge badge-success">{{SQL_TOTAL_TIME}} ms</span>
+            <section class="section">
+              <div class="section-head">
+                <div>
+                  <span class="section-eyebrow">Database</span>
+                  <div class="section-title">
+                    <i class="fa-solid fa-table-list"></i>
+                    Query Breakdown
+                  </div>
+                </div>
+                <div class="hero-actions">
+                  <span class="badge badge-info">{{SQL_TOTAL_COUNT}} queries</span>
+                  <span class="badge badge-success">{{SQL_TOTAL_TIME}} ms</span>
+                </div>
               </div>
               <div id="sql-queries-list"></div>
-            </div>
+            </section>
           </div>
 
-          <!-- Auth Tab -->
-          <div class="tab-pane" id="auth">
-            <div class="section">
-              <div id="auth-details"></div>
-            </div>
-          </div>
-
-          <!-- Request Tab -->
-          <div class="tab-pane" id="request">
-            <div class="section">
-              <div id="request-details"></div>
-            </div>
-          </div>
-
-          <!-- Response Tab -->
-          <div class="tab-pane" id="response">
-            <div class="section">
-              <div id="response-details"></div>
-            </div>
-          </div>
-
-          <!-- Performance Tab -->
-          <div class="tab-pane" id="performance">
-            <div class="section">
-              <div id="performance-metrics"></div>
-            </div>
-          </div>
-
-          <!-- Cache Tab -->
           <div class="tab-pane" id="cache">
-            <div class="section">
+            <section class="section">
+              <div class="section-head">
+                <div>
+                  <span class="section-eyebrow">Cache</span>
+                  <div class="section-title">
+                    <i class="fa-solid fa-layer-group"></i>
+                    Cache Timeline
+                  </div>
+                </div>
+              </div>
               <div id="cache-operations-list"></div>
-            </div>
+            </section>
           </div>
 
-          <!-- Session Tab -->
+          <div class="tab-pane" id="auth">
+            <section class="section">
+              <div class="section-head">
+                <div>
+                  <span class="section-eyebrow">Auth</span>
+                  <div class="section-title">
+                    <i class="fa-solid fa-user-shield"></i>
+                    Authentication Context
+                  </div>
+                </div>
+              </div>
+              <div id="auth-details"></div>
+            </section>
+          </div>
+
+          <div class="tab-pane" id="request">
+            <section class="section">
+              <div class="section-head">
+                <div>
+                  <span class="section-eyebrow">Input</span>
+                  <div class="section-title">
+                    <i class="fa-solid fa-arrow-down-wide-short"></i>
+                    Request Payload
+                  </div>
+                </div>
+              </div>
+              <div id="request-details"></div>
+            </section>
+          </div>
+
+          <div class="tab-pane" id="response">
+            <section class="section">
+              <div class="section-head">
+                <div>
+                  <span class="section-eyebrow">Output</span>
+                  <div class="section-title">
+                    <i class="fa-solid fa-arrow-up-right-dots"></i>
+                    Response Details
+                  </div>
+                </div>
+              </div>
+              <div id="response-details"></div>
+            </section>
+          </div>
+
+          <div class="tab-pane" id="performance">
+            <section class="section">
+              <div class="section-head">
+                <div>
+                  <span class="section-eyebrow">Runtime</span>
+                  <div class="section-title">
+                    <i class="fa-solid fa-gauge-high"></i>
+                    Performance Metrics
+                  </div>
+                </div>
+              </div>
+              <div id="performance-metrics"></div>
+            </section>
+          </div>
+
           <div class="tab-pane" id="session">
-            <div class="section">
-              <div id="session-details" class="sql-item"></div>
-            </div>
+            <section class="section">
+              <div class="section-head">
+                <div>
+                  <span class="section-eyebrow">State</span>
+                  <div class="section-title">
+                    <i class="fa-solid fa-database"></i>
+                    Session Snapshot
+                  </div>
+                </div>
+              </div>
+              <div id="session-details"></div>
+            </section>
           </div>
 
-          <!-- Logs Tab -->
           <div class="tab-pane" id="logs">
-            <div class="section">
+            <section class="section">
+              <div class="section-head">
+                <div>
+                  <span class="section-eyebrow">Events</span>
+                  <div class="section-title">
+                    <i class="fa-solid fa-scroll"></i>
+                    Runtime Logs
+                  </div>
+                </div>
+              </div>
               <div id="logs-list"></div>
-            </div>
+            </section>
           </div>
         </div>
       </div>
@@ -497,19 +385,54 @@
     <script>
       {{JS}}
 
-      // Initialize with server data
       const profilerData = {{DATA_JSON}};
-
-      // Store redirect chain in a data attribute for HTTP component
       const redirectChain = {{REDIRECT_CHAIN_JSON}};
+
       if (redirectChain && redirectChain.length > 0) {
-          document.body.setAttribute('data-redirect-chain', JSON.stringify(redirectChain));
+        document.body.setAttribute('data-redirect-chain', JSON.stringify(redirectChain));
       }
 
       DopparInsight.init(profilerData);
 
-      const value = document.querySelector('.cache-stat-value')?.textContent.trim();
-      document.querySelector('.cache-hit-rate-vs-miss').textContent = value ?? 0;
+      const heroStatus = document.getElementById('hero-status');
+      if (heroStatus) {
+        const status = parseInt(heroStatus.dataset.status || '0', 10);
+        heroStatus.classList.remove('status-success', 'status-warning', 'status-error');
+        if (status >= 500 || status >= 400) {
+          heroStatus.classList.add('status-error');
+        } else if (status >= 300) {
+          heroStatus.classList.add('status-warning');
+        } else {
+          heroStatus.classList.add('status-success');
+        }
+      }
+
+      const cacheHits = Number(profilerData.cache_hits || 0);
+      const cacheMisses = Number(profilerData.cache_misses || 0);
+      const cacheTotalReads = cacheHits + cacheMisses;
+      const cacheHitRate = cacheTotalReads > 0
+        ? `${((cacheHits / cacheTotalReads) * 100).toFixed(1)}%`
+        : '0%';
+
+      document.querySelectorAll('.cache-hit-rate-vs-miss').forEach((el) => {
+        el.textContent = cacheHitRate;
+      });
+
+      const copyButton = document.getElementById('copy-request-id');
+      if (copyButton) {
+        copyButton.addEventListener('click', async () => {
+          const requestId = '{{ID}}';
+          try {
+            await navigator.clipboard.writeText(requestId);
+            copyButton.innerHTML = '<i class="fa-solid fa-check"></i> Copied';
+          } catch (error) {
+            copyButton.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Copy failed';
+          }
+          window.setTimeout(() => {
+            copyButton.innerHTML = '<i class="fa-regular fa-copy"></i> Copy Request ID';
+          }, 1600);
+        });
+      }
     </script>
   </body>
 </html>

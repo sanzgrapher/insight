@@ -1,84 +1,91 @@
 .auth-authenticated {
     position: relative;
     overflow: hidden;
+    background:
+        linear-gradient(135deg, rgba(20, 125, 100, 0.1), rgba(255, 255, 255, 0)),
+        rgba(244, 247, 243, 0.88);
+    border: 1px solid rgba(20, 125, 100, 0.14);
+    border-radius: 20px;
+    padding: 56px 22px 22px;
+    box-shadow: var(--dp-shadow-sm);
 }
 
 .auth-authenticated::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
     width: 6px;
     height: 100%;
+    background: linear-gradient(180deg, rgba(20, 125, 100, 0.9), rgba(15, 139, 141, 0.8));
 }
 
 .auth-authenticated::after {
-    content: '✓ AUTHENTICATED';
+    content: "Authenticated";
     position: absolute;
-    top: 20px;
-    right: 20px;
-    background: #d1fae5;
-    color: #065f46;
+    top: 18px;
+    right: 18px;
+    background: rgba(20, 125, 100, 0.12);
+    color: var(--dp-success);
     font-size: 11px;
     font-weight: 800;
     padding: 6px 12px;
-    border-radius: 20px;
-    letter-spacing: 0.5px;
+    border-radius: 999px;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+    border: 1px solid rgba(20, 125, 100, 0.18);
 }
 
 .auth-guest {
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-    border: 2px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 28px;
-    margin-bottom: 24px;
-    color: #64748b;
-    box-shadow:
-        0 4px 6px -1px rgba(0, 0, 0, 0.04),
-        0 10px 15px -3px rgba(0, 0, 0, 0.06),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.9);
     position: relative;
     overflow: hidden;
+    background:
+        linear-gradient(135deg, rgba(17, 40, 61, 0.04), rgba(255, 255, 255, 0)),
+        rgba(244, 247, 243, 0.86);
+    border: 1px solid rgba(17, 40, 61, 0.1);
+    border-radius: 20px;
+    padding: 28px;
+    margin-bottom: 24px;
+    color: var(--dp-text-soft);
+    box-shadow: var(--dp-shadow-sm);
     text-align: center;
 }
 
 .auth-guest::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
     width: 6px;
     height: 100%;
-    background: linear-gradient(180deg, #94a3b8 0%, #cbd5e1 100%);
+    background: linear-gradient(180deg, rgba(114, 131, 150, 0.9), rgba(114, 131, 150, 0.4));
 }
 
 .auth-guest::after {
-    content: 'GUEST USER';
+    content: "Guest";
     position: absolute;
-    top: 20px;
-    right: 20px;
-    background: #e2e8f0;
-    color: #475569;
+    top: 18px;
+    right: 18px;
+    background: rgba(17, 40, 61, 0.06);
+    color: var(--dp-text-soft);
     font-size: 11px;
     font-weight: 800;
     padding: 6px 12px;
-    border-radius: 20px;
-    letter-spacing: 0.5px;
+    border-radius: 999px;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    box-shadow: 0 2px 4px rgba(148, 163, 184, 0.2);
+    border: 1px solid rgba(17, 40, 61, 0.12);
 }
 
 .auth-guest .guest-message {
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 800;
     margin-bottom: 12px;
-    color: #475569;
+    color: var(--dp-text);
 }
 
 .auth-guest .guest-submessage {
     font-size: 14px;
-    color: #64748b;
+    color: var(--dp-text-soft);
     opacity: 0.8;
 }

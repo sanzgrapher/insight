@@ -58,6 +58,6 @@ class InsightComponent {
     
     buildSection(title, content) {
         if (!content) return '';
-        return `<h3 style="color: #1F2950; margin: 24px 0 12px;">${title}</h3>${content}`;
+        return `<h3 class="subsection-title">${title}</h3>${content}`;
     }
 }
