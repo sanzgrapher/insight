@@ -2039,6 +2039,105 @@ window.DopparProfiler = {
             color: #ef8354;
           }
 
+          .ov-dashboard {
+            display: grid;
+            gap: 14px;
+            margin-top: 4px;
+          }
+          .ov-section-label {
+            font-size: 10px;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+            color: #55566a;
+            font-weight: 800;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+          }
+          .ov-two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+          }
+          .ov-kpi-chip {
+            font-size: 11px;
+            font-weight: 800;
+            color: #888899;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 4px 8px;
+            border-radius: 6px;
+            white-space: nowrap;
+          }
+          .ov-kpi-warn {
+            color: #f59e0b;
+            background: rgba(245,158,11,0.09);
+            border-color: rgba(245,158,11,0.16);
+          }
+          .ov-app-headline {
+            font-size: 18px;
+            font-weight: 900;
+            color: #ebebf0;
+            margin: 8px 0 4px;
+            line-height: 1.2;
+            letter-spacing: -.02em;
+          }
+          .ov-app-sub {
+            font-size: 12px;
+            color: #888899;
+            font-weight: 600;
+            margin-bottom: 12px;
+          }
+          .ov-route-list {
+            display: grid;
+            gap: 7px;
+            margin-top: 10px;
+          }
+          .ov-route-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+            padding: 8px 10px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+          }
+          .ov-route-path {
+            flex: 1 1 auto;
+            min-width: 0;
+            font-family: "Berkeley Mono","SFMono-Regular",Consolas,monospace;
+            font-size: 12px;
+            color: #ebebf0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .ov-p95-chip {
+            flex: 0 0 auto;
+            font-size: 11px;
+            font-weight: 800;
+            color: #f59e0b;
+            background: rgba(245,158,11,0.09);
+            border: 1px solid rgba(245,158,11,0.16);
+            padding: 3px 7px;
+            border-radius: 6px;
+            white-space: nowrap;
+          }
+          .ov-empty {
+            padding: 20px 16px;
+            color: #55566a;
+            font-size: 13px;
+            font-weight: 700;
+            text-align: center;
+            background: rgba(255,255,255,0.02);
+            border-radius: 12px;
+            border: 1px dashed rgba(255,255,255,0.07);
+            margin-top: 10px;
+          }
+
           @media (max-width: 1100px) {
             .history-col-3xx,
             .history-col-4xx,
@@ -2061,6 +2160,7 @@ window.DopparProfiler = {
             }
             .history-overview-grid,
             .history-kpis,
+            .ov-two-col,
             .stats-grid { grid-template-columns: 1fr; }
             .history-table-head,
             .history-search-wrap {
@@ -2130,17 +2230,6 @@ window.DopparProfiler = {
             <div class="section">
               <div class="section-title"><span class="section-title-main">Database Queries</span></div>
               <div class="no-data">No database queries detected</div>
-            </div>
-          `;
-        }
-        
-        // Build redirect section if applicable
-        let redirectSection = '';
-        if (data.is_redirect && data.redirect_url) {
-          redirectSection = `
-            <div class="row redirect-row">
-              <span class="key">Redirect to:</span> 
-              <span class="val redirect-url">→ ${escapeHtml(data.redirect_url)}</span>
             </div>
           `;
         }
@@ -2221,18 +2310,6 @@ window.DopparProfiler = {
           `;
         }
 
-        const requestInfoSection = `
-          <div class="section">
-            <div class="section-title"><span class="section-title-main">Request Information</span></div>
-            <div class="row"><span class="key">Request ID:</span> <span class="val">${escapeHtml(data.id)}</span></div>
-            <div class="row"><span class="key">Method:</span> <span class="val">${escapeHtml(data.method)}</span></div>
-            <div class="row"><span class="key">Path:</span> <span class="val">${escapeHtml(data.route)}</span></div>
-            <div class="row"><span class="key">Status:</span> <span class="val">${escapeHtml(data.status)}</span></div>
-            ${redirectSection}
-            <div class="row"><span class="key">Duration:</span> <span class="val">${escapeHtml(data.duration_ms?.toFixed?.(1) ?? data.duration_ms)} ms</span></div>
-            <div class="row"><span class="key">Memory Peak:</span> <span class="val">${((data.memory_peak || 0) / (1024*1024)).toFixed(2)} MB</span></div>
-          </div>
-        `;
 
         const requestDetailsSection = `
           <div class="section">
@@ -2445,10 +2522,6 @@ window.DopparProfiler = {
           </div>
         `;
 
-        const statusClass = Number(data.status) >= 500 || Number(data.status) >= 400
-          ? 'err'
-          : (Number(data.status) >= 300 ? 'warn' : 'ok');
-
         const sidebarLogo = toolbarLogo
           ? `<img src="${escapeHtml(toolbarLogo)}" alt="Doppar Logo" width="18" height="18">`
           : 'D';
@@ -2481,51 +2554,15 @@ window.DopparProfiler = {
             <main class="canvas">
               <section class="view-section active" data-view-section="overview">
                 <div class="hero">
-                  <div class="hero-top">
-                    <div>
-                      <div class="hero-head">
-                        <div class="eyebrow">Quick View</div>
-                        <button class="theme-switch" type="button" data-action="toggle-theme" data-theme-mode="light" aria-pressed="false" aria-label="Switch to dark mode">
-                          <span class="theme-switch-icon theme-switch-icon-light" aria-hidden="true"></span>
-                        </button>
-                      </div>
-                      <div class="hero-request-bar">
-                        <span class="hero-method-pill">${escapeHtml(data.method)}</span>
-                        <div class="hero-url" title="${escapeHtml(requestUrl)}">${escapeHtml(requestUrl)}</div>
-                        <button class="hero-request-copy" type="button" data-action="copy-request-url" aria-label="Copy request URL">
-                          <span class="hero-request-copy-icon" aria-hidden="true"></span>
-                        </button>
-                      </div>
-                      <div class="hero-copy">A focused operational dashboard for this request, built for fast triage and deeper follow-up.</div>
-                    </div>
-                    <div class="hero-top-actions">
-                      <span class="hero-status ${statusClass}">
-                        <span class="hero-dot"></span>
-                        HTTP ${escapeHtml(data.status)}
-                      </span>
-                    </div>
-                  </div>
-                  <div class="metrics">
-                    <div class="metric">
-                      <div class="metric-label">Duration</div>
-                      <div class="metric-value">${escapeHtml(data.duration_ms?.toFixed?.(1) ?? data.duration_ms)}</div>
-                      <div class="metric-note">milliseconds</div>
-                    </div>
-                    <div class="metric">
-                      <div class="metric-label">Peak Memory</div>
-                      <div class="metric-value">${((data.memory_peak || 0) / (1024*1024)).toFixed(2)}</div>
-                      <div class="metric-note">MB</div>
-                    </div>
-                    <div class="metric">
-                      <div class="metric-label">SQL Queries</div>
-                      <div class="metric-value">${escapeHtml(data.sql_total_count || 0)}</div>
-                      <div class="metric-note">${escapeHtml(data.sql_total_time_ms?.toFixed?.(2) ?? data.sql_total_time_ms ?? 0)} ms total</div>
-                    </div>
+                  <div class="hero-head">
+                    <div class="eyebrow">Quick View</div>
+                    <button class="theme-switch" type="button" data-action="toggle-theme" data-theme-mode="light" aria-pressed="false" aria-label="Switch to dark mode">
+                      <span class="theme-switch-icon theme-switch-icon-light" aria-hidden="true"></span>
+                    </button>
                   </div>
                 </div>
-                <div class="stats-grid">
-                  ${requestInfoSection}
-                  ${performanceSection}
+                <div data-overview-shell>
+                  <div class="history-loading">Loading activity…</div>
                 </div>
               </section>
               <section class="view-section" data-view-section="history">
@@ -2577,6 +2614,7 @@ window.DopparProfiler = {
             });
           });
         });
+        const overviewShell = wrap.querySelector('[data-overview-shell]');
         const historyShell = wrap.querySelector('[data-history-shell]');
         const historyRanges = wrap.querySelector('[data-history-ranges]');
         if(historyShell && historyRanges){
@@ -3019,16 +3057,136 @@ window.DopparProfiler = {
             });
           };
 
+          const renderOverviewDashboard = () => {
+            if(!overviewShell) return;
+            const rangeMs = 24 * 60 * 60 * 1000;
+            const latestTs = historyDataset.length ? historyDataset[historyDataset.length - 1].timestamp : Date.now();
+            const cutoff = latestTs - rangeMs;
+            const filtered = historyDataset.filter((item) => item.timestamp >= cutoff);
+            const totalRequests = filtered.length;
+            const status123xx = filtered.filter((item) => item.status >= 100 && item.status < 400).length;
+            const status4xx = filtered.filter((item) => item.status >= 400 && item.status < 500).length;
+            const status5xx = filtered.filter((item) => item.status >= 500).length;
+            const durations = filtered.map((item) => item.duration_ms);
+            const avgDuration = durations.length ? durations.reduce((s, v) => s + v, 0) / durations.length : 0;
+            const minDuration = durations.length ? Math.min(...durations) : 0;
+            const maxDuration = durations.length ? Math.max(...durations) : 0;
+            const calcP95 = (vals) => {
+              if(!vals.length) return 0;
+              const sorted = [...vals].sort((a, b) => a - b);
+              return sorted[Math.floor(sorted.length * 0.95)] ?? sorted[sorted.length - 1] ?? 0;
+            };
+            const p95 = calcP95(durations);
+            const buckets = buildBuckets(filtered, rangeMs, 24);
+            const formatAxisLabel = (ts) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const axisStart = formatAxisLabel(cutoff);
+            const axisEnd = formatAxisLabel(latestTs);
+            const durationRange = maxDuration > 0
+              ? (minDuration > 0 ? `${formatDuration(minDuration)} – ${formatDuration(maxDuration)}` : formatDuration(maxDuration))
+              : '—';
+            const recentErrors = filtered
+              .filter((item) => item.status >= 400)
+              .sort((a, b) => b.timestamp - a.timestamp)
+              .slice(0, 5);
+            const errorCount = filtered.filter((item) => item.status >= 400).length;
+            const errorRoutes = new Set(filtered.filter((item) => item.status >= 400).map((item) => item.route));
+            const slowThreshold = 1000;
+            const slowRoutes = aggregateRoutes(filtered)
+              .filter((route) => route.maxDuration >= slowThreshold)
+              .sort((a, b) => b.maxDuration - a.maxDuration)
+              .slice(0, 5);
+            overviewShell.innerHTML = `
+              <div class="ov-dashboard">
+                <div class="ov-section-label">Activity <span>24h</span></div>
+                <div class="ov-two-col">
+                  <div class="history-card">
+                    <div class="history-card-header">
+                      <div class="history-card-title">Requests</div>
+                      <div class="history-card-meta">
+                        <span class="badge badge-success">${escapeHtml(formatCompactNumber(status123xx))} 1/2/3XX</span>
+                        <span class="badge badge-warning">${escapeHtml(formatCompactNumber(status4xx))} 4XX</span>
+                        <span class="badge badge-error">${escapeHtml(formatCompactNumber(status5xx))} 5XX</span>
+                      </div>
+                    </div>
+                    <div class="history-card-value">${escapeHtml(formatCompactNumber(totalRequests))}</div>
+                    <div class="history-chart-wrap">
+                      ${buildBarChart(buckets)}
+                      <div class="history-chart-axis"><span>${escapeHtml(axisStart)}</span><span>${escapeHtml(axisEnd)}</span></div>
+                    </div>
+                  </div>
+                  <div class="history-card">
+                    <div class="history-card-header">
+                      <div class="history-card-title">Duration</div>
+                      <div class="history-card-meta">
+                        <span class="ov-kpi-chip">AVG ${escapeHtml(formatDuration(avgDuration))}</span>
+                        <span class="ov-kpi-chip ov-kpi-warn">P95 ${escapeHtml(formatDuration(p95))}</span>
+                      </div>
+                    </div>
+                    <div class="history-card-value">${escapeHtml(durationRange)}</div>
+                    <div class="history-chart-wrap">
+                      ${buildLineChart(buckets)}
+                      <div class="history-chart-axis"><span>${escapeHtml(axisStart)}</span><span>${escapeHtml(axisEnd)}</span></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="ov-section-label">Application</div>
+                <div class="ov-two-col">
+                  <div class="history-card">
+                    <div class="history-card-title">Exceptions</div>
+                    ${errorCount > 0 ? `
+                      <div class="ov-app-headline">${escapeHtml(formatCompactNumber(errorCount))} exception${errorCount !== 1 ? 's' : ''} in 24h</div>
+                      <div class="ov-app-sub">Errors across ${escapeHtml(String(errorRoutes.size))} unique route${errorRoutes.size !== 1 ? 's' : ''}</div>
+                      <div class="history-error-feed">
+                        ${recentErrors.map((item) => `
+                          <div class="history-error-item">
+                            <div class="history-error-head">
+                              <div class="history-error-path">${escapeHtml(item.method)} ${escapeHtml(item.route)}</div>
+                              <span class="badge ${historyBadgeClass(item.status)}">HTTP ${escapeHtml(String(item.status || 0))}</span>
+                            </div>
+                            <div class="history-error-text">${escapeHtml(item.exception_message || formatExceptionLabel(item.exception_class))}</div>
+                            <div class="history-error-meta">
+                              <span>${escapeHtml(formatExceptionLabel(item.exception_class))}</span>
+                              <span>${escapeHtml(formatCapturedAt(item.captured_at))}</span>
+                            </div>
+                          </div>
+                        `).join('')}
+                      </div>
+                    ` : '<div class="ov-empty">No exceptions recorded in 24h.</div>'}
+                  </div>
+                  <div class="history-card">
+                    <div class="history-card-title">Slow Routes</div>
+                    ${slowRoutes.length > 0 ? `
+                      <div class="ov-app-headline">${slowRoutes.length} route${slowRoutes.length !== 1 ? 's' : ''} slower than 1s</div>
+                      <div class="ov-app-sub">Sorted by worst observed response time</div>
+                      <div class="ov-route-list">
+                        ${slowRoutes.map((route) => `
+                          <div class="ov-route-item">
+                            <span class="history-method-chip">${escapeHtml(route.method)}</span>
+                            <span class="ov-route-path">${escapeHtml(route.route)}</span>
+                            <span class="ov-p95-chip">P95 ${escapeHtml(formatDuration(route.maxDuration))}</span>
+                          </div>
+                        `).join('')}
+                      </div>
+                    ` : '<div class="ov-empty">No slow routes detected in 24h.</div>'}
+                  </div>
+                </div>
+              </div>
+            `;
+          };
+
           renderRangeButtons();
           fetch('/_insight/api/history?limit=500').then((response) => response.json()).then((history) => {
             if(!Array.isArray(history)){
               historyShell.innerHTML = '<div class="no-data">Unable to load request history right now.</div>';
+              if(overviewShell) overviewShell.innerHTML = '<div class="no-data">Unable to load activity data.</div>';
               return;
             }
             historyDataset = buildCombinedHistory(history);
+            renderOverviewDashboard();
             renderHistoryDashboard();
           }).catch(() => {
             historyShell.innerHTML = '<div class="no-data">Unable to load request history right now.</div>';
+            if(overviewShell) overviewShell.innerHTML = '<div class="no-data">Unable to load activity data.</div>';
           });
         }
         wrap.querySelectorAll('[data-action="json-api-copy"]').forEach((button) => {
