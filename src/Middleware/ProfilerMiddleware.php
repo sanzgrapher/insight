@@ -4,6 +4,7 @@ namespace Doppar\Insight\Middleware;
 
 use Closure;
 use Doppar\Insight\Profiler;
+use Doppar\Insight\Support\ErrorHistoryRecorder;
 use Phaseolies\Http\Request;
 use Phaseolies\Http\Response;
 use Throwable;
@@ -30,7 +31,7 @@ class ProfilerMiddleware implements \Phaseolies\Middleware\Contracts\Middleware
         try {
             $response = $next($request);
         } catch (Throwable $exception) {
-            $profiler->stopWithException($request, $exception);
+            app(ErrorHistoryRecorder::class)->record($exception, $request);
 
             throw $exception;
         }
