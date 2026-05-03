@@ -312,12 +312,10 @@ window.DopparProfiler = {
             align-self: start;
             padding: 12px;
             border-radius: 20px;
-            background:
-              linear-gradient(180deg, rgba(20, 31, 48, 0.96), rgba(19, 34, 51, 0.94)),
-              #182633;
-            border: 1px solid rgba(132, 134, 255, 0.16);
-            color: #e6eef9;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+            background: #18181B;
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            color: #ebebf0;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
           }
           .sidebar-brand {
             display: flex;
@@ -350,13 +348,13 @@ window.DopparProfiler = {
           .sidebar-title {
             font-size: 15px;
             font-weight: 800;
-            color: #ffffff;
+            color: #ebebf0;
             line-height: 1.08;
           }
           .sidebar-copy {
             margin-top: 4px;
             font-size: 11px;
-            color: rgba(230, 238, 249, 0.66);
+            color: #55566a;
           }
           .sidebar-nav {
             display: grid;
@@ -401,7 +399,7 @@ window.DopparProfiler = {
             padding: 9px 10px;
             border-radius: 14px;
             background: transparent;
-            color: rgba(230, 238, 249, 0.76);
+            color: #888899;
             font: inherit;
             font-size: 13px;
             font-weight: 700;
@@ -414,18 +412,18 @@ window.DopparProfiler = {
           }
           .nav-button:hover {
             background: rgba(255,255,255,0.06);
-            color: #ffffff;
+            color: #ebebf0;
           }
           .nav-button.active {
-            background: linear-gradient(135deg, rgba(132, 134, 255, 0.22), rgba(132, 134, 255, 0.1));
-            color: #ffffff;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+            background: linear-gradient(135deg, rgba(15, 139, 141, 0.18), rgba(42, 114, 212, 0.14));
+            color: #2ab4b6;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
           }
           .nav-kicker {
             font-size: 10px;
             letter-spacing: .14em;
             text-transform: uppercase;
-            color: rgba(230, 238, 249, 0.52);
+            color: #55566a;
           }
           .canvas {
             min-width: 0;
