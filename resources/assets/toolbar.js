@@ -269,6 +269,10 @@ window.DopparProfiler = {
           :host{all:initial}
 
           .panel {
+            --dp-scrollbar-size: 2px;
+            --dp-scrollbar-track: transparent;
+            --dp-scrollbar-thumb: rgba(132,134,255,0.22);
+            --dp-scrollbar-thumb-hover: rgba(132,134,255,0.34);
             width: 100%;
             max-height: min(78vh, var(--dp-panel-available-height, 78vh));
             overflow: auto;
@@ -286,6 +290,37 @@ window.DopparProfiler = {
               inset 0 1px 0 rgba(255,255,255,0.8);
             backdrop-filter: blur(16px);
             position: relative;
+            scrollbar-width: thin;
+            scrollbar-color: var(--dp-scrollbar-thumb) var(--dp-scrollbar-track);
+          }
+          .panel::-webkit-scrollbar,
+          .sidebar-nav::-webkit-scrollbar,
+          .history-table-scroll::-webkit-scrollbar {
+            width: var(--dp-scrollbar-size);
+            height: var(--dp-scrollbar-size);
+          }
+          .panel::-webkit-scrollbar-track,
+          .sidebar-nav::-webkit-scrollbar-track,
+          .history-table-scroll::-webkit-scrollbar-track {
+            background: var(--dp-scrollbar-track);
+          }
+          .panel::-webkit-scrollbar-button,
+          .sidebar-nav::-webkit-scrollbar-button,
+          .history-table-scroll::-webkit-scrollbar-button {
+            display: none;
+            width: 0;
+            height: 0;
+          }
+          .panel::-webkit-scrollbar-thumb,
+          .sidebar-nav::-webkit-scrollbar-thumb,
+          .history-table-scroll::-webkit-scrollbar-thumb {
+            background: var(--dp-scrollbar-thumb);
+            border-radius: 999px;
+          }
+          .panel::-webkit-scrollbar-thumb:hover,
+          .sidebar-nav::-webkit-scrollbar-thumb:hover,
+          .history-table-scroll::-webkit-scrollbar-thumb:hover {
+            background: var(--dp-scrollbar-thumb-hover);
           }
 
           .panel::before {
@@ -367,9 +402,14 @@ window.DopparProfiler = {
             min-height: 0;
             overflow-y: auto;
             overflow-x: hidden;
-            padding-right: 4px;
-            scrollbar-gutter: stable;
+            padding-right: 0;
+            margin-right: -6px;
             overscroll-behavior: contain;
+            scrollbar-width: thin;
+            scrollbar-color: var(--dp-scrollbar-thumb) var(--dp-scrollbar-track);
+          }
+          .sidebar-nav::-webkit-scrollbar-track {
+            margin-block: 4px;
           }
           .nav-section-label {
             padding: 10px 10px 2px;
@@ -1405,16 +1445,8 @@ window.DopparProfiler = {
             overflow-y: hidden;
             border-radius: 14px;
             -webkit-overflow-scrolling: touch;
-          }
-          .history-table-scroll::-webkit-scrollbar {
-            height: 6px;
-          }
-          .history-table-scroll::-webkit-scrollbar-track {
-            background: transparent;
-          }
-          .history-table-scroll::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.12);
-            border-radius: 999px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--dp-scrollbar-thumb) var(--dp-scrollbar-track);
           }
           .history-method-chip {
             display: inline-flex;
@@ -1997,8 +2029,9 @@ window.DopparProfiler = {
           .panel[data-theme="dark"] .history-route-table tbody tr:hover td {
             background: rgba(255,255,255,0.03);
           }
-          .panel[data-theme="dark"] .history-table-scroll::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.16);
+          .panel[data-theme="dark"] {
+            --dp-scrollbar-thumb: rgba(255,255,255,0.16);
+            --dp-scrollbar-thumb-hover: rgba(255,255,255,0.28);
           }
           .panel[data-theme="dark"] .history-grid-line {
             stroke: rgba(255,255,255,0.08);
