@@ -2090,6 +2090,69 @@ window.DopparProfiler = {
             font-weight: 600;
             margin-bottom: 12px;
           }
+          .ov-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+            margin-top: 12px;
+          }
+          .ov-stat-card {
+            min-width: 0;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+          }
+          .ov-stat-label {
+            font-size: 10px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: #66687e;
+            font-weight: 800;
+            margin-bottom: 6px;
+          }
+          .ov-stat-value {
+            font-size: 15px;
+            line-height: 1.2;
+            color: #ebebf0;
+            font-weight: 900;
+            overflow-wrap: anywhere;
+          }
+          .ov-stat-note {
+            margin-top: 4px;
+            font-size: 11px;
+            line-height: 1.35;
+            color: #888899;
+            font-weight: 600;
+            overflow-wrap: anywhere;
+          }
+          .ov-chart-wrap {
+            margin-top: 12px;
+          }
+          .ov-chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+          }
+          .ov-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 0;
+            max-width: 100%;
+            padding: 6px 9px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.07);
+            background: rgba(255,255,255,0.03);
+            color: #cdd5e4;
+            font-size: 11px;
+            font-weight: 800;
+          }
+          .ov-chip-value {
+            color: #ebebf0;
+            overflow-wrap: anywhere;
+          }
           .ov-route-list {
             display: grid;
             gap: 7px;
@@ -2168,6 +2231,9 @@ window.DopparProfiler = {
             }
             .history-search {
               min-width: 100%;
+            }
+            .ov-stat-grid {
+              grid-template-columns: 1fr;
             }
             .metrics,
             .history-item {
@@ -2789,6 +2855,31 @@ window.DopparProfiler = {
             const grid = [0.25, 0.5, 0.75].map((step) => `<line class="history-grid-line" x1="0" y1="${height * step}" x2="${width}" y2="${height * step}"></line>`).join('');
             return `<svg class="history-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">${grid}<path class="history-line-avg" d="${avgPath}"></path><path class="history-line-max" d="${maxPath}"></path></svg>`;
           };
+          const buildExceptionChart = (buckets) => {
+            const width = 560;
+            const height = 140;
+            const maxValue = Math.max(1, ...buckets.map((bucket) => bucket.status4xx + bucket.status5xx));
+            const barWidth = width / Math.max(1, buckets.length);
+            const grid = [0.25, 0.5, 0.75].map((step) => `<line class="history-grid-line" x1="0" y1="${height * step}" x2="${width}" y2="${height * step}"></line>`).join('');
+            const bars = buckets.map((bucket, index) => {
+              const x = index * barWidth + 2;
+              const widthValue = Math.max(6, barWidth - 5);
+              const total4xxHeight = bucket.status4xx > 0 ? Math.max(6, (bucket.status4xx / maxValue) * (height - 8)) : 0;
+              const total5xxHeight = bucket.status5xx > 0 ? Math.max(6, (bucket.status5xx / maxValue) * (height - 8)) : 0;
+              const baseY = height;
+              const warningRect = total4xxHeight > 0
+                ? `<rect class="history-bar-warning" x="${x.toFixed(2)}" y="${(baseY - total4xxHeight).toFixed(2)}" width="${widthValue.toFixed(2)}" height="${total4xxHeight.toFixed(2)}" rx="2"></rect>`
+                : '';
+              const errorRect = total5xxHeight > 0
+                ? `<rect class="history-bar-error" x="${x.toFixed(2)}" y="${(baseY - total4xxHeight - total5xxHeight).toFixed(2)}" width="${widthValue.toFixed(2)}" height="${total5xxHeight.toFixed(2)}" rx="2"></rect>`
+                : '';
+              const emptyTick = (bucket.status4xx + bucket.status5xx) === 0
+                ? `<rect class="history-bar-muted" x="${x.toFixed(2)}" y="${(height - 4).toFixed(2)}" width="${widthValue.toFixed(2)}" height="3" rx="2"></rect>`
+                : '';
+              return `${emptyTick}${warningRect}${errorRect}`;
+            }).join('');
+            return `<svg class="history-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">${grid}${bars}</svg>`;
+          };
           const aggregateRoutes = (items) => {
             const routes = new Map();
             items.forEach((item) => {
@@ -2886,6 +2977,10 @@ window.DopparProfiler = {
               .filter((item) => item.status >= 400)
               .sort((left, right) => right.timestamp - left.timestamp)
               .slice(0, 6);
+            const topErrorRoutes = aggregateRoutes(filtered)
+              .filter((route) => route.status4xx > 0 || route.status5xx > 0)
+              .sort((left, right) => (right.status5xx + right.status4xx) - (left.status5xx + left.status4xx) || right.requests - left.requests)
+              .slice(0, 3);
             const routeRows = matched.slice(0, 18).map((route) => `
               <tr>
                 <td class="history-col-method"><span class="history-method-chip">${escapeHtml(route.method)}</span></td>
@@ -3087,9 +3182,16 @@ window.DopparProfiler = {
             const recentErrors = filtered
               .filter((item) => item.status >= 400)
               .sort((a, b) => b.timestamp - a.timestamp)
-              .slice(0, 5);
+              .slice(0, 6);
             const errorCount = filtered.filter((item) => item.status >= 400).length;
             const errorRoutes = new Set(filtered.filter((item) => item.status >= 400).map((item) => item.route));
+            const errorTypes = new Set(filtered.filter((item) => item.status >= 400).map((item) => formatExceptionLabel(item.exception_class)));
+            const topErrorRoutes = aggregateRoutes(filtered)
+              .filter((route) => route.status4xx > 0 || route.status5xx > 0)
+              .sort((left, right) => (right.status5xx + right.status4xx) - (left.status5xx + left.status4xx) || right.requests - left.requests)
+              .slice(0, 3);
+            const hottestErrorRoute = recentErrors.length ? `${recentErrors[0].method} ${recentErrors[0].route}` : '—';
+            const latestErrorTime = recentErrors.length ? formatCapturedAt(recentErrors[0].captured_at) : '—';
             const slowThreshold = 1000;
             const slowRoutes = aggregateRoutes(filtered)
               .filter((route) => route.maxDuration >= slowThreshold)
@@ -3132,23 +3234,43 @@ window.DopparProfiler = {
                 <div class="ov-section-label">Application</div>
                 <div class="ov-two-col">
                   <div class="history-card">
-                    <div class="history-card-title">Exceptions</div>
+                    <div class="history-card-header">
+                      <div class="history-card-title">Exceptions</div>
+                      <div class="history-card-meta">
+                        <span class="badge badge-warning">${escapeHtml(formatCompactNumber(status4xx))} 4XX</span>
+                        <span class="badge badge-error">${escapeHtml(formatCompactNumber(status5xx))} 5XX</span>
+                      </div>
+                    </div>
                     ${errorCount > 0 ? `
                       <div class="ov-app-headline">${escapeHtml(formatCompactNumber(errorCount))} exception${errorCount !== 1 ? 's' : ''} in 24h</div>
                       <div class="ov-app-sub">Errors across ${escapeHtml(String(errorRoutes.size))} unique route${errorRoutes.size !== 1 ? 's' : ''}</div>
-                      <div class="history-error-feed">
-                        ${recentErrors.map((item) => `
-                          <div class="history-error-item">
-                            <div class="history-error-head">
-                              <div class="history-error-path">${escapeHtml(item.method)} ${escapeHtml(item.route)}</div>
-                              <span class="badge ${historyBadgeClass(item.status)}">HTTP ${escapeHtml(String(item.status || 0))}</span>
-                            </div>
-                            <div class="history-error-text">${escapeHtml(item.exception_message || formatExceptionLabel(item.exception_class))}</div>
-                            <div class="history-error-meta">
-                              <span>${escapeHtml(formatExceptionLabel(item.exception_class))}</span>
-                              <span>${escapeHtml(formatCapturedAt(item.captured_at))}</span>
-                            </div>
-                          </div>
+                      <div class="ov-chart-wrap">
+                        ${buildExceptionChart(buckets)}
+                        <div class="history-chart-axis"><span>${escapeHtml(axisStart)}</span><span>${escapeHtml(axisEnd)}</span></div>
+                      </div>
+                      <div class="ov-stat-grid">
+                        <div class="ov-stat-card">
+                          <div class="ov-stat-label">Error Routes</div>
+                          <div class="ov-stat-value">${escapeHtml(String(errorRoutes.size))}</div>
+                          <div class="ov-stat-note">Unique endpoints returning 4XX or 5XX.</div>
+                        </div>
+                        <div class="ov-stat-card">
+                          <div class="ov-stat-label">Exception Types</div>
+                          <div class="ov-stat-value">${escapeHtml(String(errorTypes.size))}</div>
+                          <div class="ov-stat-note">Distinct exception families seen in 24h.</div>
+                        </div>
+                        <div class="ov-stat-card">
+                          <div class="ov-stat-label">Latest Error</div>
+                          <div class="ov-stat-value">${escapeHtml(latestErrorTime)}</div>
+                          <div class="ov-stat-note">${escapeHtml(hottestErrorRoute)}</div>
+                        </div>
+                      </div>
+                      <div class="ov-chip-row">
+                        ${topErrorRoutes.map((route) => `
+                          <span class="ov-chip">
+                            <span class="history-method-chip">${escapeHtml(route.method)}</span>
+                            <span class="ov-chip-value">${escapeHtml(route.route)} • ${escapeHtml(formatCompactNumber(route.status4xx + route.status5xx))}</span>
+                          </span>
                         `).join('')}
                       </div>
                     ` : '<div class="ov-empty">No exceptions recorded in 24h.</div>'}
