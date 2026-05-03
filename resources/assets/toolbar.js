@@ -1490,6 +1490,24 @@ window.DopparProfiler = {
           .history-cell-number.has-value {
             color: #ebebf0;
           }
+          .history-count-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 28px;
+            padding: 3px 1px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 800;
+            line-height: 1;
+            white-space: nowrap;
+          }
+          .history-count-badge-alert {
+            color: #ffb5c0;
+            background: rgba(239, 68, 68, 0.16);
+            border: 1px solid rgba(239, 68, 68, 0.28);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+          }
           .history-col-method { width: 90px; }
           .history-col-path { width: auto; }
           .history-col-requests { width: 80px; }
@@ -2833,6 +2851,14 @@ window.DopparProfiler = {
             const normalizedMethod = String(method || 'GET').toUpperCase();
             return `<span class="history-method-chip" data-method="${escapeHtml(normalizedMethod)}">${escapeHtml(normalizedMethod)}</span>`;
           };
+          const renderStatusCountCell = (value) => {
+            const numericValue = Number(value || 0);
+            const displayValue = escapeHtml(formatCompactNumber(numericValue));
+            if(numericValue > 0){
+              return `<span class="history-count-badge history-count-badge-alert">${displayValue}</span>`;
+            }
+            return `<span class="history-cell-number">${displayValue}</span>`;
+          };
           const historyBadgeClass = (status) => {
             const code = Number(status || 0);
             if(code >= 500 || code >= 400){
@@ -3094,9 +3120,9 @@ window.DopparProfiler = {
                 <td class="history-col-method">${renderMethodLabel(route.method)}</td>
                 <td class="history-col-path"><span class="history-path-cell">${escapeHtml(route.route)}</span></td>
                 <td class="history-col-requests"><span class="history-cell-number">${escapeHtml(formatCompactNumber(route.requests))}</span></td>
-                <td class="history-col-3xx"><span class="history-cell-number">${escapeHtml(formatCompactNumber(route.status3xx))}</span></td>
-                <td class="history-col-4xx"><span class="history-cell-number">${escapeHtml(formatCompactNumber(route.status4xx))}</span></td>
-                <td class="history-col-5xx"><span class="history-cell-number">${escapeHtml(formatCompactNumber(route.status5xx))}</span></td>
+                <td class="history-col-3xx">${renderStatusCountCell(route.status3xx)}</td>
+                <td class="history-col-4xx">${renderStatusCountCell(route.status4xx)}</td>
+                <td class="history-col-5xx">${renderStatusCountCell(route.status5xx)}</td>
                 <td class="history-col-avg"><span class="history-cell-number">${escapeHtml(formatDuration(route.avgDuration))}</span></td>
                 <td class="history-col-max"><span class="history-cell-number">${escapeHtml(formatDuration(route.maxDuration))}</span></td>
               </tr>
