@@ -2643,7 +2643,6 @@ window.DopparProfiler = {
                 <span class="sidebar-mark">${sidebarLogo}</span>
                 <div>
                   <div class="sidebar-title">Insight</div>
-                  <div class="sidebar-copy">Request profiler</div>
                 </div>
               </div>
               <nav class="sidebar-nav">
