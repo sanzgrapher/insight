@@ -310,12 +310,17 @@ window.DopparProfiler = {
             position: sticky;
             top: 0;
             align-self: start;
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr);
+            min-height: 0;
+            max-height: calc(min(78vh, var(--dp-panel-available-height, 78vh)) - 28px);
             padding: 12px;
             border-radius: 20px;
             background: #18181B;
             border: 1px solid rgba(255, 255, 255, 0.07);
             color: #ebebf0;
             box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+            overflow: hidden;
           }
           .sidebar-brand {
             display: flex;
@@ -359,6 +364,12 @@ window.DopparProfiler = {
           .sidebar-nav {
             display: grid;
             gap: 3px;
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding-right: 4px;
+            scrollbar-gutter: stable;
+            overscroll-behavior: contain;
           }
           .nav-section-label {
             padding: 10px 10px 2px;
