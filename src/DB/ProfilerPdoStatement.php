@@ -4,15 +4,24 @@ namespace Doppar\Insight\DB;
 
 use DateTimeInterface;
 use Doppar\Insight\Collectors\SqlCollector;
+use Phaseolies\Database\Database;
 
 class ProfilerPdoStatement extends \PDOStatement
 {
     /** @var array<int|string, mixed> */
     protected array $bound = [];
 
+    protected ?string $connectionName = null;
+
+    protected ?string $driverName = null;
+
+    protected static int $suspendedProfiling = 0;
+
     // PDO constructs this, must be protected
-    protected function __construct()
+    protected function __construct(?string $connectionName = null, ?string $driverName = null)
     {
+        $this->connectionName = $connectionName;
+        $this->driverName = $driverName ? strtolower($driverName) : null;
     }
 
     public function bindValue($param, $value, $type = \PDO::PARAM_STR): bool
@@ -35,7 +44,8 @@ class ProfilerPdoStatement extends \PDOStatement
      */
     public function execute($input_parameters = null): bool
     {
-        $bindings = $this->mergeBindings($input_parameters);
+        $rawBindings = $this->mergeBindings($input_parameters, false);
+        $bindings = $this->normalizeBindings($rawBindings);
         $start = microtime(true);
         $ok = false;
         $err = null;
@@ -52,14 +62,9 @@ class ProfilerPdoStatement extends \PDOStatement
         } finally {
             $durationMs = (microtime(true) - $start) * 1000.0;
             $collector = SqlCollector::active();
-            if ($collector) {
+            if ($collector && self::$suspendedProfiling === 0) {
                 $sql = $this->queryString ?? '';
-                $rowCount = null;
-
-                try {
-                    $rowCount = $this->rowCount();
-                } catch (\Throwable) { /* ignore */
-                }
+                $rowCount = $this->resolveRowCount($sql, $rawBindings, $ok);
                 $collector->registerQuery($sql, $bindings, $durationMs, $rowCount, $err);
             }
         }
@@ -69,7 +74,7 @@ class ProfilerPdoStatement extends \PDOStatement
      * @param mixed $input_parameters
      * @return array<int|string, mixed>
      */
-    protected function mergeBindings($input_parameters): array
+    protected function mergeBindings($input_parameters, bool $normalize = true): array
     {
         $merged = $this->bound;
         if (is_array($input_parameters)) {
@@ -90,12 +95,25 @@ class ProfilerPdoStatement extends \PDOStatement
             }
             // If keys start at 1, keep them as-is for PDO compatibility
         }
-        // Normalize values for safe logging (do not mutate values passed to PDO)
-        foreach ($merged as $k => $v) {
-            $merged[$k] = $this->normalizeBinding($v);
+
+        if ($normalize) {
+            return $this->normalizeBindings($merged);
         }
 
         return $merged;
+    }
+
+    /**
+     * @param array<int|string, mixed> $bindings
+     * @return array<int|string, mixed>
+     */
+    protected function normalizeBindings(array $bindings): array
+    {
+        foreach ($bindings as $key => $value) {
+            $bindings[$key] = $this->normalizeBinding($value);
+        }
+
+        return $bindings;
     }
 
     /**
@@ -140,5 +158,118 @@ class ProfilerPdoStatement extends \PDOStatement
         }
 
         return $v;
+    }
+
+    /**
+     * @param array<int|string, mixed> $bindings
+     */
+    protected function resolveRowCount(string $sql, array $bindings, bool $executed): ?int
+    {
+        if (! $executed) {
+            return null;
+        }
+
+        $nativeRowCount = null;
+
+        try {
+            $nativeRowCount = $this->rowCount();
+        } catch (\Throwable) {
+            $nativeRowCount = null;
+        }
+
+        if ($this->shouldUseResultCountFallback($sql, $nativeRowCount)) {
+            $fallbackRowCount = $this->countResultRows($sql, $bindings);
+
+            if ($fallbackRowCount !== null) {
+                return $fallbackRowCount;
+            }
+        }
+
+        if ($this->hasUnreliableResultSetRowCount($sql) && ($nativeRowCount === null || $nativeRowCount === 0)) {
+            return null;
+        }
+
+        return $nativeRowCount;
+    }
+
+    protected function shouldUseResultCountFallback(string $sql, ?int $nativeRowCount): bool
+    {
+        if (! $this->usesUnreliableSelectRowCountDriver()) {
+            return false;
+        }
+
+        if (! $this->isCountableResultSetQuery($sql)) {
+            return false;
+        }
+
+        return $nativeRowCount === null || $nativeRowCount === 0;
+    }
+
+    protected function hasUnreliableResultSetRowCount(string $sql): bool
+    {
+        return $this->usesUnreliableSelectRowCountDriver() && $this->isResultSetQuery($sql);
+    }
+
+    protected function usesUnreliableSelectRowCountDriver(): bool
+    {
+        return in_array($this->driverName, ['sqlite', 'pgsql'], true);
+    }
+
+    protected function isCountableResultSetQuery(string $sql): bool
+    {
+        return (bool) preg_match('/^\s*(select|with)\b/i', $sql);
+    }
+
+    protected function isResultSetQuery(string $sql): bool
+    {
+        return (bool) preg_match('/^\s*(select|with|pragma|show|describe|explain)\b/i', $sql);
+    }
+
+    /**
+     * @param array<int|string, mixed> $bindings
+     */
+    protected function countResultRows(string $sql, array $bindings): ?int
+    {
+        if ($this->connectionName === null || $this->connectionName === '') {
+            return null;
+        }
+
+        $normalizedSql = rtrim(trim($sql), "; \t\n\r\0\x0B");
+        if ($normalizedSql === '') {
+            return null;
+        }
+
+        $countSql = "SELECT COUNT(*) AS aggregate FROM ({$normalizedSql}) AS insight_count_subquery";
+
+        self::$suspendedProfiling++;
+
+        try {
+            $pdo = Database::getPdoInstance($this->connectionName);
+            $statement = $pdo->prepare($countSql);
+            $statement->execute($this->prepareBindingsForExecution($bindings));
+
+            $count = $statement->fetchColumn();
+
+            return is_numeric($count) ? (int) $count : null;
+        } catch (\Throwable) {
+            return null;
+        } finally {
+            self::$suspendedProfiling = max(0, self::$suspendedProfiling - 1);
+        }
+    }
+
+    /**
+     * @param array<int|string, mixed> $bindings
+     * @return array<int|string, mixed>
+     */
+    protected function prepareBindingsForExecution(array $bindings): array
+    {
+        if (! $this->hasOnlyNumericKeys($bindings)) {
+            return $bindings;
+        }
+
+        ksort($bindings);
+
+        return array_values($bindings);
     }
 }

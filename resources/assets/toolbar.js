@@ -2711,14 +2711,6 @@ window.DopparProfiler = {
             </aside>
             <main class="canvas">
               <section class="view-section active" data-view-section="overview">
-                <div class="hero">
-                  <div class="hero-head">
-                    <div class="eyebrow">Quick View</div>
-                    <button class="theme-switch" type="button" data-action="toggle-theme" data-theme-mode="light" aria-pressed="false" aria-label="Switch to dark mode">
-                      <span class="theme-switch-icon theme-switch-icon-light" aria-hidden="true"></span>
-                    </button>
-                  </div>
-                </div>
                 <div data-overview-shell>
                   <div class="history-loading">Loading activity…</div>
                 </div>
