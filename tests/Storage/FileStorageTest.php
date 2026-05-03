@@ -219,4 +219,100 @@ class FileStorageTest extends TestCase
         $this->assertNull($retrieved['null']);
         $this->assertSame([1, 2, 3], $retrieved['array']);
     }
+
+    public function testRecentReturnsNewestProfilesFirst(): void
+    {
+        $this->storage->put('first', [
+            'id' => 'first',
+            'method' => 'GET',
+            'route' => '/alpha',
+            'status' => 200,
+            'duration_ms' => 11.5,
+            'time_start' => 100,
+        ]);
+        $this->storage->put('second', [
+            'id' => 'second',
+            'method' => 'POST',
+            'route' => '/beta',
+            'status' => 201,
+            'duration_ms' => 22.5,
+            'time_start' => 200,
+        ]);
+
+        $recent = $this->storage->recent();
+
+        $this->assertCount(2, $recent);
+        $this->assertSame('second', $recent[0]['id']);
+        $this->assertSame('/beta', $recent[0]['route']);
+        $this->assertSame('first', $recent[1]['id']);
+    }
+
+    public function testRecentRespectsLimitAndUsesTotalDurationWhenPresent(): void
+    {
+        $this->storage->put('one', [
+            'id' => 'one',
+            'method' => 'GET',
+            'route' => '/one',
+            'status' => 200,
+            'duration_ms' => 15,
+            'time_start' => 100,
+        ]);
+        $this->storage->put('two', [
+            'id' => 'two',
+            'method' => 'GET',
+            'route' => '/two',
+            'status' => 302,
+            'duration_ms' => 20,
+            'total_duration_ms' => 45.25,
+            'time_start' => 200,
+        ]);
+
+        $recent = $this->storage->recent(1);
+
+        $this->assertCount(1, $recent);
+        $this->assertSame('two', $recent[0]['id']);
+        $this->assertSame(45.25, $recent[0]['duration_ms']);
+    }
+
+    public function testRecentIncludesExceptionMetadataWhenPresent(): void
+    {
+        $this->storage->put('failed', [
+            'id' => 'failed',
+            'method' => 'GET',
+            'route' => '/missing',
+            'status' => 404,
+            'duration_ms' => 18,
+            'exception_class' => 'Phaseolies\\Http\\Exceptions\\NotFoundHttpException',
+            'exception_message' => 'Route missing',
+            'time_start' => 300,
+        ]);
+
+        $recent = $this->storage->recent(1);
+
+        $this->assertCount(1, $recent);
+        $this->assertSame('Phaseolies\\Http\\Exceptions\\NotFoundHttpException', $recent[0]['exception_class']);
+        $this->assertSame('Route missing', $recent[0]['exception_message']);
+    }
+
+    public function testRecentSkipsInvalidJsonFiles(): void
+    {
+        if (! is_dir($this->testDir)) {
+            mkdir($this->testDir, 0777, true);
+        }
+
+        file_put_contents($this->testDir . '/broken.json', '{invalid');
+        $this->storage->put('valid', [
+            'id' => 'valid',
+            'method' => 'GET',
+            'route' => '/valid',
+            'status' => 200,
+            'duration_ms' => 9.9,
+            'time_start' => 100,
+        ]);
+
+        $recent = $this->storage->recent(5);
+
+        $this->assertCount(1, $recent);
+        $this->assertSame('valid', $recent[0]['id']);
+    }
 }

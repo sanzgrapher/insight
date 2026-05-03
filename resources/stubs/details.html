@@ -131,6 +131,7 @@
             </div>
           </div>
           <button class="tab-button active" data-tab="overview">Overview</button>
+          <button class="tab-button" data-tab="history">History</button>
           <button class="tab-button" data-tab="http">HTTP</button>
           <button class="tab-button" data-tab="database">Database</button>
           <button class="tab-button" data-tab="cache">Cache</button>
@@ -247,6 +248,25 @@
                 </section>
               </div>
             </div>
+          </div>
+
+          <div class="tab-pane" id="history">
+            <section class="section">
+              <div class="section-head">
+                <div>
+                  <span class="section-eyebrow">Navigation</span>
+                  <div class="section-title">
+                    <i class="fa-solid fa-timeline"></i>
+                    Request History
+                  </div>
+                </div>
+              </div>
+              <p class="section-intro">
+                Browse the most recent Insight snapshots and jump directly into an earlier request
+                by path, status, and measured response time.
+              </p>
+              <div id="history-list"></div>
+            </section>
           </div>
 
           <div class="tab-pane" id="http">

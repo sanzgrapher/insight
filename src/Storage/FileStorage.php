@@ -49,6 +49,45 @@ class FileStorage implements StorageInterface
             return null;
         }
 
+        return $this->decodeFile($path);
+    }
+
+    public function recent(int $limit = 50): array
+    {
+        $dir = $this->dir();
+
+        if (! is_dir($dir)) {
+            return [];
+        }
+
+        $files = glob($dir . DIRECTORY_SEPARATOR . '*.json') ?: [];
+        $limit = max(1, $limit);
+        $profiles = [];
+
+        foreach ($files as $file) {
+            $data = $this->decodeFile($file);
+            if (! is_array($data)) {
+                continue;
+            }
+
+            $profiles[] = $this->summarizeProfile($file, $data);
+        }
+
+        usort($profiles, function (array $left, array $right): int {
+            $leftTimestamp = (int) ($left['captured_at_unix'] ?? 0);
+            $rightTimestamp = (int) ($right['captured_at_unix'] ?? 0);
+
+            return $rightTimestamp <=> $leftTimestamp;
+        });
+
+        return array_slice($profiles, 0, $limit);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function decodeFile(string $path): ?array
+    {
         $json = file_get_contents($path);
 
         if ($json === false) {
@@ -62,6 +101,54 @@ class FileStorage implements StorageInterface
         } catch (JsonException) {
             return null;
         }
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function summarizeProfile(string $path, array $data): array
+    {
+        $timestamp = $this->resolveTimestamp($path, $data);
+        $route = (string) ($data['route'] ?? $data['request_server']['PATH'] ?? $data['url'] ?? '/');
+        $method = strtoupper((string) ($data['method'] ?? $data['request_server']['METHOD'] ?? 'GET'));
+
+        if ($route === '') {
+            $route = '/';
+        }
+
+        return [
+            'id' => (string) ($data['id'] ?? pathinfo($path, PATHINFO_FILENAME)),
+            'method' => $method !== '' ? $method : 'GET',
+            'route' => $route,
+            'status' => (int) ($data['status'] ?? $data['response_status'] ?? 0),
+            'duration_ms' => (float) ($data['total_duration_ms'] ?? $data['duration_ms'] ?? 0),
+            'exception_class' => isset($data['exception_class']) ? (string) $data['exception_class'] : null,
+            'exception_message' => isset($data['exception_message']) ? (string) $data['exception_message'] : null,
+            'captured_at' => $timestamp > 0 ? gmdate(DATE_ATOM, $timestamp) : null,
+            'captured_at_unix' => $timestamp,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function resolveTimestamp(string $path, array $data): int
+    {
+        $timeStart = $data['time_start'] ?? null;
+
+        if (is_numeric($timeStart)) {
+            return (int) floor((float) $timeStart);
+        }
+
+        return $this->fileTimestamp($path);
+    }
+
+    private function fileTimestamp(string $path): int
+    {
+        $timestamp = filemtime($path);
+
+        return $timestamp !== false ? $timestamp : 0;
     }
 
     /**

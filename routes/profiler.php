@@ -6,6 +6,21 @@ use Doppar\Insight\Controllers\ProfilerController;
 
 $router = app('route');
 
+// API endpoint for recent request summaries
+$router->get('/_insight/api/history', function (Request $request) {
+    /** @var Profiler $profiler */
+    $profiler = app(Profiler::class);
+
+    if (! $profiler->isEnabledFor($request)) {
+        return ['error' => 'Forbidden'];
+    }
+
+    $limit = (int) $request->query('limit', 300);
+    $limit = max(1, min($limit, 1000));
+
+    return $profiler->getRecentRequests($limit);
+});
+
 // API endpoint for JSON data (used by toolbar panel)
 $router->get('/_insight/api/{id}', function (Request $request) {
     /** @var Profiler $profiler */
@@ -20,7 +35,7 @@ $router->get('/_insight/api/{id}', function (Request $request) {
     $id = $params['id'] ?? null;
     $data = $id ? $profiler->getData($id) : null;
 
-    if (!$data) {
+    if (! $data) {
         // Router will turn array into JSON and set 200; to enforce 404 we can use response()->json
         return ['error' => 'Not found'];
     }

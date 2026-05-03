@@ -20,6 +20,12 @@ abstract class TestCase extends BaseTestCase
         array $query = [],
         array $post = []
     ): Request {
+        $originalServer = $_SERVER;
+        $originalGet = $_GET;
+        $originalPost = $_POST;
+        $originalCookie = $_COOKIE;
+        $originalFiles = $_FILES;
+
         $defaultServer = [
             'REQUEST_METHOD' => $method,
             'REQUEST_URI' => $uri,
@@ -28,17 +34,23 @@ abstract class TestCase extends BaseTestCase
             'HTTP_HOST' => 'localhost',
         ];
 
-        // Merge server params: custom values override defaults
-        $serverParams = array_merge($defaultServer, $server);
-        
-        return new Request(
-            $query,
-            $post,
-            [],
-            [],
-            [],
-            $serverParams
-        );
+        parse_str((string) parse_url($uri, PHP_URL_QUERY), $parsedQuery);
+
+        $_SERVER = array_merge($originalServer, $defaultServer, $server);
+        $_GET = $query !== [] ? $query : ($originalGet !== [] ? $originalGet : $parsedQuery);
+        $_POST = $post !== [] ? $post : $originalPost;
+        $_COOKIE = $originalCookie;
+        $_FILES = $originalFiles;
+
+        try {
+            return new Request();
+        } finally {
+            $_SERVER = $originalServer;
+            $_GET = $originalGet;
+            $_POST = $originalPost;
+            $_COOKIE = $originalCookie;
+            $_FILES = $originalFiles;
+        }
     }
 
     /**

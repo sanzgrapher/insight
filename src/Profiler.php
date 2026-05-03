@@ -6,6 +6,7 @@ use Doppar\Insight\Contracts\CollectorInterface;
 use Doppar\Insight\Contracts\StorageInterface;
 use Phaseolies\Http\Request;
 use Phaseolies\Http\Response;
+use Throwable;
 
 class Profiler
 {
@@ -18,6 +19,8 @@ class Profiler
     protected string $requestId = '';
     /** @var array<string, mixed> */
     protected array $data = [];
+    protected bool $started = false;
+    protected bool $stopped = false;
 
     // Simple in-memory storage per request
     /** @var array<string, array<string, mixed>> */
@@ -46,11 +49,11 @@ class Profiler
 
     public function isGloballyEnabled(): bool
     {
-        $envEnabled = app()->isDevelopment();
+        if (($this->config['enabled'] ?? null) !== null) {
+            return (bool) $this->config['enabled'];
+        }
 
-        return ($this->config['enabled'] ?? null) === null
-            ? $envEnabled
-            : (bool) $this->config['enabled'];
+        return app()->isDevelopment();
     }
 
     public function addCollector(CollectorInterface $collector): void
@@ -70,6 +73,10 @@ class Profiler
 
     public function start(Request $request): void
     {
+        if ($this->started && ! $this->stopped) {
+            return;
+        }
+
         $this->requestId = bin2hex(random_bytes(8));
         // Start at PHP's request start time if available to cover total request duration
         $this->startTime = isset($_SERVER['REQUEST_TIME_FLOAT'])
@@ -81,6 +88,8 @@ class Profiler
         $this->data = [
             'id' => $this->requestId,
         ];
+        $this->started = true;
+        $this->stopped = false;
 
         // Start all collectors
         foreach ($this->collectors as $collector) {
@@ -90,6 +99,48 @@ class Profiler
 
     public function stop(Request $request, Response $response): void
     {
+        $this->finalize($request, $response);
+    }
+
+    public function stopWithException(Request $request, Throwable $exception, ?Response $response = null): void
+    {
+        if (! $this->started || $this->stopped) {
+            return;
+        }
+
+        $statusCode = $this->resolveExceptionStatus($exception);
+        $response ??= new Response('', $statusCode);
+        $response->setException($exception);
+
+        if (method_exists($exception, 'getHeaders')) {
+            $headers = $exception->getHeaders();
+            if (is_array($headers) && $headers !== []) {
+                $response->withHeaders($headers);
+            }
+        }
+
+        $this->data['exception_class'] = $exception::class;
+        $this->data['exception_message'] = $exception->getMessage();
+
+        $this->finalize($request, $response);
+    }
+
+    public function isRunning(): bool
+    {
+        return $this->started && ! $this->stopped;
+    }
+
+    public function hasStopped(): bool
+    {
+        return $this->stopped;
+    }
+
+    protected function finalize(Request $request, Response $response): void
+    {
+        if (! $this->started || $this->stopped) {
+            return;
+        }
+
         // Stop collectors and aggregate
         foreach ($this->collectors as $collector) {
             $collector->stop($request, $response);
@@ -98,6 +149,8 @@ class Profiler
 
         // Also ensure common fields when no collectors provide them
         $this->data += [
+            'method' => strtoupper((string) $request->getMethod()),
+            'route' => $request->getPath() !== '' ? $request->getPath() : '/',
             'status' => $response->getStatusCode(),
             'content_type' => $response->headers->get('Content-Type') ?? '',
         ];
@@ -121,6 +174,22 @@ class Profiler
 
         // Persist via storage driver for cross-request retrieval
         $this->storageDriver->put($this->requestId, $this->data);
+        $this->stopped = true;
+        $this->started = false;
+    }
+
+    protected function resolveExceptionStatus(Throwable $exception): int
+    {
+        if (method_exists($exception, 'getStatusCode')) {
+            $statusCode = (int) $exception->getStatusCode();
+            if ($statusCode >= 400 && $statusCode < 600) {
+                return $statusCode;
+            }
+        }
+
+        $code = (int) $exception->getCode();
+
+        return ($code >= 400 && $code < 600) ? $code : 500;
     }
 
     /**
@@ -135,6 +204,14 @@ class Profiler
 
         // Delegate to storage driver
         return $this->storageDriver->get($id);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function getRecentRequests(int $limit = 50): array
+    {
+        return $this->storageDriver->recent($limit);
     }
 
     /**

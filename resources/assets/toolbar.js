@@ -376,6 +376,7 @@ window.DopparProfiler = {
             opacity: 0.9;
           }
           .nav-icon-overview { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='7' height='7' rx='1.5'/%3E%3Crect x='14' y='3' width='7' height='7' rx='1.5'/%3E%3Crect x='3' y='14' width='7' height='7' rx='1.5'/%3E%3Crect x='14' y='14' width='7' height='7' rx='1.5'/%3E%3C/svg%3E"); }
+          .nav-icon-history { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 8v5l3 2'/%3E%3Cpath d='M3.05 11A9 9 0 1 1 6 17.3'/%3E%3Cpath d='M3 4v5h5'/%3E%3C/svg%3E"); }
           .nav-icon-http { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M3 12h18'/%3E%3Cpath d='M12 3a15 15 0 0 1 0 18'/%3E%3Cpath d='M12 3a15 15 0 0 0 0 18'/%3E%3C/svg%3E"); }
           .nav-icon-database { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cellipse cx='12' cy='5' rx='7' ry='3'/%3E%3Cpath d='M5 5v14c0 1.7 3.1 3 7 3s7-1.3 7-3V5'/%3E%3Cpath d='M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3'/%3E%3C/svg%3E"); }
           .nav-icon-cache { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3 4 7l8 4 8-4-8-4Z'/%3E%3Cpath d='m4 12 8 4 8-4'/%3E%3Cpath d='m4 17 8 4 8-4'/%3E%3C/svg%3E"); }
@@ -921,6 +922,7 @@ window.DopparProfiler = {
           .badge-info { background: rgba(132, 134, 255, 0.1); color: #5a5ef0; border-color: rgba(132, 134, 255, 0.16); }
           .badge-success { background: rgba(20, 125, 100, 0.12); color: #147d64; border-color: rgba(20, 125, 100, 0.16); }
           .badge-warning { background: rgba(242, 193, 78, 0.18); color: #b66912; border-color: rgba(242, 193, 78, 0.18); }
+          .badge-error { background: rgba(239, 68, 68, 0.12); color: #c9485b; border-color: rgba(239, 68, 68, 0.16); }
 
           .row {
             margin: 10px 0;
@@ -983,6 +985,472 @@ window.DopparProfiler = {
             margin-top: 8px;
             font-size: 12px;
             color: #63738b;
+          }
+          .history-shell {
+            display: grid;
+            gap: 12px;
+          }
+          .history-loading {
+            padding: 18px;
+            border-radius: 16px;
+            border: 1px dashed rgba(132,134,255,0.16);
+            background: rgba(255,255,255,0.56);
+            color: #607089;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 700;
+          }
+          .history-list {
+            display: grid;
+            gap: 12px;
+          }
+          .history-item {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 14px;
+            align-items: center;
+            padding: 16px;
+            border-radius: 18px;
+            text-decoration: none;
+            background: rgba(255,255,255,0.84);
+            border: 1px solid rgba(132,134,255,0.12);
+            box-shadow: 0 8px 18px rgba(37, 51, 77, 0.05);
+            transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+          }
+          .history-item:hover {
+            transform: translateY(-1px);
+            border-color: rgba(90,94,240,0.22);
+            box-shadow: 0 10px 22px rgba(37, 51, 77, 0.08);
+          }
+          .history-main {
+            min-width: 0;
+            display: grid;
+            gap: 10px;
+          }
+          .history-top,
+          .history-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+          }
+          .history-method {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 54px;
+            padding: 7px 10px;
+            border-radius: 999px;
+            background: rgba(20, 125, 100, 0.12);
+            border: 1px solid rgba(20, 125, 100, 0.18);
+            color: #147d64;
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+          }
+          .history-route {
+            min-width: 0;
+            color: #172033;
+            font-size: 15px;
+            font-weight: 800;
+            word-break: break-word;
+          }
+          .history-duration,
+          .history-captured,
+          .history-request-id {
+            color: #68788f;
+            font-size: 12px;
+            font-weight: 700;
+          }
+          .history-request-id {
+            font-family: "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
+          }
+          .history-open {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #5a5ef0;
+            font-size: 12px;
+            font-weight: 800;
+            white-space: nowrap;
+          }
+          .history-open::after {
+            content: "↗";
+            font-size: 13px;
+          }
+          .history-dashboard {
+            display: grid;
+            gap: 16px;
+          }
+          .history-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+          }
+          .history-range-pills {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+          }
+          .history-range-pill {
+            appearance: none;
+            border: 1px solid rgba(132,134,255,0.12);
+            background: rgba(255,255,255,0.76);
+            color: #64748b;
+            padding: 8px 11px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: background .18s ease, color .18s ease, border-color .18s ease, transform .18s ease;
+          }
+          .history-range-pill:hover {
+            transform: translateY(-1px);
+            border-color: rgba(90,94,240,0.20);
+            color: #384860;
+          }
+          .history-range-pill.active {
+            background: linear-gradient(135deg, rgba(90,94,240,0.16), rgba(57,143,255,0.18));
+            border-color: rgba(90,94,240,0.24);
+            color: #3055c7;
+          }
+          .history-shell {
+            gap: 18px;
+          }
+          .history-overview-grid {
+            display: grid;
+            grid-template-columns: 1.15fr .95fr;
+            gap: 14px;
+          }
+          .history-card {
+            padding: 18px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.78);
+            border: 1px solid rgba(132,134,255,0.10);
+            box-shadow:
+              inset 0 1px 0 rgba(255,255,255,0.82),
+              0 10px 24px rgba(37, 51, 77, 0.05);
+          }
+          .history-card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+          }
+          .history-card-title {
+            font-size: 11px;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+            color: #76829a;
+            font-weight: 800;
+            margin-bottom: 8px;
+          }
+          .history-card-value {
+            color: #172033;
+            font-size: 31px;
+            line-height: 1;
+            letter-spacing: -.04em;
+            font-weight: 900;
+          }
+          .history-card-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+          }
+          .history-card-note {
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 700;
+          }
+          .history-kpis {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 16px;
+          }
+          .history-kpi {
+            padding: 12px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.52);
+            border: 1px solid rgba(132,134,255,0.08);
+          }
+          .history-kpi-label {
+            color: #7a879c;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+          }
+          .history-kpi-value {
+            color: #172033;
+            font-size: 18px;
+            font-weight: 900;
+            line-height: 1;
+          }
+          .history-chart-wrap {
+            display: grid;
+            gap: 8px;
+          }
+          .history-chart {
+            width: 100%;
+            height: 154px;
+            display: block;
+          }
+          .history-chart-axis {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            color: #77859b;
+            font-size: 11px;
+            font-weight: 700;
+          }
+          .history-grid-line {
+            stroke: rgba(132,134,255,0.10);
+            stroke-width: 1;
+          }
+          .history-bar-muted {
+            fill: rgba(255,255,255,0.18);
+          }
+          .history-bar-success {
+            fill: rgba(132,132,132,0.45);
+          }
+          .history-bar-warning {
+            fill: rgba(242,193,78,0.78);
+          }
+          .history-bar-error {
+            fill: rgba(239,68,68,0.78);
+          }
+          .history-line-avg {
+            fill: none;
+            stroke: rgba(255,255,255,0.18);
+            stroke-width: 2;
+          }
+          .history-line-max {
+            fill: none;
+            stroke: rgba(242,193,78,0.88);
+            stroke-width: 2.2;
+          }
+          .history-table-shell {
+            display: grid;
+            gap: 14px;
+            min-width: 0;
+          }
+          .history-table-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            flex-wrap: wrap;
+          }
+          .history-route-count {
+            color: #172033;
+            font-size: 15px;
+            font-weight: 800;
+          }
+          .history-search-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+          }
+          .history-search {
+            min-width: min(320px, 100%);
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(132,134,255,0.12);
+            background: rgba(255,255,255,0.76);
+            color: #172033;
+            font-size: 13px;
+            font-weight: 700;
+            outline: none;
+          }
+          .history-search::placeholder {
+            color: #8b97aa;
+            font-weight: 600;
+          }
+          .history-toggle-group {
+            display: inline-flex;
+            gap: 6px;
+            flex-wrap: wrap;
+          }
+          .history-toggle {
+            appearance: none;
+            border: 1px solid rgba(132,134,255,0.12);
+            background: rgba(255,255,255,0.76);
+            color: #64748b;
+            padding: 9px 12px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 800;
+            cursor: pointer;
+          }
+          .history-toggle.active {
+            background: rgba(23,32,51,0.94);
+            border-color: rgba(23,32,51,0.94);
+            color: #f8fafc;
+          }
+          .history-route-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            overflow: hidden;
+            border-radius: 16px;
+            border: 1px solid rgba(132,134,255,0.10);
+            background: rgba(255,255,255,0.84);
+            table-layout: fixed;
+            min-width: 0;
+          }
+          .history-route-table th,
+          .history-route-table td {
+            padding: 11px 12px;
+            border-bottom: 1px solid rgba(132,134,255,0.08);
+            text-align: left;
+            vertical-align: middle;
+            min-width: 0;
+          }
+          .history-route-table th {
+            color: #76829a;
+            font-size: 10px;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+            font-weight: 800;
+            background: rgba(132,134,255,0.06);
+          }
+          .history-route-table td {
+            color: #172033;
+            font-size: 13px;
+            font-weight: 700;
+            overflow-wrap: anywhere;
+          }
+          .history-route-table tr:last-child td {
+            border-bottom: 0;
+          }
+          .history-route-table tbody tr:hover td {
+            background: rgba(132,134,255,0.05);
+          }
+          .history-table-scroll {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+            border-radius: 16px;
+            -webkit-overflow-scrolling: touch;
+          }
+          .history-table-scroll::-webkit-scrollbar {
+            height: 10px;
+          }
+          .history-table-scroll::-webkit-scrollbar-thumb {
+            background: rgba(132,134,255,0.18);
+            border-radius: 999px;
+          }
+          .history-method-chip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 72px;
+            padding: 7px 10px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.56);
+            border: 1px solid rgba(132,134,255,0.10);
+            color: #475569;
+            font-size: 10px;
+            font-weight: 900;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+          }
+          .history-path-cell {
+            min-width: 0;
+            display: block;
+            word-break: break-word;
+            color: inherit;
+          }
+          .history-cell-number {
+            white-space: nowrap;
+            color: inherit;
+          }
+          .history-col-method {
+            width: 110px;
+          }
+          .history-col-path {
+            width: auto;
+          }
+          .history-col-requests {
+            width: 94px;
+          }
+          .history-col-3xx,
+          .history-col-4xx,
+          .history-col-5xx,
+          .history-col-avg,
+          .history-col-max {
+            width: 74px;
+          }
+          .history-empty-state {
+            padding: 20px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.56);
+            border: 1px dashed rgba(132,134,255,0.12);
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 700;
+            text-align: center;
+          }
+          .history-error-feed {
+            display: grid;
+            gap: 10px;
+          }
+          .history-error-item {
+            display: grid;
+            gap: 8px;
+            padding: 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(132,134,255,0.10);
+            background: rgba(255,255,255,0.58);
+            min-width: 0;
+          }
+          .history-error-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            flex-wrap: wrap;
+          }
+          .history-error-path {
+            color: #172033;
+            font-size: 13px;
+            font-weight: 800;
+            min-width: 0;
+            overflow-wrap: anywhere;
+          }
+          .history-error-text {
+            color: #475569;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.45;
+            overflow-wrap: anywhere;
+          }
+          .history-error-meta {
+            color: #76829a;
+            font-size: 11px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+          }
+          .history-error-empty {
+            padding: 16px;
           }
           .muted-value {
             color: #8391a8;
@@ -1312,6 +1780,11 @@ window.DopparProfiler = {
           .panel[data-theme="dark"] .hero-copy,
           .panel[data-theme="dark"] .summary-note,
           .panel[data-theme="dark"] .metric-note,
+          .panel[data-theme="dark"] .history-duration,
+          .panel[data-theme="dark"] .history-captured,
+          .panel[data-theme="dark"] .history-request-id,
+          .panel[data-theme="dark"] .history-card-note,
+          .panel[data-theme="dark"] .history-chart-axis,
           .panel[data-theme="dark"] .key,
           .panel[data-theme="dark"] .log-time,
           .panel[data-theme="dark"] .api-meta-chip,
@@ -1329,6 +1802,10 @@ window.DopparProfiler = {
           .panel[data-theme="dark"] .summary-value,
           .panel[data-theme="dark"] .metric-value,
           .panel[data-theme="dark"] .section-title-main,
+          .panel[data-theme="dark"] .history-route,
+          .panel[data-theme="dark"] .history-card-value,
+          .panel[data-theme="dark"] .history-route-count,
+          .panel[data-theme="dark"] .history-error-path,
           .panel[data-theme="dark"] .val,
           .panel[data-theme="dark"] .log-message,
           .panel[data-theme="dark"] .sql-query,
@@ -1359,17 +1836,103 @@ window.DopparProfiler = {
             color: #22c55e;
           }
           .panel[data-theme="dark"] .summary-card,
-          .panel[data-theme="dark"] .metric {
+          .panel[data-theme="dark"] .metric,
+          .panel[data-theme="dark"] .history-item,
+          .panel[data-theme="dark"] .history-card,
+          .panel[data-theme="dark"] .history-kpi,
+          .panel[data-theme="dark"] .history-route-table,
+          .panel[data-theme="dark"] .history-error-item,
+          .panel[data-theme="dark"] .history-search,
+          .panel[data-theme="dark"] .history-toggle,
+          .panel[data-theme="dark"] .history-range-pill,
+          .panel[data-theme="dark"] .history-empty-state {
             border-color: rgba(255,255,255,0.07);
+          }
+          .panel[data-theme="dark"] .history-item {
+            background: #18181B;
+          }
+          .panel[data-theme="dark"] .history-card,
+          .panel[data-theme="dark"] .history-kpi,
+          .panel[data-theme="dark"] .history-route-table,
+          .panel[data-theme="dark"] .history-error-item,
+          .panel[data-theme="dark"] .history-search,
+          .panel[data-theme="dark"] .history-toggle,
+          .panel[data-theme="dark"] .history-range-pill,
+          .panel[data-theme="dark"] .history-empty-state {
+            background: #18181B;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+          }
+          .panel[data-theme="dark"] .history-loading {
+            background: rgba(255,255,255,0.02);
+            border-color: rgba(255,255,255,0.10);
+            color: #888899;
           }
           .panel[data-theme="dark"] .api-meta-chip,
           .panel[data-theme="dark"] .pill,
           .panel[data-theme="dark"] .sql-rows,
           .panel[data-theme="dark"] .redirect-chain-method,
-          .panel[data-theme="dark"] .redirect-chain-status {
+          .panel[data-theme="dark"] .redirect-chain-status,
+          .panel[data-theme="dark"] .history-method {
             background: rgba(255,255,255,0.06);
             border-color: rgba(255,255,255,0.08);
             color: #888899;
+          }
+          .panel[data-theme="dark"] .history-method-chip {
+            background: rgba(255,255,255,0.06);
+            border-color: rgba(255,255,255,0.08);
+            color: #cbd5e1;
+          }
+          .panel[data-theme="dark"] .history-toggle.active {
+            background: rgba(255,255,255,0.92);
+            border-color: rgba(255,255,255,0.92);
+            color: #111827;
+          }
+          .panel[data-theme="dark"] .history-range-pill.active {
+            background: linear-gradient(135deg, rgba(59,130,246,0.34), rgba(37,99,235,0.26));
+            border-color: rgba(96,165,250,0.26);
+            color: #dbeafe;
+          }
+          .panel[data-theme="dark"] .history-route-table th {
+            background: rgba(255,255,255,0.04);
+          }
+          .panel[data-theme="dark"] .history-route-table td,
+          .panel[data-theme="dark"] .history-search,
+          .panel[data-theme="dark"] .history-toggle,
+          .panel[data-theme="dark"] .history-range-pill {
+            color: #e5edf8;
+          }
+          .panel[data-theme="dark"] .history-search::placeholder {
+            color: #6f7d93;
+          }
+          .panel[data-theme="dark"] .history-error-text {
+            color: #cbd5e1;
+          }
+          .panel[data-theme="dark"] .history-error-meta {
+            color: #94a3b8;
+          }
+          .panel[data-theme="dark"] .history-route-table tbody tr:hover td {
+            background: rgba(255,255,255,0.03);
+          }
+          .panel[data-theme="dark"] .history-table-scroll::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.16);
+          }
+          .panel[data-theme="dark"] .history-grid-line {
+            stroke: rgba(255,255,255,0.08);
+          }
+          .panel[data-theme="dark"] .history-bar-success {
+            fill: rgba(255,255,255,0.14);
+          }
+          .panel[data-theme="dark"] .history-bar-warning {
+            fill: rgba(245,158,11,0.74);
+          }
+          .panel[data-theme="dark"] .history-bar-error {
+            fill: rgba(239,68,68,0.74);
+          }
+          .panel[data-theme="dark"] .history-line-avg {
+            stroke: rgba(255,255,255,0.20);
+          }
+          .panel[data-theme="dark"] .history-line-max {
+            stroke: rgba(245,158,11,0.90);
           }
           .panel[data-theme="dark"] .sql-time,
           .panel[data-theme="dark"] .redirect-chain-duration,
@@ -1387,6 +1950,14 @@ window.DopparProfiler = {
             background: rgba(245, 158, 11, 0.12);
             border-color: rgba(245, 158, 11, 0.18);
             color: #f59e0b;
+          }
+          .panel[data-theme="dark"] .badge-error {
+            background: rgba(239, 68, 68, 0.12);
+            border-color: rgba(239, 68, 68, 0.18);
+            color: #ef4444;
+          }
+          .panel[data-theme="dark"] .history-open {
+            color: #60a5fa;
           }
           .panel[data-theme="dark"] .hero-dot {
             background: currentColor;
@@ -1431,6 +2002,18 @@ window.DopparProfiler = {
             color: #ef8354;
           }
 
+          @media (max-width: 1100px) {
+            .history-col-3xx,
+            .history-col-4xx,
+            .history-col-5xx {
+              display: none;
+            }
+          }
+          @media (max-width: 920px) {
+            .history-col-avg {
+              display: none;
+            }
+          }
           @media (max-width: 820px) {
             .panel { width: 100%; padding: 12px; }
             .workspace { grid-template-columns: 1fr; }
@@ -1439,8 +2022,23 @@ window.DopparProfiler = {
             .hero-head {
               width: 100%;
             }
-            .metrics,
+            .history-overview-grid,
+            .history-kpis,
             .stats-grid { grid-template-columns: 1fr; }
+            .history-table-head,
+            .history-search-wrap {
+              align-items: stretch;
+            }
+            .history-search {
+              min-width: 100%;
+            }
+            .metrics,
+            .history-item {
+              grid-template-columns: 1fr;
+            }
+            .history-col-max {
+              display: none;
+            }
             .key { min-width: 0; }
           }
         `;
@@ -1612,6 +2210,21 @@ window.DopparProfiler = {
               ${buildSubsection('Server', buildPropertyTable(data.request_server, 'Variable', 'Value'))}
             </div>
             ${!hasEntries(data.request_headers) && !hasEntries(data.request_query) && !hasEntries(data.request_params) && !data.request_body && !hasEntries(data.request_cookies) && !hasEntries(data.request_files) && !hasEntries(data.request_server) ? '<div class="no-data">No detailed request payload captured</div>' : ''}
+          </div>
+        `;
+
+        const historySection = `
+          <div class="section history-dashboard">
+            <div class="history-header">
+              <div>
+                <div class="section-title"><span class="section-title-main">Requests</span></div>
+                <p class="section-copy">Time-filtered request history with route-level status and latency trends.</p>
+              </div>
+              <div class="history-range-pills" data-history-ranges></div>
+            </div>
+            <div class="history-shell" data-history-shell>
+              <div class="history-loading">Loading request history...</div>
+            </div>
           </div>
         `;
 
@@ -1815,6 +2428,7 @@ window.DopparProfiler = {
               </div>
               <nav class="sidebar-nav">
                 <button class="nav-button active" type="button" data-view="overview"><span class="nav-main"><span class="nav-icon nav-icon-overview"></span><span class="nav-label">Overview</span></span></button>
+                <button class="nav-button" type="button" data-view="history"><span class="nav-main"><span class="nav-icon nav-icon-history"></span><span class="nav-label">History</span></span></button>
                 <button class="nav-button" type="button" data-view="http"><span class="nav-main"><span class="nav-icon nav-icon-http"></span><span class="nav-label">HTTP</span></span></button>
                 <button class="nav-button" type="button" data-view="database"><span class="nav-main"><span class="nav-icon nav-icon-database"></span><span class="nav-label">Database</span></span></button>
                 <button class="nav-button" type="button" data-view="cache"><span class="nav-main"><span class="nav-icon nav-icon-cache"></span><span class="nav-label">Cache</span></span></button>
@@ -1877,6 +2491,9 @@ window.DopparProfiler = {
                   ${performanceSection}
                 </div>
               </section>
+              <section class="view-section" data-view-section="history">
+                ${historySection}
+              </section>
               <section class="view-section" data-view-section="http">
                 ${httpSection}
               </section>
@@ -1923,6 +2540,460 @@ window.DopparProfiler = {
             });
           });
         });
+        const historyShell = wrap.querySelector('[data-history-shell]');
+        const historyRanges = wrap.querySelector('[data-history-ranges]');
+        if(historyShell && historyRanges){
+          const rangeOptions = [
+            { key: '1h', label: '1H', ms: 60 * 60 * 1000 },
+            { key: '24h', label: '24H', ms: 24 * 60 * 60 * 1000 },
+            { key: '7d', label: '7D', ms: 7 * 24 * 60 * 60 * 1000 },
+            { key: '14d', label: '14D', ms: 14 * 24 * 60 * 60 * 1000 },
+            { key: '30d', label: '30D', ms: 30 * 24 * 60 * 60 * 1000 }
+          ];
+          let activeRange = '24h';
+          let activeMode = 'all';
+          let searchTerm = '';
+          let historyDataset = [];
+
+          const formatCapturedAt = (value) => {
+            if(!value){
+              return 'Unknown';
+            }
+            const timestamp = new Date(value);
+            if(Number.isNaN(timestamp.getTime())){
+              return 'Unknown';
+            }
+            return timestamp.toLocaleString();
+          };
+          const formatCompactNumber = (value) => {
+            const number = Number(value || 0);
+            if(number >= 1000000){
+              return `${(number / 1000000).toFixed(1)}M`;
+            }
+            if(number >= 1000){
+              return `${(number / 1000).toFixed(1)}K`;
+            }
+            return String(Math.round(number));
+          };
+          const formatDuration = (value) => {
+            const duration = Number(value || 0);
+            if(duration >= 1000){
+              return `${(duration / 1000).toFixed(2)}s`;
+            }
+            return `${duration.toFixed(0)}ms`;
+          };
+          const formatExceptionLabel = (value) => {
+            if(!value){
+              return 'Unhandled exception';
+            }
+            const label = String(value);
+            const namespaceSeparator = String.fromCharCode(92);
+            const lastSeparatorIndex = label.lastIndexOf(namespaceSeparator);
+            return (lastSeparatorIndex >= 0 ? label.slice(lastSeparatorIndex + 1) : label) || 'Unhandled exception';
+          };
+          const historyBadgeClass = (status) => {
+            const code = Number(status || 0);
+            if(code >= 500 || code >= 400){
+              return 'badge-error';
+            }
+            if(code >= 300){
+              return 'badge-warning';
+            }
+            if(code >= 200){
+              return 'badge-success';
+            }
+            return 'badge-info';
+          };
+          const resolveTimestamp = (item) => {
+            if(item?.captured_at){
+              const date = new Date(item.captured_at);
+              if(!Number.isNaN(date.getTime())){
+                return date.getTime();
+              }
+            }
+            if(item?.captured_at_unix){
+              return Number(item.captured_at_unix) * 1000;
+            }
+            if(item?.time_start){
+              return Number(item.time_start) * 1000;
+            }
+            return Date.now();
+          };
+          const buildCombinedHistory = (history) => {
+            const currentTimestamp = data.time_start ? Number(data.time_start) * 1000 : Date.now();
+            const currentItem = {
+              id: data.id,
+              method: data.method,
+              route: data.route,
+              status: data.status,
+              duration_ms: data.total_duration_ms ?? data.duration_ms ?? 0,
+              exception_class: data.exception_class || null,
+              exception_message: data.exception_message || null,
+              captured_at: new Date(currentTimestamp).toISOString(),
+              captured_at_unix: Math.floor(currentTimestamp / 1000),
+            };
+            const items = [currentItem].concat(Array.isArray(history) ? history : []);
+            const unique = new Map();
+            items.forEach((item) => {
+              const normalized = {
+                id: String(item?.id || ''),
+                method: String(item?.method || 'GET').toUpperCase(),
+                route: String(item?.route || '/'),
+                status: Number(item?.status || 0),
+                duration_ms: Number(item?.duration_ms || 0),
+                exception_class: item?.exception_class || null,
+                exception_message: item?.exception_message || null,
+                captured_at: item?.captured_at || null,
+                captured_at_unix: Number(item?.captured_at_unix || 0),
+                timestamp: resolveTimestamp(item),
+              };
+              if(!normalized.id){
+                return;
+              }
+              unique.set(normalized.id, normalized);
+            });
+            return Array.from(unique.values()).sort((left, right) => left.timestamp - right.timestamp);
+          };
+          const buildBuckets = (items, rangeMs, bucketCount = 24) => {
+            const latest = items.length ? items[items.length - 1].timestamp : Date.now();
+            const earliest = latest - rangeMs;
+            const bucketSize = Math.max(1, rangeMs / bucketCount);
+            const buckets = Array.from({ length: bucketCount }, (_, index) => ({
+              start: earliest + (index * bucketSize),
+              total: 0,
+              status4xx: 0,
+              status5xx: 0,
+              durations: [],
+            }));
+            items.forEach((item) => {
+              if(item.timestamp < earliest || item.timestamp > latest){
+                return;
+              }
+              const bucketIndex = Math.min(bucketCount - 1, Math.max(0, Math.floor((item.timestamp - earliest) / bucketSize)));
+              const bucket = buckets[bucketIndex];
+              bucket.total += 1;
+              if(item.status >= 500){
+                bucket.status5xx += 1;
+              } else if(item.status >= 400){
+                bucket.status4xx += 1;
+              }
+              bucket.durations.push(item.duration_ms);
+            });
+            return buckets.map((bucket) => {
+              const max = bucket.durations.length ? Math.max(...bucket.durations) : 0;
+              const avg = bucket.durations.length ? bucket.durations.reduce((sum, value) => sum + value, 0) / bucket.durations.length : 0;
+              const tone = bucket.status5xx > 0 ? 'error' : (bucket.status4xx > 0 ? 'warning' : (bucket.total > 0 ? 'success' : 'muted'));
+              return { ...bucket, avg, max, tone };
+            });
+          };
+          const buildBarChart = (buckets) => {
+            const width = 560;
+            const height = 140;
+            const maxValue = Math.max(1, ...buckets.map((bucket) => bucket.total));
+            const barWidth = width / Math.max(1, buckets.length);
+            const grid = [0.25, 0.5, 0.75].map((step) => `<line class="history-grid-line" x1="0" y1="${height * step}" x2="${width}" y2="${height * step}"></line>`).join('');
+            const bars = buckets.map((bucket, index) => {
+              const columnHeight = bucket.total > 0 ? Math.max(6, (bucket.total / maxValue) * (height - 8)) : 4;
+              const x = index * barWidth + 2;
+              const y = height - columnHeight;
+              return `<rect class="history-bar-${bucket.tone}" x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${Math.max(6, barWidth - 5).toFixed(2)}" height="${columnHeight.toFixed(2)}" rx="2"></rect>`;
+            }).join('');
+            return `<svg class="history-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">${grid}${bars}</svg>`;
+          };
+          const buildLineChart = (buckets) => {
+            const width = 560;
+            const height = 140;
+            const maxDuration = Math.max(1, ...buckets.map((bucket) => Math.max(bucket.avg, bucket.max)));
+            const pathFor = (values) => values.map((value, index) => {
+              const x = buckets.length === 1 ? width / 2 : (index / (buckets.length - 1)) * width;
+              const y = height - ((value / maxDuration) * (height - 12)) - 6;
+              return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
+            }).join(' ');
+            const avgPath = pathFor(buckets.map((bucket) => bucket.avg));
+            const maxPath = pathFor(buckets.map((bucket) => bucket.max));
+            const grid = [0.25, 0.5, 0.75].map((step) => `<line class="history-grid-line" x1="0" y1="${height * step}" x2="${width}" y2="${height * step}"></line>`).join('');
+            return `<svg class="history-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">${grid}<path class="history-line-avg" d="${avgPath}"></path><path class="history-line-max" d="${maxPath}"></path></svg>`;
+          };
+          const aggregateRoutes = (items) => {
+            const routes = new Map();
+            items.forEach((item) => {
+              const key = `${item.method} ${item.route}`;
+              if(!routes.has(key)){
+                routes.set(key, {
+                  method: item.method,
+                  route: item.route,
+                  requests: 0,
+                  status3xx: 0,
+                  status4xx: 0,
+                  status5xx: 0,
+                  errorRequests: 0,
+                  totalDuration: 0,
+                  maxDuration: 0,
+                  lastSeen: item.timestamp,
+                  latestStatus: item.status,
+                  latestExceptionClass: item.exception_class,
+                  latestExceptionMessage: item.exception_message,
+                });
+              }
+              const route = routes.get(key);
+              route.requests += 1;
+              route.totalDuration += item.duration_ms;
+              route.maxDuration = Math.max(route.maxDuration, item.duration_ms);
+              if(item.timestamp >= route.lastSeen){
+                route.lastSeen = item.timestamp;
+                route.latestStatus = item.status;
+                route.latestExceptionClass = item.exception_class;
+                route.latestExceptionMessage = item.exception_message;
+              }
+              if(item.status >= 500){
+                route.status5xx += 1;
+                route.errorRequests += 1;
+              } else if(item.status >= 400){
+                route.status4xx += 1;
+                route.errorRequests += 1;
+              } else if(item.status >= 300){
+                route.status3xx += 1;
+              }
+            });
+            return Array.from(routes.values()).map((route) => ({
+              ...route,
+              avgDuration: route.requests > 0 ? route.totalDuration / route.requests : 0,
+            }));
+          };
+          const renderRangeButtons = () => {
+            historyRanges.innerHTML = rangeOptions.map((range) => `
+              <button class="history-range-pill ${range.key === activeRange ? 'active' : ''}" type="button" data-history-range="${range.key}">
+                ${range.label}
+              </button>
+            `).join('');
+            historyRanges.querySelectorAll('[data-history-range]').forEach((button) => {
+              button.addEventListener('click', () => {
+                activeRange = button.getAttribute('data-history-range') || '24h';
+                renderHistoryDashboard();
+              });
+            });
+          };
+          const renderHistoryDashboard = (preserveSearchFocus = false) => {
+            const selectedRange = rangeOptions.find((range) => range.key === activeRange) || rangeOptions[1];
+            const latestTimestamp = historyDataset.length ? historyDataset[historyDataset.length - 1].timestamp : Date.now();
+            const cutoff = latestTimestamp - selectedRange.ms;
+            const filtered = historyDataset.filter((item) => item.timestamp >= cutoff);
+            const matched = aggregateRoutes(filtered).filter((route) => {
+              const query = searchTerm.trim().toLowerCase();
+              if(query && !`${route.method} ${route.route}`.toLowerCase().includes(query)){
+                return false;
+              }
+              if(activeMode === 'errors'){
+                return route.status4xx > 0 || route.status5xx > 0;
+              }
+              if(activeMode === 'slow'){
+                return route.maxDuration >= 1000 || route.avgDuration >= 500;
+              }
+              return true;
+            }).sort((left, right) => {
+              if(activeMode === 'slow'){
+                return right.maxDuration - left.maxDuration || right.requests - left.requests;
+              }
+              const leftErrors = left.status5xx + left.status4xx;
+              const rightErrors = right.status5xx + right.status4xx;
+              return right.requests - left.requests || rightErrors - leftErrors || right.maxDuration - left.maxDuration;
+            });
+            const totalRequests = filtered.length;
+            const status3xx = filtered.filter((item) => item.status >= 300 && item.status < 400).length;
+            const status4xx = filtered.filter((item) => item.status >= 400 && item.status < 500).length;
+            const status5xx = filtered.filter((item) => item.status >= 500).length;
+            const durations = filtered.map((item) => item.duration_ms);
+            const avgDuration = durations.length ? durations.reduce((sum, value) => sum + value, 0) / durations.length : 0;
+            const maxDuration = durations.length ? Math.max(...durations) : 0;
+            const minDuration = durations.length ? Math.min(...durations) : 0;
+            const buckets = buildBuckets(filtered, selectedRange.ms, 24);
+            const recentErrors = filtered
+              .filter((item) => item.status >= 400)
+              .sort((left, right) => right.timestamp - left.timestamp)
+              .slice(0, 6);
+            const routeRows = matched.slice(0, 18).map((route) => `
+              <tr>
+                <td class="history-col-method"><span class="history-method-chip">${escapeHtml(route.method)}</span></td>
+                <td class="history-col-path"><span class="history-path-cell">${escapeHtml(route.route)}</span></td>
+                <td class="history-col-requests"><span class="history-cell-number">${escapeHtml(formatCompactNumber(route.requests))}</span></td>
+                <td class="history-col-3xx"><span class="history-cell-number">${escapeHtml(formatCompactNumber(route.status3xx))}</span></td>
+                <td class="history-col-4xx"><span class="history-cell-number">${escapeHtml(formatCompactNumber(route.status4xx))}</span></td>
+                <td class="history-col-5xx"><span class="history-cell-number">${escapeHtml(formatCompactNumber(route.status5xx))}</span></td>
+                <td class="history-col-avg"><span class="history-cell-number">${escapeHtml(formatDuration(route.avgDuration))}</span></td>
+                <td class="history-col-max"><span class="history-cell-number">${escapeHtml(formatDuration(route.maxDuration))}</span></td>
+              </tr>
+            `).join('');
+            const recentErrorMarkup = recentErrors.length ? `
+              <div class="history-error-feed">
+                ${recentErrors.map((item) => `
+                  <div class="history-error-item">
+                    <div class="history-error-head">
+                      <div class="history-error-path">${escapeHtml(item.method)} ${escapeHtml(item.route)}</div>
+                      <span class="badge ${historyBadgeClass(item.status)}">HTTP ${escapeHtml(String(item.status || 0))}</span>
+                    </div>
+                    <div class="history-error-text">${escapeHtml(item.exception_message || formatExceptionLabel(item.exception_class))}</div>
+                    <div class="history-error-meta">
+                      <span>${escapeHtml(formatExceptionLabel(item.exception_class))}</span>
+                      <span>${escapeHtml(formatDuration(item.duration_ms))}</span>
+                      <span>${escapeHtml(formatCapturedAt(item.captured_at))}</span>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            ` : `<div class="history-empty-state history-error-empty">No 4XX or 5XX requests in this range.</div>`;
+
+            historyShell.innerHTML = `
+              <div class="history-overview-grid">
+                <div class="history-card">
+                  <div class="history-card-header">
+                    <div>
+                      <div class="history-card-title">Requests</div>
+                      <div class="history-card-value">${escapeHtml(formatCompactNumber(totalRequests))}</div>
+                    </div>
+                    <div class="history-card-meta">
+                      <span class="badge badge-info">3XX ${escapeHtml(formatCompactNumber(status3xx))}</span>
+                      <span class="badge badge-warning">4XX ${escapeHtml(formatCompactNumber(status4xx))}</span>
+                      <span class="badge badge-error">5XX ${escapeHtml(formatCompactNumber(status5xx))}</span>
+                    </div>
+                  </div>
+                  <div class="history-kpis">
+                    <div class="history-kpi">
+                      <div class="history-kpi-label">Routes</div>
+                      <div class="history-kpi-value">${escapeHtml(formatCompactNumber(aggregateRoutes(filtered).length))}</div>
+                    </div>
+                    <div class="history-kpi">
+                      <div class="history-kpi-label">Current</div>
+                      <div class="history-kpi-value">${escapeHtml(selectedRange.label)}</div>
+                    </div>
+                    <div class="history-kpi">
+                      <div class="history-kpi-label">Latest</div>
+                      <div class="history-kpi-value">${escapeHtml(formatCapturedAt(filtered.length ? filtered[filtered.length - 1].captured_at : null))}</div>
+                    </div>
+                  </div>
+                  <div class="history-chart-wrap">
+                    ${buildBarChart(buckets)}
+                    <div class="history-chart-axis">
+                      <span>${escapeHtml(selectedRange.label)} request volume</span>
+                      <span>Newest at right</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="history-card">
+                  <div class="history-card-header">
+                    <div>
+                      <div class="history-card-title">Duration</div>
+                      <div class="history-card-value">${escapeHtml(formatDuration(minDuration))} - ${escapeHtml(formatDuration(maxDuration))}</div>
+                    </div>
+                    <div class="history-card-meta">
+                      <span class="history-card-note">AVG ${escapeHtml(formatDuration(avgDuration))}</span>
+                      <span class="history-card-note">MAX ${escapeHtml(formatDuration(maxDuration))}</span>
+                    </div>
+                  </div>
+                  <div class="history-kpis">
+                    <div class="history-kpi">
+                      <div class="history-kpi-label">Healthy</div>
+                      <div class="history-kpi-value">${escapeHtml(formatCompactNumber(totalRequests - status4xx - status5xx))}</div>
+                    </div>
+                    <div class="history-kpi">
+                      <div class="history-kpi-label">Errors</div>
+                      <div class="history-kpi-value">${escapeHtml(formatCompactNumber(status4xx + status5xx))}</div>
+                    </div>
+                    <div class="history-kpi">
+                      <div class="history-kpi-label">Peaks</div>
+                      <div class="history-kpi-value">${escapeHtml(formatCompactNumber(buckets.filter((bucket) => bucket.max >= 1000).length))}</div>
+                    </div>
+                  </div>
+                  <div class="history-chart-wrap">
+                    ${buildLineChart(buckets)}
+                    <div class="history-chart-axis">
+                      <span>Average latency</span>
+                      <span>Peak latency</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="history-card">
+                  <div class="history-card-header">
+                    <div>
+                      <div class="history-card-title">Recent Errors</div>
+                      <div class="history-card-value">${escapeHtml(formatCompactNumber(recentErrors.length))}</div>
+                    </div>
+                    <div class="history-card-meta">
+                      <span class="badge badge-warning">4XX ${escapeHtml(formatCompactNumber(status4xx))}</span>
+                      <span class="badge badge-error">5XX ${escapeHtml(formatCompactNumber(status5xx))}</span>
+                    </div>
+                  </div>
+                  ${recentErrorMarkup}
+                </div>
+              </div>
+              <div class="history-card history-table-shell">
+                <div class="history-table-head">
+                  <div class="history-route-count">${escapeHtml(formatCompactNumber(matched.length))} routes</div>
+                  <div class="history-search-wrap">
+                    <input class="history-search" type="search" value="${escapeHtml(searchTerm)}" placeholder="Search method or route" data-history-search>
+                    <div class="history-toggle-group">
+                      <button class="history-toggle ${activeMode === 'all' ? 'active' : ''}" type="button" data-history-mode="all">View all</button>
+                      <button class="history-toggle ${activeMode === 'errors' ? 'active' : ''}" type="button" data-history-mode="errors">Errors only</button>
+                      <button class="history-toggle ${activeMode === 'slow' ? 'active' : ''}" type="button" data-history-mode="slow">Slow routes</button>
+                    </div>
+                  </div>
+                </div>
+                ${matched.length ? `
+                  <div class="history-table-scroll">
+                    <table class="history-route-table">
+                      <thead>
+                        <tr>
+                          <th class="history-col-method">Method</th>
+                          <th class="history-col-path">Path</th>
+                          <th class="history-col-requests">Requests</th>
+                          <th class="history-col-3xx">3XX</th>
+                          <th class="history-col-4xx">4XX</th>
+                          <th class="history-col-5xx">5XX</th>
+                          <th class="history-col-avg">Avg</th>
+                          <th class="history-col-max">Max</th>
+                        </tr>
+                      </thead>
+                      <tbody>${routeRows}</tbody>
+                    </table>
+                  </div>
+                ` : `<div class="history-empty-state">No routes matched this history filter.</div>`}
+              </div>
+            `;
+
+            const searchInput = historyShell.querySelector('[data-history-search]');
+            if(searchInput){
+              searchInput.addEventListener('input', (event) => {
+                const nextValue = event.target.value || '';
+                if(nextValue === searchTerm){
+                  return;
+                }
+                searchTerm = nextValue;
+                renderHistoryDashboard(true);
+              });
+              if(preserveSearchFocus){
+                searchInput.focus();
+                searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+              }
+            }
+            historyShell.querySelectorAll('[data-history-mode]').forEach((button) => {
+              button.addEventListener('click', () => {
+                activeMode = button.getAttribute('data-history-mode') || 'all';
+                renderHistoryDashboard();
+              });
+            });
+          };
+
+          renderRangeButtons();
+          fetch('/_insight/api/history?limit=500').then((response) => response.json()).then((history) => {
+            if(!Array.isArray(history)){
+              historyShell.innerHTML = '<div class="no-data">Unable to load request history right now.</div>';
+              return;
+            }
+            historyDataset = buildCombinedHistory(history);
+            renderHistoryDashboard();
+          }).catch(() => {
+            historyShell.innerHTML = '<div class="no-data">Unable to load request history right now.</div>';
+          });
+        }
         wrap.querySelectorAll('[data-action="json-api-copy"]').forEach((button) => {
           button.addEventListener('click', async () => {
             const payload = JSON.stringify(data, null, 2);

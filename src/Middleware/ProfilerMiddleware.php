@@ -6,6 +6,7 @@ use Closure;
 use Doppar\Insight\Profiler;
 use Phaseolies\Http\Request;
 use Phaseolies\Http\Response;
+use Throwable;
 
 class ProfilerMiddleware implements \Phaseolies\Middleware\Contracts\Middleware
 {
@@ -25,7 +26,15 @@ class ProfilerMiddleware implements \Phaseolies\Middleware\Contracts\Middleware
         }
 
         $profiler->start($request);
-        $response = $next($request);
+
+        try {
+            $response = $next($request);
+        } catch (Throwable $exception) {
+            $profiler->stopWithException($request, $exception);
+
+            throw $exception;
+        }
+
         $profiler->stop($request, $response);
 
         // If this is a redirect, store the profiler data in session for the next request
