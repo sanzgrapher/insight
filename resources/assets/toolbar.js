@@ -1146,6 +1146,9 @@ window.DopparProfiler = {
             background: #18181B;
             border: 1px solid rgba(255,255,255,0.07);
           }
+          .history-card-wide {
+            grid-column: 1 / -1;
+          }
           .history-card-header {
             display: flex;
             align-items: flex-start;
@@ -2943,6 +2946,9 @@ window.DopparProfiler = {
             const selectedRange = rangeOptions.find((range) => range.key === activeRange) || rangeOptions[1];
             const latestTimestamp = historyDataset.length ? historyDataset[historyDataset.length - 1].timestamp : Date.now();
             const cutoff = latestTimestamp - selectedRange.ms;
+            const formatAxisLabel = (ts) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const axisStart = formatAxisLabel(cutoff);
+            const axisEnd = formatAxisLabel(latestTimestamp);
             const filtered = historyDataset.filter((item) => item.timestamp >= cutoff);
             const matched = aggregateRoutes(filtered).filter((route) => {
               const query = searchTerm.trim().toLowerCase();
@@ -2981,6 +2987,10 @@ window.DopparProfiler = {
               .filter((route) => route.status4xx > 0 || route.status5xx > 0)
               .sort((left, right) => (right.status5xx + right.status4xx) - (left.status5xx + left.status4xx) || right.requests - left.requests)
               .slice(0, 3);
+            const errorRoutes = new Set(filtered.filter((item) => item.status >= 400).map((item) => item.route));
+            const errorTypes = new Set(filtered.filter((item) => item.status >= 400).map((item) => formatExceptionLabel(item.exception_class)));
+            const latestErrorTime = recentErrors.length ? formatCapturedAt(recentErrors[0].captured_at) : '—';
+            const hottestErrorRoute = topErrorRoutes.length ? `${topErrorRoutes[0].method} ${topErrorRoutes[0].route}` : '—';
             const routeRows = matched.slice(0, 18).map((route) => `
               <tr>
                 <td class="history-col-method"><span class="history-method-chip">${escapeHtml(route.method)}</span></td>
@@ -2994,20 +3004,33 @@ window.DopparProfiler = {
               </tr>
             `).join('');
             const recentErrorMarkup = recentErrors.length ? `
-              <div class="history-error-feed">
-                ${recentErrors.map((item) => `
-                  <div class="history-error-item">
-                    <div class="history-error-head">
-                      <div class="history-error-path">${escapeHtml(item.method)} ${escapeHtml(item.route)}</div>
-                      <span class="badge ${historyBadgeClass(item.status)}">HTTP ${escapeHtml(String(item.status || 0))}</span>
-                    </div>
-                    <div class="history-error-text">${escapeHtml(item.exception_message || formatExceptionLabel(item.exception_class))}</div>
-                    <div class="history-error-meta">
-                      <span>${escapeHtml(formatExceptionLabel(item.exception_class))}</span>
-                      <span>${escapeHtml(formatDuration(item.duration_ms))}</span>
-                      <span>${escapeHtml(formatCapturedAt(item.captured_at))}</span>
-                    </div>
-                  </div>
+              <div class="ov-chart-wrap">
+                ${buildExceptionChart(buckets)}
+                <div class="history-chart-axis"><span>${escapeHtml(axisStart)}</span><span>${escapeHtml(axisEnd)}</span></div>
+              </div>
+              <div class="ov-stat-grid">
+                <div class="ov-stat-card">
+                  <div class="ov-stat-label">Error Routes</div>
+                  <div class="ov-stat-value">${escapeHtml(String(errorRoutes.size))}</div>
+                  <div class="ov-stat-note">Routes with at least one 4XX or 5XX in ${escapeHtml(selectedRange.label)}.</div>
+                </div>
+                <div class="ov-stat-card">
+                  <div class="ov-stat-label">Exception Types</div>
+                  <div class="ov-stat-value">${escapeHtml(String(errorTypes.size))}</div>
+                  <div class="ov-stat-note">Distinct error families captured in this window.</div>
+                </div>
+                <div class="ov-stat-card">
+                  <div class="ov-stat-label">Latest Error</div>
+                  <div class="ov-stat-value">${escapeHtml(latestErrorTime)}</div>
+                  <div class="ov-stat-note">${escapeHtml(hottestErrorRoute)}</div>
+                </div>
+              </div>
+              <div class="ov-chip-row">
+                ${topErrorRoutes.map((route) => `
+                  <span class="ov-chip">
+                    <span class="history-method-chip">${escapeHtml(route.method)}</span>
+                    <span class="ov-chip-value">${escapeHtml(route.route)} • ${escapeHtml(formatCompactNumber(route.status4xx + route.status5xx))}</span>
+                  </span>
                 `).join('')}
               </div>
             ` : `<div class="history-empty-state history-error-empty">No 4XX or 5XX requests in this range.</div>`;
@@ -3081,11 +3104,11 @@ window.DopparProfiler = {
                     </div>
                   </div>
                 </div>
-                <div class="history-card">
+                <div class="history-card history-card-wide">
                   <div class="history-card-header">
                     <div>
                       <div class="history-card-title">Recent Errors</div>
-                      <div class="history-card-value">${escapeHtml(formatCompactNumber(recentErrors.length))}</div>
+                      <div class="history-card-value">${escapeHtml(formatCompactNumber(status4xx + status5xx))}</div>
                     </div>
                     <div class="history-card-meta">
                       <span class="badge badge-warning">4XX ${escapeHtml(formatCompactNumber(status4xx))}</span>
