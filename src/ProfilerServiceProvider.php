@@ -4,10 +4,8 @@ namespace Doppar\Insight;
 
 use Doppar\Insight\Support\ErrorHistoryRecorder;
 use Doppar\Insight\Support\InsightBeforeExceptionHandler;
-use Doppar\Insight\Support\ProfilingRouter;
 use Phaseolies\Http\Request;
 use Phaseolies\Http\Response;
-use Phaseolies\Support\Router;
 use Phaseolies\Providers\ServiceProvider;
 use Throwable;
 
@@ -41,7 +39,6 @@ class ProfilerServiceProvider extends ServiceProvider
             $this->registerErrorTracking();
             $this->registerRoutes();
             $this->registerMiddleware();
-            $this->wrapApplicationRouter();
             $this->registerHooks($profiler);
         }
     }
@@ -156,30 +153,6 @@ class ProfilerServiceProvider extends ServiceProvider
         if (! class_exists($alias)) {
             class_alias(InsightBeforeExceptionHandler::class, $alias);
         }
-    }
-
-    /**
-     * Wrap the application router so pre-middleware HTTP exceptions like
-     * route-miss 404s are still recorded by Insight.
-     */
-    protected function wrapApplicationRouter(): void
-    {
-        if (! isset($this->app->router) || ! $this->app->router instanceof Router) {
-            return;
-        }
-
-        if ($this->app->router instanceof ProfilingRouter) {
-            return;
-        }
-
-        $router = new ProfilingRouter(
-            $this->app->router,
-            app(ErrorHistoryRecorder::class)
-        );
-
-        $this->app->router = $router;
-        $this->app->instance('route', $router);
-        $this->app->instance(Router::class, $router);
     }
 
     /**

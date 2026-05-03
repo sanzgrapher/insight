@@ -13,11 +13,9 @@ use Doppar\Insight\Middleware\ProfilerMiddleware;
 use Doppar\Insight\Profiler;
 use Doppar\Insight\ProfilerServiceProvider;
 use Doppar\Insight\Support\ErrorHistoryRecorder;
-use Doppar\Insight\Support\ProfilingRouter;
 use Phaseolies\Application;
 use Phaseolies\DI\Container;
 use Phaseolies\Http\Exceptions\NotFoundHttpException;
-use Phaseolies\Support\Router;
 use ReflectionMethod;
 
 class ProfilerServiceProviderTest extends TestCase
@@ -126,75 +124,6 @@ class ProfilerServiceProviderTest extends TestCase
         $this->assertSame(404, $recent[0]['status']);
         $this->assertSame('/missing-page', $recent[0]['route']);
         $this->assertSame('GET', $recent[0]['method']);
-    }
-
-    public function testWrapApplicationRouterDecoratesRouterWithProfilingProxyAndCapturesResolveExceptions(): void
-    {
-        /** @var Application&\PHPUnit\Framework\MockObject\MockObject $app */
-        $app = $this->getMockBuilder(Application::class)
-            ->disableOriginalConstructor()
-            ->onlyMethods([])
-            ->getMock();
-
-        $router = $this->createMock(Router::class);
-        $router->expects($this->once())
-            ->method('resolve')
-            ->willThrowException(new NotFoundHttpException('Route missing'));
-        $app->router = $router;
-
-        Container::setInstance($app);
-
-        $storage = new class implements StorageInterface
-        {
-            /** @var array<string, array<string, mixed>> */
-            public array $records = [];
-
-            public function put(string $id, array $data): void
-            {
-                $this->records[$id] = $data;
-            }
-
-            public function get(string $id): ?array
-            {
-                return $this->records[$id] ?? null;
-            }
-
-            public function recent(int $limit = 50): array
-            {
-                return array_values($this->records);
-            }
-        };
-
-        $profiler = new Profiler(['enabled' => true], $storage);
-        $profiler->addCollector(new HttpCollector());
-        $profiler->addCollector(new RequestCollector());
-        $profiler->addCollector(new ResponseCollector());
-        $profiler->addCollector(new TimeMemoryCollector());
-
-        $app->instance(Profiler::class, $profiler);
-        $app->instance(ErrorHistoryRecorder::class, new ErrorHistoryRecorder());
-
-        $provider = new ProfilerServiceProvider($app);
-
-        $method = new ReflectionMethod($provider, 'wrapApplicationRouter');
-        $method->setAccessible(true);
-        $method->invoke($provider);
-
-        $this->assertInstanceOf(ProfilingRouter::class, $app->router);
-
-        $request = $this->createRequest('GET', '/wrapped-missing-page', ['REMOTE_ADDR' => '127.0.0.1']);
-
-        try {
-            $app->router->resolve($app, $request);
-            $this->fail('Expected NotFoundHttpException was not thrown.');
-        } catch (NotFoundHttpException) {
-            $recent = $storage->recent();
-
-            $this->assertCount(1, $recent);
-            $this->assertSame(404, $recent[0]['status']);
-            $this->assertSame('/wrapped-missing-page', $recent[0]['route']);
-            $this->assertSame('GET', $recent[0]['method']);
-        }
     }
 
     public function testRegisterMiddlewareIsIdempotent(): void
