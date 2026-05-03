@@ -138,6 +138,10 @@ window.DopparProfiler = {
           const index = Math.min(units.length - 1, Math.floor(Math.log(size) / Math.log(1024)));
           return `${Math.round((size / Math.pow(1024, index)) * 100) / 100} ${units[index]}`;
         };
+        const truncateText = (value, max = 88) => {
+          const text = String(value ?? '');
+          return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+        };
         const prettyJson = (value) => escapeHtml(JSON.stringify(value, null, 2));
         const hasEntries = (value) => {
           if(Array.isArray(value)){
@@ -499,7 +503,6 @@ window.DopparProfiler = {
           }
           .canvas {
             min-width: 0;
-            padding: 8px 2px 2px;
           }
           .view-section {
             display: none;
@@ -1526,6 +1529,192 @@ window.DopparProfiler = {
             font-weight: 700;
             text-align: center;
           }
+          .cache-table-shell {
+            display: grid;
+            gap: 12px;
+            min-width: 0;
+            margin-top: 14px;
+          }
+          .cache-table-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+          }
+          .cache-table-count {
+            color: #ebebf0;
+            font-size: 14px;
+            font-weight: 800;
+          }
+          .cache-table-note {
+            color: #888899;
+            font-size: 12px;
+            font-weight: 700;
+          }
+          .cache-table-scroll {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+            border-radius: 14px;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: var(--dp-scrollbar-thumb) var(--dp-scrollbar-track);
+          }
+          .cache-detail-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            overflow: hidden;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.07);
+            background: #18181B;
+            table-layout: auto;
+            min-width: 780px;
+          }
+          .cache-detail-table th,
+          .cache-detail-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            text-align: left;
+            vertical-align: top;
+          }
+          .cache-detail-table th {
+            color: #55566a;
+            font-size: 10px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            font-weight: 800;
+            background: rgba(255,255,255,0.04);
+            white-space: nowrap;
+          }
+          .cache-detail-table td {
+            color: #ebebf0;
+            font-size: 13px;
+            font-weight: 600;
+          }
+          .cache-detail-table tr:last-child td {
+            border-bottom: 0;
+          }
+          .cache-detail-table tbody tr:hover td {
+            background: rgba(42,180,182,0.04);
+          }
+          .cache-type-chip {
+            display: inline-flex;
+            align-items: center;
+            font-size: 10px;
+            font-weight: 900;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: #2ab4b6;
+          }
+          .cache-key-cell {
+            display: block;
+            min-width: 160px;
+            max-width: 260px;
+            color: #ebebf0;
+            font-family: "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 12px;
+            line-height: 1.55;
+            word-break: break-word;
+          }
+          .cache-store-cell {
+            display: grid;
+            gap: 2px;
+          }
+          .cache-store-name {
+            color: #ebebf0;
+            font-size: 12px;
+            font-weight: 800;
+          }
+          .cache-store-driver {
+            color: #888899;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+          }
+          .cache-status-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 58px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 900;
+            letter-spacing: .10em;
+            text-transform: uppercase;
+            white-space: nowrap;
+          }
+          .cache-status-hit {
+            background: rgba(34, 197, 94, 0.14);
+            border: 1px solid rgba(34, 197, 94, 0.22);
+            color: #22c55e;
+          }
+          .cache-status-miss,
+          .cache-status-failed {
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239, 68, 68, 0.18);
+            color: #f87171;
+          }
+          .cache-status-write,
+          .cache-status-pass {
+            background: rgba(96, 165, 250, 0.12);
+            border: 1px solid rgba(96, 165, 250, 0.18);
+            color: #60a5fa;
+          }
+          .cache-detail-meta {
+            display: grid;
+            gap: 4px;
+          }
+          .cache-meta-text {
+            color: #888899;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.5;
+            word-break: break-word;
+          }
+          .cache-value-preview {
+            color: #ebebf0;
+            font-size: 12px;
+            font-family: "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
+            line-height: 1.55;
+            word-break: break-word;
+          }
+          .cache-value-details {
+            display: grid;
+            gap: 8px;
+          }
+          .cache-value-summary {
+            cursor: pointer;
+            color: #cbd5e1;
+            font-size: 12px;
+            font-weight: 700;
+            list-style: none;
+          }
+          .cache-value-summary::-webkit-details-marker {
+            display: none;
+          }
+          .cache-value-summary::before {
+            content: "▸";
+            display: inline-block;
+            margin-right: 6px;
+            transition: transform .18s ease;
+          }
+          .cache-value-details[open] .cache-value-summary::before {
+            transform: rotate(90deg);
+          }
+          .cache-value-body {
+            margin-top: 2px;
+          }
+          .cache-col-type { width: 86px; }
+          .cache-col-key { width: 180px; }
+          .cache-col-value { width: auto; }
+          .cache-col-store { width: 110px; }
+          .cache-col-status { width: 90px; }
+          .cache-col-meta { width: 210px; }
           .history-error-feed {
             display: grid;
             gap: 8px;
@@ -1964,6 +2153,7 @@ window.DopparProfiler = {
           .panel[data-theme="dark"] .history-kpi,
           .panel[data-theme="dark"] .nav-section-divider,
           .panel[data-theme="dark"] .history-route-table,
+          .panel[data-theme="dark"] .cache-detail-table,
           .panel[data-theme="dark"] .history-error-item,
           .panel[data-theme="dark"] .history-search,
           .panel[data-theme="dark"] .history-toggle,
@@ -1977,6 +2167,7 @@ window.DopparProfiler = {
           .panel[data-theme="dark"] .history-card,
           .panel[data-theme="dark"] .history-kpi,
           .panel[data-theme="dark"] .history-route-table,
+          .panel[data-theme="dark"] .cache-detail-table,
           .panel[data-theme="dark"] .history-error-item,
           .panel[data-theme="dark"] .history-search,
           .panel[data-theme="dark"] .history-toggle,
@@ -2029,7 +2220,11 @@ window.DopparProfiler = {
           .panel[data-theme="dark"] .history-route-table th {
             background: rgba(255,255,255,0.04);
           }
+          .panel[data-theme="dark"] .cache-detail-table th {
+            background: rgba(255,255,255,0.04);
+          }
           .panel[data-theme="dark"] .history-route-table td,
+          .panel[data-theme="dark"] .cache-detail-table td,
           .panel[data-theme="dark"] .history-search,
           .panel[data-theme="dark"] .history-toggle,
           .panel[data-theme="dark"] .history-range-pill {
@@ -2046,6 +2241,19 @@ window.DopparProfiler = {
           }
           .panel[data-theme="dark"] .history-route-table tbody tr:hover td {
             background: rgba(255,255,255,0.03);
+          }
+          .panel[data-theme="dark"] .cache-detail-table tbody tr:hover td {
+            background: rgba(255,255,255,0.03);
+          }
+          .panel[data-theme="dark"] .cache-meta-text,
+          .panel[data-theme="dark"] .cache-store-driver {
+            color: #888899;
+          }
+          .panel[data-theme="dark"] .cache-value-summary,
+          .panel[data-theme="dark"] .cache-value-preview,
+          .panel[data-theme="dark"] .cache-store-name,
+          .panel[data-theme="dark"] .cache-key-cell {
+            color: #ebebf0;
           }
           .panel[data-theme="dark"] {
             --dp-scrollbar-thumb: rgba(255,255,255,0.16);
@@ -2348,6 +2556,10 @@ window.DopparProfiler = {
             .history-col-max {
               display: none;
             }
+            .cache-col-store,
+            .cache-col-meta {
+              display: none;
+            }
             .key { min-width: 0; }
           }
         `;
@@ -2590,6 +2802,72 @@ window.DopparProfiler = {
         const cacheOperations = Array.isArray(data.cache_operations) ? data.cache_operations : [];
         const cacheReads = Number(data.cache_hits || 0) + Number(data.cache_misses || 0);
         const cacheHitRate = cacheReads > 0 ? ((Number(data.cache_hits || 0) / cacheReads) * 100).toFixed(1) : '0.0';
+        const buildCacheStatusBadge = (operation) => {
+          const type = String(operation.type || '');
+          if(type === 'get' || type === 'has' || type === 'get_multiple'){
+            return `<span class="cache-status-badge ${operation.hit ? 'cache-status-hit' : 'cache-status-miss'}">${operation.hit ? 'Hit' : 'Miss'}</span>`;
+          }
+          if(type.startsWith('lock_')){
+            return `<span class="cache-status-badge ${operation.hit ? 'cache-status-pass' : 'cache-status-failed'}">${operation.hit ? 'Success' : 'Failed'}</span>`;
+          }
+          return `<span class="cache-status-badge cache-status-write">Write</span>`;
+        };
+        const buildCacheMetaLines = (operation) => {
+          const bits = [];
+          if(operation.ttl_seconds !== null && operation.ttl_seconds !== undefined){
+            bits.push(`TTL ${escapeHtml(String(operation.ttl_seconds))}s`);
+          }
+          if(operation.expires_at){
+            bits.push(`Expires ${escapeHtml(operation.expires_at)}`);
+          }
+          if(Array.isArray(operation.tags) && operation.tags.length){
+            bits.push(`Tags ${escapeHtml(operation.tags.join(', '))}`);
+          }
+          if(operation.lock_action){
+            bits.push(`Lock ${escapeHtml(operation.lock_action)}`);
+          }
+          if(operation.lock_seconds){
+            bits.push(`Lock TTL ${escapeHtml(String(operation.lock_seconds))}s`);
+          }
+          if(operation.lock_wait_seconds){
+            bits.push(`Wait ${escapeHtml(String(operation.lock_wait_seconds))}s`);
+          }
+          if(operation.delta !== undefined){
+            bits.push(`Delta ${escapeHtml(String(operation.delta))}`);
+          }
+          if(operation.lock_owner){
+            bits.push(`Owner ${escapeHtml(truncateText(operation.lock_owner, 32))}`);
+          }
+
+          return bits.length
+            ? `<div class="cache-detail-meta">${bits.map((bit) => `<div class="cache-meta-text">${bit}</div>`).join('')}</div>`
+            : '<span class="muted-value">No extra metadata</span>';
+        };
+        const buildCacheValueCell = (operation) => {
+          if(operation.value_json){
+            let body = '';
+            try {
+              body = buildJsonViewer(JSON.parse(operation.value_json));
+            } catch (error) {
+              body = buildCodeBlock(operation.value_json);
+            }
+            const preview = operation.value !== null && operation.value !== undefined && operation.value !== ''
+              ? truncateText(String(operation.value), 84)
+              : 'View payload';
+
+            return `
+              <details class="cache-value-details">
+                <summary class="cache-value-summary">${escapeHtml(preview)}</summary>
+                <div class="cache-value-body">${body}</div>
+              </details>
+            `;
+          }
+          if(operation.value !== null && operation.value !== undefined && operation.value !== ''){
+            return `<div class="cache-value-preview">${escapeHtml(truncateText(String(operation.value), 120))}</div>`;
+          }
+
+          return '<span class="muted-value">No payload</span>';
+        };
         const cacheSection = `
           <div class="section">
             <div class="section-title"><span class="section-title-main">Cache Activity</span></div>
@@ -2601,42 +2879,42 @@ window.DopparProfiler = {
                 <div class="summary-card"><div class="summary-label">Deletes</div><div class="summary-value">${escapeHtml(data.cache_deletes || 0)}</div><div class="summary-note">Forget and delete operations.</div></div>
                 <div class="summary-card"><div class="summary-label">Locks</div><div class="summary-value">${escapeHtml(data.cache_lock_operations || 0)}</div><div class="summary-note">Atomic lock lifecycle events.</div></div>
               </div>
-              <div class="section-stack" style="margin-top:14px;">
-                ${cacheOperations.map((operation, index) => {
-                  let valueOutput = '';
-                  if(operation.value_json){
-                    try {
-                      valueOutput = buildJsonViewer(JSON.parse(operation.value_json));
-                    } catch (error) {
-                      valueOutput = buildCodeBlock(operation.value_json);
-                    }
-                  } else if(operation.value !== null && operation.value !== undefined && operation.value !== ''){
-                    valueOutput = buildCodeBlock(String(operation.value));
-                  }
-                  const metaPills = [
-                    operation.store_name ? `Store: ${escapeHtml(operation.store_name)}` : '',
-                    operation.store_driver ? `Driver: ${escapeHtml(String(operation.store_driver).toUpperCase())}` : '',
-                    operation.ttl_seconds !== null && operation.ttl_seconds !== undefined ? `TTL: ${escapeHtml(String(operation.ttl_seconds))}s` : '',
-                    operation.expires_at ? `Expires: ${escapeHtml(operation.expires_at)}` : '',
-                    Array.isArray(operation.tags) && operation.tags.length ? `Tags: ${escapeHtml(operation.tags.join(', '))}` : '',
-                    operation.lock_action ? `Lock: ${escapeHtml(operation.lock_action)}` : '',
-                    operation.lock_seconds ? `Lock TTL: ${escapeHtml(String(operation.lock_seconds))}s` : '',
-                    operation.lock_wait_seconds ? `Wait: ${escapeHtml(String(operation.lock_wait_seconds))}s` : '',
-                    operation.delta !== undefined ? `Delta: ${escapeHtml(String(operation.delta))}` : '',
-                  ].filter(Boolean);
-                  return `
-                    <div class="subsection">
-                      <div class="subsection-title">${escapeHtml(operation.type || 'unknown')} #${index + 1}</div>
-                      <div class="pill-row">
-                        <span class="pill">Key: ${escapeHtml(operation.key || 'N/A')}</span>
-                        ${operation.type === 'get' ? `<span class="pill">${operation.hit ? 'HIT' : 'MISS'}</span>` : ''}
-                        ${String(operation.type || '').startsWith('lock_') ? `<span class="pill">${operation.hit ? 'SUCCESS' : 'FAILED'}</span>` : ''}
-                      </div>
-                      ${metaPills.length ? `<div class="pill-row">${metaPills.map((pill) => `<span class="pill">${pill}</span>`).join('')}</div>` : ''}
-                      ${valueOutput}
-                    </div>
-                  `;
-                }).join('')}
+              <div class="cache-table-shell">
+                <div class="cache-table-head">
+                  <span class="cache-table-count">${escapeHtml(cacheOperations.length)} cache events</span>
+                  <span class="cache-table-note">Current request cache reads, writes, TTLs, misses, and lock activity.</span>
+                </div>
+                <div class="cache-table-scroll">
+                  <table class="cache-detail-table">
+                    <thead>
+                      <tr>
+                        <th class="cache-col-type">Type</th>
+                        <th class="cache-col-key">Key</th>
+                        <th class="cache-col-value">Value</th>
+                        <th class="cache-col-store">Store</th>
+                        <th class="cache-col-status">Status</th>
+                        <th class="cache-col-meta">Details</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${cacheOperations.map((operation) => `
+                        <tr>
+                          <td class="cache-col-type"><span class="cache-type-chip">${escapeHtml(operation.type || 'unknown')}</span></td>
+                          <td class="cache-col-key"><span class="cache-key-cell">${escapeHtml(operation.key || 'N/A')}</span></td>
+                          <td class="cache-col-value">${buildCacheValueCell(operation)}</td>
+                          <td class="cache-col-store">
+                            <div class="cache-store-cell">
+                              <span class="cache-store-name">${escapeHtml(operation.store_name || 'default')}</span>
+                              <span class="cache-store-driver">${escapeHtml(String(operation.store_driver || 'unknown').toUpperCase())}</span>
+                            </div>
+                          </td>
+                          <td class="cache-col-status">${buildCacheStatusBadge(operation)}</td>
+                          <td class="cache-col-meta">${buildCacheMetaLines(operation)}</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             ` : '<div class="no-data">No cache operations detected</div>'}
           </div>
