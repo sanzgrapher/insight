@@ -1,5 +1,12 @@
 window.DopparProfiler = {
   open: false,
+  closeAnimationPromise: null,
+  cancelCloseAnimation(){
+    if(this.closeAnimationPromise){
+      this.closeAnimationPromise.cancelled = true;
+      this.closeAnimationPromise = null;
+    }
+  },
   async copyText(text){
     if(navigator.clipboard && window.isSecureContext){
       await navigator.clipboard.writeText(text);
@@ -80,6 +87,82 @@ window.DopparProfiler = {
     const toolbar = host.shadowRoot.querySelector('.dp-root');
     return toolbar ? toolbar.getBoundingClientRect() : null;
   },
+  getOverviewButtonBounds(){
+    const host = document.getElementById('doppar-profiler');
+    if(!host || !host.shadowRoot){
+      return null;
+    }
+    const button = host.shadowRoot.querySelector('.dp-btn');
+    return button ? button.getBoundingClientRect() : null;
+  },
+  setPanelAnimationOrigin(panel){
+    if(!panel){
+      return;
+    }
+    const host = document.getElementById('doppar-profiler-panel');
+    const buttonBounds = this.getOverviewButtonBounds();
+    const hostBounds = host ? host.getBoundingClientRect() : null;
+    if(!buttonBounds || !hostBounds || !hostBounds.width){
+      panel.style.transformOrigin = '88% 100%';
+      return;
+    }
+    const centerX = buttonBounds.left + (buttonBounds.width / 2);
+    const relativeX = ((centerX - hostBounds.left) / hostBounds.width) * 100;
+    const clamped = Math.max(12, Math.min(92, relativeX));
+    panel.style.transformOrigin = `${clamped}% 100%`;
+  },
+  animatePanelOpen(panel){
+    if(!panel){
+      return;
+    }
+    this.cancelCloseAnimation();
+    this.setPanelAnimationOrigin(panel);
+    panel.style.willChange = 'transform, opacity, filter';
+    const animation = panel.animate([
+      { opacity: 0, transform: 'translate3d(0, 34px, 0) scale3d(0.94, 0.18, 1)', filter: 'blur(10px)' },
+      { opacity: 1, transform: 'translate3d(0, -7px, 0) scale3d(1.01, 1.02, 1)', filter: 'blur(1.5px)', offset: 0.72 },
+      { opacity: 1, transform: 'translate3d(0, 0, 0) scale3d(1, 1, 1)', filter: 'blur(0px)' }
+    ], {
+      duration: 420,
+      easing: 'cubic-bezier(0.18, 0.9, 0.24, 1)'
+    });
+    animation.onfinish = () => {
+      panel.style.willChange = '';
+      panel.style.opacity = '1';
+      panel.style.transform = 'translate3d(0, 0, 0) scale3d(1, 1, 1)';
+      panel.style.filter = 'blur(0px)';
+    };
+  },
+  closePanel(root){
+    const panel = root?.querySelector('.panel');
+    if(!panel){
+      root.innerHTML = '';
+      return Promise.resolve();
+    }
+    this.setPanelAnimationOrigin(panel);
+    panel.style.willChange = 'transform, opacity, filter';
+    const animation = panel.animate([
+      { opacity: 1, transform: 'translate3d(0, 0, 0) scale3d(1, 1, 1)', filter: 'blur(0px)' },
+      { opacity: 1, transform: 'translate3d(0, -3px, 0) scale3d(1.01, 0.99, 1)', offset: 0.18 },
+      { opacity: 0, transform: 'translate3d(0, 28px, 0) scale3d(0.95, 0.16, 1)', filter: 'blur(8px)' }
+    ], {
+      duration: 250,
+      easing: 'cubic-bezier(0.45, 0.02, 0.58, 0.95)',
+      fill: 'forwards'
+    });
+    const state = { cancelled: false };
+    this.closeAnimationPromise = state;
+    return animation.finished.catch(() => {}).then(() => {
+      panel.style.willChange = '';
+      if(state.cancelled || this.open){
+        return;
+      }
+      root.innerHTML = '';
+      if(this.closeAnimationPromise === state){
+        this.closeAnimationPromise = null;
+      }
+    });
+  },
   syncPanelPosition(){
     const host = document.getElementById('doppar-profiler-panel');
     const bounds = this.getToolbarBounds();
@@ -121,6 +204,7 @@ window.DopparProfiler = {
     this.open = !this.open;
     const root = this.ensurePanelRoot();
     if(this.open){
+      this.cancelCloseAnimation();
       const id = document.getElementById('doppar-profiler').dataset.requestId;
       fetch('/_insight/api/' + id).then(r=>r.json()).then(data=>{
         const toolbarLogo = document.getElementById('doppar-profiler')?.shadowRoot?.querySelector('.dp-launcher-mark img')?.getAttribute('src') || '';
@@ -3821,9 +3905,10 @@ window.DopparProfiler = {
         });
         this.setQuickViewTheme(wrap, this.getQuickViewTheme());
         this.syncPanelPosition();
+        this.animatePanelOpen(wrap);
       }).catch(()=>{});
     } else {
-      root.innerHTML = '';
+      this.closePanel(root);
     }
   },
   bindLayoutSync(){
