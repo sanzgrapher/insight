@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Doppar\Insight\Support;
 
 use Doppar\Insight\Profiler;
+use Phaseolies\DI\Container;
 use Phaseolies\Http\Request;
 use Throwable;
 
@@ -13,12 +14,7 @@ class ErrorHistoryRecorder
     public function record(Throwable $exception, ?Request $request = null): void
     {
         try {
-            $container = app();
-
-            if (! method_exists($container, 'getBindings')) {
-                return;
-            }
-
+            $container = Container::getInstance();
             $bindings = $container->getBindings();
             if (! isset($bindings[Profiler::class])) {
                 return;
