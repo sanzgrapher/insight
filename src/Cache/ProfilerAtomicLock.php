@@ -77,6 +77,8 @@ class ProfilerAtomicLock extends AtomicLock
             'lock_restored' => $this->isRestored(),
             'lock_owned' => $this->isOwned(),
             'lock_remaining_seconds' => $remaining,
+            'store_name' => method_exists($this->store, 'getStoreName') ? $this->store->getStoreName() : null,
+            'store_driver' => method_exists($this->store, 'getStoreDriver') ? $this->store->getStoreDriver() : null,
         ], $meta));
     }
 }

@@ -1665,6 +1665,11 @@ window.DopparProfiler = {
             border: 1px solid rgba(96, 165, 250, 0.18);
             color: #60a5fa;
           }
+          .cache-status-neutral {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.10);
+            color: #cbd5e1;
+          }
           .cache-detail-meta {
             display: grid;
             gap: 4px;
@@ -2804,6 +2809,9 @@ window.DopparProfiler = {
         const cacheHitRate = cacheReads > 0 ? ((Number(data.cache_hits || 0) / cacheReads) * 100).toFixed(1) : '0.0';
         const buildCacheStatusBadge = (operation) => {
           const type = String(operation.type || '');
+          if(type === 'lock_prepare'){
+            return '<span class="cache-status-badge cache-status-neutral">Ready</span>';
+          }
           if(type === 'get' || type === 'has' || type === 'get_multiple'){
             return `<span class="cache-status-badge ${operation.hit ? 'cache-status-hit' : 'cache-status-miss'}">${operation.hit ? 'Hit' : 'Miss'}</span>`;
           }

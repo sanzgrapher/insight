@@ -285,6 +285,16 @@ class ProfilerCacheStore extends CacheStore
         return is_string($driver) ? $driver : null;
     }
 
+    public function getStoreName(): string
+    {
+        return $this->storeName;
+    }
+
+    public function getStoreDriver(): ?string
+    {
+        return $this->storeDriver;
+    }
+
     /**
      * @return array<int|string, mixed>
      */
