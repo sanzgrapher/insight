@@ -65,7 +65,16 @@ class ProfilerPdoStatement extends \PDOStatement
             if ($collector && self::$suspendedProfiling === 0) {
                 $sql = $this->queryString ?? '';
                 $rowCount = $this->resolveRowCount($sql, $rawBindings, $ok);
-                $collector->registerQuery($sql, $bindings, $durationMs, $rowCount, $err);
+                $collector->registerQuery(
+                    $sql,
+                    $bindings,
+                    $durationMs,
+                    $rowCount,
+                    $err,
+                    $this->connectionName,
+                    $this->resolveDriverName(),
+                    $this->resolveTransactionState()
+                );
             }
         }
     }
@@ -223,6 +232,39 @@ class ProfilerPdoStatement extends \PDOStatement
     protected function isResultSetQuery(string $sql): bool
     {
         return (bool) preg_match('/^\s*(select|with|pragma|show|describe|explain)\b/i', $sql);
+    }
+
+    protected function resolveDriverName(): ?string
+    {
+        if (is_string($this->driverName) && $this->driverName !== '') {
+            return $this->driverName;
+        }
+
+        if ($this->connectionName === null || $this->connectionName === '') {
+            return null;
+        }
+
+        try {
+            $pdo = Database::getPdoInstance($this->connectionName);
+            $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+
+            return is_string($driver) ? strtolower($driver) : null;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    protected function resolveTransactionState(): ?bool
+    {
+        if ($this->connectionName === null || $this->connectionName === '') {
+            return null;
+        }
+
+        try {
+            return Database::getPdoInstance($this->connectionName)->inTransaction();
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**

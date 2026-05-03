@@ -4,24 +4,33 @@ namespace Doppar\Insight\Cache;
 
 use Doppar\Insight\Collectors\CacheCollector;
 use Phaseolies\Cache\CacheStore;
+use Phaseolies\Cache\Lock\AtomicLock;
 use Symfony\Component\Cache\Adapter\AdapterInterface;
 
 class ProfilerCacheStore extends CacheStore
 {
-    public function __construct(AdapterInterface $adapter, ?string $prefix = null)
-    {
+    protected string $storeName;
+
+    protected ?string $storeDriver;
+
+    public function __construct(
+        AdapterInterface $adapter,
+        ?string $prefix = null,
+        ?string $storeName = null,
+        ?string $storeDriver = null
+    ) {
         parent::__construct($adapter, $prefix);
+        $this->storeName = $storeName ?: (string) config('caching.default', 'default');
+        $this->storeDriver = $storeDriver ?: $this->resolveStoreDriver($this->storeName);
     }
 
     public function get($key, $default = null): mixed
     {
-        $value = parent::get($key, $default);
-        $hit = $value !== $default;
+        $prefixedKey = $this->prefixedValidatedKey($key);
+        $item = $this->adapter->getItem($prefixedKey);
+        $value = $item->isHit() ? $item->get() : $default;
 
-        $collector = CacheCollector::active();
-        if ($collector) {
-            $collector->registerOperation('get', $key, $value, $hit);
-        }
+        $this->recordOperation('get', (string) $key, $value, $item->isHit(), $this->itemMetadata($item));
 
         return $value;
     }
@@ -29,11 +38,7 @@ class ProfilerCacheStore extends CacheStore
     public function set($key, $value, $ttl = null): bool
     {
         $result = parent::set($key, $value, $ttl);
-
-        $collector = CacheCollector::active();
-        if ($collector) {
-            $collector->registerOperation('set', $key, $value);
-        }
+        $this->recordOperation('set', (string) $key, $value, false, $this->ttlMetadata($ttl));
 
         return $result;
     }
@@ -41,10 +46,49 @@ class ProfilerCacheStore extends CacheStore
     public function delete($key): bool
     {
         $result = parent::delete($key);
+        $this->recordOperation('delete', (string) $key, null, false);
 
-        $collector = CacheCollector::active();
-        if ($collector) {
-            $collector->registerOperation('delete', $key);
+        return $result;
+    }
+
+    public function clear(): bool
+    {
+        $result = parent::clear();
+        $this->recordOperation('clear', '*', null, false);
+
+        return $result;
+    }
+
+    public function getMultiple($keys, $default = null): iterable
+    {
+        $results = parent::getMultiple($keys, $default);
+        $values = is_array($results) ? $results : iterator_to_array($results, true);
+
+        foreach ($values as $key => $value) {
+            $hit = $value !== $default;
+            $this->recordOperation('get_multiple', (string) $key, $value, $hit);
+        }
+
+        return $values;
+    }
+
+    public function setMultiple($values, $ttl = null): bool
+    {
+        $result = parent::setMultiple($values, $ttl);
+
+        foreach ($this->iterableToArray($values, true) as $key => $value) {
+            $this->recordOperation('set_multiple', (string) $key, $value, false, $this->ttlMetadata($ttl));
+        }
+
+        return $result;
+    }
+
+    public function deleteMultiple($keys): bool
+    {
+        $result = parent::deleteMultiple($keys);
+
+        foreach ($this->iterableToArray($keys, false) as $key) {
+            $this->recordOperation('delete_multiple', (string) $key, null, false);
         }
 
         return $result;
@@ -53,11 +97,7 @@ class ProfilerCacheStore extends CacheStore
     public function forever($key, $value): bool
     {
         $result = parent::forever($key, $value);
-
-        $collector = CacheCollector::active();
-        if ($collector) {
-            $collector->registerOperation('forever', $key, $value);
-        }
+        $this->recordOperation('forever', (string) $key, $value, false, $this->ttlMetadata(null));
 
         return $result;
     }
@@ -65,11 +105,7 @@ class ProfilerCacheStore extends CacheStore
     public function forget($key): bool
     {
         $result = parent::forget($key);
-
-        $collector = CacheCollector::active();
-        if ($collector) {
-            $collector->registerOperation('forget', $key);
-        }
+        $this->recordOperation('forget', (string) $key, null, false);
 
         return $result;
     }
@@ -77,11 +113,7 @@ class ProfilerCacheStore extends CacheStore
     public function has($key): bool
     {
         $result = parent::has($key);
-
-        $collector = CacheCollector::active();
-        if ($collector) {
-            $collector->registerOperation('has', $key, null, $result);
-        }
+        $this->recordOperation('has', (string) $key, null, $result);
 
         return $result;
     }
@@ -90,10 +122,13 @@ class ProfilerCacheStore extends CacheStore
     {
         $result = parent::increment($key, $value);
 
-        $collector = CacheCollector::active();
-        if ($collector) {
-            $collector->registerOperation('increment', $key, $value);
-        }
+        $this->recordOperation(
+            'increment',
+            (string) $key,
+            $result,
+            false,
+            $this->itemMetadataForKey((string) $key, ['delta' => $value])
+        );
 
         return $result;
     }
@@ -102,11 +137,163 @@ class ProfilerCacheStore extends CacheStore
     {
         $result = parent::decrement($key, $value);
 
-        $collector = CacheCollector::active();
-        if ($collector) {
-            $collector->registerOperation('decrement', $key, $value);
-        }
+        $this->recordOperation(
+            'decrement',
+            (string) $key,
+            $result,
+            false,
+            $this->itemMetadataForKey((string) $key, ['delta' => $value])
+        );
 
         return $result;
+    }
+
+    public function add($key, $value, $ttl = null): bool
+    {
+        $result = parent::add($key, $value, $ttl);
+        $this->recordOperation('add', (string) $key, $value, $result, $this->ttlMetadata($ttl));
+
+        return $result;
+    }
+
+    public function locked(string $name, int $seconds = 10, ?string $owner = null): AtomicLock
+    {
+        $this->recordOperation('lock_prepare', $name, null, false, [
+            'lock_action' => 'prepare',
+            'lock_seconds' => $seconds,
+            'lock_owner' => $owner,
+        ]);
+
+        return new ProfilerAtomicLock($this, $name, $seconds, $owner);
+    }
+
+    public function restoreLock(string $name, string $owner): AtomicLock
+    {
+        $lock = parent::restoreLock($name, $owner);
+        $this->recordOperation('lock_restore', $name, null, $lock->isRestored(), [
+            'lock_action' => 'restore',
+            'lock_owner' => $owner,
+            'lock_seconds' => $lock->getSeconds(),
+            'lock_restored' => $lock->isRestored(),
+        ]);
+
+        return ProfilerAtomicLock::fromExisting($this, $lock);
+    }
+
+    /**
+     * @param array<string, mixed> $meta
+     */
+    protected function recordOperation(
+        string $type,
+        string $key,
+        mixed $value = null,
+        bool $hit = false,
+        array $meta = []
+    ): void {
+        $collector = CacheCollector::active();
+        if (! $collector) {
+            return;
+        }
+
+        $collector->registerOperation($type, $key, $value, $hit, $this->baseMetadata($meta));
+    }
+
+    /**
+     * @param array<string, mixed> $meta
+     * @return array<string, mixed>
+     */
+    protected function baseMetadata(array $meta = []): array
+    {
+        $defaults = [
+            'store_name' => $this->storeName,
+            'store_driver' => $this->storeDriver,
+            'tags' => [],
+        ];
+
+        return array_merge($defaults, $meta);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function ttlMetadata(mixed $ttl): array
+    {
+        $seconds = $this->convertTtlToSeconds($ttl);
+        if ($seconds === null) {
+            return [
+                'ttl_seconds' => null,
+                'expires_at_unix' => null,
+                'expires_at' => null,
+            ];
+        }
+
+        $expiresAt = time() + max(0, $seconds);
+
+        return [
+            'ttl_seconds' => $seconds,
+            'expires_at_unix' => $expiresAt,
+            'expires_at' => date(DATE_ATOM, $expiresAt),
+        ];
+    }
+
+    /**
+     * @param object $item
+     * @return array<string, mixed>
+     */
+    protected function itemMetadata(object $item): array
+    {
+        $expiry = null;
+        if (method_exists($item, 'getMetadata')) {
+            $metadata = $item->getMetadata();
+            $rawExpiry = $metadata['expiry'] ?? null;
+            if (is_numeric($rawExpiry)) {
+                $expiry = (int) $rawExpiry;
+            }
+        }
+
+        if ($expiry === null) {
+            return [
+                'ttl_seconds' => null,
+                'expires_at_unix' => null,
+                'expires_at' => null,
+            ];
+        }
+
+        return [
+            'ttl_seconds' => max(0, $expiry - time()),
+            'expires_at_unix' => $expiry,
+            'expires_at' => date(DATE_ATOM, $expiry),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $meta
+     * @return array<string, mixed>
+     */
+    protected function itemMetadataForKey(string $key, array $meta = []): array
+    {
+        $prefixedKey = $this->prefixedValidatedKey($key);
+        $item = $this->adapter->getItem($prefixedKey);
+
+        return array_merge($this->itemMetadata($item), $meta);
+    }
+
+    protected function resolveStoreDriver(string $storeName): ?string
+    {
+        $driver = config("caching.stores.{$storeName}.driver");
+
+        return is_string($driver) ? $driver : null;
+    }
+
+    /**
+     * @return array<int|string, mixed>
+     */
+    protected function iterableToArray(mixed $values, bool $preserveKeys): array
+    {
+        if ($values instanceof \Traversable) {
+            return iterator_to_array($values, $preserveKeys);
+        }
+
+        return is_array($values) ? $values : [];
     }
 }

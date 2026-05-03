@@ -2362,6 +2362,9 @@ window.DopparProfiler = {
         if(data.sql && Array.isArray(data.sql) && data.sql.length > 0){
           const totalCount = data.sql_total_count || data.sql.length;
           const totalTime = data.sql_total_time_ms?.toFixed?.(2) ?? data.sql_total_time_ms ?? 0;
+          const slowCount = Number(data.sql_slow_count || 0);
+          const nPlusOneCount = Number(data.sql_n_plus_one_count || 0);
+          const nPlusOneHints = Array.isArray(data.sql_n_plus_one_hints) ? data.sql_n_plus_one_hints : [];
           sqlSection = `
             <div class="section">
               <div class="section-title">
@@ -2369,8 +2372,22 @@ window.DopparProfiler = {
                 <span>
                   <span class="badge badge-info">${totalCount} queries</span>
                   <span class="badge badge-success">${totalTime} ms</span>
+                  ${slowCount > 0 ? `<span class="badge badge-warning">${slowCount} slow</span>` : ''}
+                  ${nPlusOneCount > 0 ? `<span class="badge badge-error">${nPlusOneCount} N+1</span>` : ''}
                 </span>
               </div>
+              ${nPlusOneHints.length ? `
+                <div class="subsection" style="margin-bottom:14px;">
+                  <div class="subsection-title">Potential N+1 patterns</div>
+                  <div class="pill-row">
+                    ${nPlusOneHints.map((hint) => `
+                      <span class="pill">
+                        ${(hint.connection_name || 'db')} ${escapeHtml(hint.sql || '').slice(0, 60)}${(hint.sql || '').length > 60 ? '…' : ''} • ${escapeHtml(String(hint.duplicate_count || 0))}x • ${escapeHtml(String(hint.binding_variant_count || 0))} variants
+                      </span>
+                    `).join('')}
+                  </div>
+                </div>
+              ` : ''}
               <div class="sql-list">
                 ${data.sql.map((q, idx) => {
                   const duration = q.duration_ms?.toFixed?.(2) ?? q.duration_ms ?? 0;
@@ -2379,6 +2396,14 @@ window.DopparProfiler = {
                     ? escapeHtml(JSON.stringify(q.bindings)) 
                     : '';
                   const error = q.error ? `<div class="sql-error">Error: ${escapeHtml(q.error)}</div>` : '';
+                  const metaPills = [
+                    q.connection_name ? `Connection: ${escapeHtml(q.connection_name)}` : '',
+                    q.driver_name ? `Driver: ${escapeHtml(String(q.driver_name).toUpperCase())}` : '',
+                    q.transaction_active === true ? 'Transaction: active' : (q.transaction_active === false ? 'Transaction: none' : ''),
+                    q.is_slow ? `Slow threshold ${escapeHtml(String(data.sql_slow_threshold_ms || 0))}ms` : '',
+                    q.duplicate_count > 1 ? `Duplicate ${escapeHtml(String(q.duplicate_count))}x` : '',
+                    q.n_plus_one_suspected ? `N+1 suspicion (${escapeHtml(String(q.binding_variant_count || 0))} variants)` : '',
+                  ].filter(Boolean);
                   return `
                     <div class="sql-item">
                       <div class="sql-header">
@@ -2386,8 +2411,11 @@ window.DopparProfiler = {
                           <span class="badge badge-info">#${idx + 1}</span>
                           <span class="sql-time">${duration} ms</span>
                           <span class="sql-rows">${rowCount} rows</span>
+                          ${q.is_slow ? `<span class="badge badge-warning">Slow</span>` : ''}
+                          ${q.n_plus_one_suspected ? `<span class="badge badge-error">N+1</span>` : ''}
                         </div>
                       </div>
+                      ${metaPills.length ? `<div class="pill-row" style="margin:0 0 12px 0;">${metaPills.map((pill) => `<span class="pill">${pill}</span>`).join('')}</div>` : ''}
                       <div class="sql-query">${escapeHtml(q.sql || 'N/A')}</div>
                       ${bindings ? `<div class="sql-bindings">Bindings: ${bindings}</div>` : ''}
                       ${error}
@@ -2571,6 +2599,7 @@ window.DopparProfiler = {
                 <div class="summary-card"><div class="summary-label">Hit Rate</div><div class="summary-value">${cacheHitRate}%</div><div class="summary-note">${escapeHtml(data.cache_hits || 0)} hits / ${escapeHtml(data.cache_misses || 0)} misses</div></div>
                 <div class="summary-card"><div class="summary-label">Writes</div><div class="summary-value">${escapeHtml(data.cache_writes || 0)}</div><div class="summary-note">Set and forever style writes.</div></div>
                 <div class="summary-card"><div class="summary-label">Deletes</div><div class="summary-value">${escapeHtml(data.cache_deletes || 0)}</div><div class="summary-note">Forget and delete operations.</div></div>
+                <div class="summary-card"><div class="summary-label">Locks</div><div class="summary-value">${escapeHtml(data.cache_lock_operations || 0)}</div><div class="summary-note">Atomic lock lifecycle events.</div></div>
               </div>
               <div class="section-stack" style="margin-top:14px;">
                 ${cacheOperations.map((operation, index) => {
@@ -2584,13 +2613,26 @@ window.DopparProfiler = {
                   } else if(operation.value !== null && operation.value !== undefined && operation.value !== ''){
                     valueOutput = buildCodeBlock(String(operation.value));
                   }
+                  const metaPills = [
+                    operation.store_name ? `Store: ${escapeHtml(operation.store_name)}` : '',
+                    operation.store_driver ? `Driver: ${escapeHtml(String(operation.store_driver).toUpperCase())}` : '',
+                    operation.ttl_seconds !== null && operation.ttl_seconds !== undefined ? `TTL: ${escapeHtml(String(operation.ttl_seconds))}s` : '',
+                    operation.expires_at ? `Expires: ${escapeHtml(operation.expires_at)}` : '',
+                    Array.isArray(operation.tags) && operation.tags.length ? `Tags: ${escapeHtml(operation.tags.join(', '))}` : '',
+                    operation.lock_action ? `Lock: ${escapeHtml(operation.lock_action)}` : '',
+                    operation.lock_seconds ? `Lock TTL: ${escapeHtml(String(operation.lock_seconds))}s` : '',
+                    operation.lock_wait_seconds ? `Wait: ${escapeHtml(String(operation.lock_wait_seconds))}s` : '',
+                    operation.delta !== undefined ? `Delta: ${escapeHtml(String(operation.delta))}` : '',
+                  ].filter(Boolean);
                   return `
                     <div class="subsection">
                       <div class="subsection-title">${escapeHtml(operation.type || 'unknown')} #${index + 1}</div>
                       <div class="pill-row">
                         <span class="pill">Key: ${escapeHtml(operation.key || 'N/A')}</span>
                         ${operation.type === 'get' ? `<span class="pill">${operation.hit ? 'HIT' : 'MISS'}</span>` : ''}
+                        ${String(operation.type || '').startsWith('lock_') ? `<span class="pill">${operation.hit ? 'SUCCESS' : 'FAILED'}</span>` : ''}
                       </div>
+                      ${metaPills.length ? `<div class="pill-row">${metaPills.map((pill) => `<span class="pill">${pill}</span>`).join('')}</div>` : ''}
                       ${valueOutput}
                     </div>
                   `;

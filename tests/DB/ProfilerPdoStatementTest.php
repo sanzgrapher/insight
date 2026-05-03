@@ -84,4 +84,24 @@ class ProfilerPdoStatementTest extends TestCase
 
         $this->assertSame(1, $data['sql'][0]['row_count']);
     }
+
+    public function testCapturesConnectionDriverAndTransactionState(): void
+    {
+        $this->pdo->beginTransaction();
+
+        try {
+            $statement = $this->pdo->prepare('SELECT * FROM users WHERE id = ?');
+            $statement->execute([1]);
+
+            $data = $this->collector->toArray();
+
+            $this->assertSame('sqlite_test', $data['sql'][0]['connection_name']);
+            $this->assertSame('sqlite', $data['sql'][0]['driver_name']);
+            $this->assertTrue($data['sql'][0]['transaction_active']);
+        } finally {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+        }
+    }
 }

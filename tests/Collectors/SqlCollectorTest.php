@@ -63,6 +63,7 @@ class SqlCollectorTest extends TestCase
         $this->assertEquals($sql, $data['sql'][0]['sql']);
         $this->assertEquals($bindings, $data['sql'][0]['bindings']);
         $this->assertEquals($duration, $data['sql'][0]['duration_ms']);
+        $this->assertFalse($data['sql'][0]['is_slow']);
     }
 
     public function testRegisterMultipleQueries(): void
@@ -132,6 +133,8 @@ class SqlCollectorTest extends TestCase
         
         $query = $data['sql'][0];
         $this->assertGreaterThan(1000, $query['duration_ms']); // Slow query threshold
+        $this->assertTrue($query['is_slow']);
+        $this->assertSame(1, $data['sql_slow_count']);
     }
 
     public function testDetectsDuplicateQueries(): void
@@ -147,6 +150,36 @@ class SqlCollectorTest extends TestCase
         // Count queries with same SQL
         $duplicates = array_filter($data['sql'], fn($q) => $q['sql'] === $sql);
         $this->assertCount(3, $duplicates);
+        $this->assertSame(3, $data['sql'][0]['duplicate_count']);
+        $this->assertSame(1, $data['sql_duplicate_group_count']);
+        $this->assertSame(3, $data['sql_duplicate_total_count']);
+    }
+
+    public function testCapturesConnectionDriverAndTransactionMetadata(): void
+    {
+        $this->collector->registerQuery('SELECT * FROM users', [], 11.0, 5, null, 'sqlite_test', 'sqlite', true);
+
+        $data = $this->collector->toArray();
+
+        $this->assertSame('sqlite_test', $data['sql'][0]['connection_name']);
+        $this->assertSame('sqlite', $data['sql'][0]['driver_name']);
+        $this->assertTrue($data['sql'][0]['transaction_active']);
+    }
+
+    public function testFlagsPotentialNPlusOneQueryGroups(): void
+    {
+        $sql = 'SELECT * FROM posts WHERE user_id = ?';
+
+        $this->collector->registerQuery($sql, [1], 8.0);
+        $this->collector->registerQuery($sql, [2], 9.0);
+        $this->collector->registerQuery($sql, [3], 7.0);
+
+        $data = $this->collector->toArray();
+
+        $this->assertSame(1, $data['sql_n_plus_one_count']);
+        $this->assertTrue($data['sql'][0]['n_plus_one_suspected']);
+        $this->assertSame(3, $data['sql'][0]['binding_variant_count']);
+        $this->assertSame($sql, $data['sql_n_plus_one_hints'][0]['sql']);
     }
 
     public function testGroupsByQueryType(): void
@@ -202,6 +235,12 @@ class SqlCollectorTest extends TestCase
         
         $this->assertArrayHasKey('sql_total_count', $data);
         $this->assertArrayHasKey('sql_total_time_ms', $data);
+        $this->assertArrayHasKey('sql_slow_threshold_ms', $data);
+        $this->assertArrayHasKey('sql_slow_count', $data);
+        $this->assertArrayHasKey('sql_duplicate_group_count', $data);
+        $this->assertArrayHasKey('sql_duplicate_total_count', $data);
+        $this->assertArrayHasKey('sql_n_plus_one_count', $data);
+        $this->assertArrayHasKey('sql_n_plus_one_hints', $data);
         $this->assertArrayHasKey('sql', $data);
         
         $this->assertIsInt($data['sql_total_count']);
@@ -214,6 +253,12 @@ class SqlCollectorTest extends TestCase
         $this->assertArrayHasKey('duration_ms', $query);
         $this->assertArrayHasKey('row_count', $query);
         $this->assertArrayHasKey('error', $query);
+        $this->assertArrayHasKey('connection_name', $query);
+        $this->assertArrayHasKey('driver_name', $query);
+        $this->assertArrayHasKey('transaction_active', $query);
+        $this->assertArrayHasKey('is_slow', $query);
+        $this->assertArrayHasKey('duplicate_count', $query);
+        $this->assertArrayHasKey('n_plus_one_suspected', $query);
     }
 
     public function testEmptyQueriesList(): void
