@@ -61,15 +61,37 @@ class ProfilerCacheStore extends CacheStore
 
     public function getMultiple($keys, $default = null): iterable
     {
-        $results = parent::getMultiple($keys, $default);
-        $values = is_array($results) ? $results : iterator_to_array($results, true);
+        $keys = $this->normalizeKeyList($keys);
+        $prefixedKeys = [];
 
-        foreach ($values as $key => $value) {
-            $hit = $value !== $default;
-            $this->recordOperation('get_multiple', (string) $key, $value, $hit);
+        foreach ($keys as $key) {
+            $prefixedKeys[$key] = $this->prefixedValidatedKey($key);
         }
 
-        return $values;
+        $items = $this->adapter->getItems(array_values($prefixedKeys));
+        $results = [];
+        $seen = [];
+
+        foreach ($items as $prefixedKey => $item) {
+            $originalKey = substr((string) $prefixedKey, strlen($this->prefix));
+            $hit = $item->isHit();
+            $value = $hit ? $item->get() : $default;
+
+            $results[$originalKey] = $value;
+            $seen[$originalKey] = true;
+            $this->recordOperation('get_multiple', $originalKey, $value, $hit, $this->itemMetadata($item));
+        }
+
+        foreach ($keys as $key) {
+            if (isset($seen[$key])) {
+                continue;
+            }
+
+            $results[$key] = $default;
+            $this->recordOperation('get_multiple', $key, $default, false);
+        }
+
+        return $results;
     }
 
     public function setMultiple($values, $ttl = null): bool

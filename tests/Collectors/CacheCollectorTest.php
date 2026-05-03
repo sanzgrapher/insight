@@ -126,16 +126,18 @@ class CacheCollectorTest extends TestCase
     {
         $this->collector->registerOperation('get', 'key1', 'value1', true);  // hit
         $this->collector->registerOperation('get', 'key2', null, false);     // miss
+        $this->collector->registerOperation('get_multiple', 'key2', null, false); // multi miss
+        $this->collector->registerOperation('get_multiple', 'key3', 'value3', true); // multi hit
         $this->collector->registerOperation('set', 'key3', 'value3', false); // write
         $this->collector->registerOperation('delete', 'key4', null, false);  // delete
         
         $data = $this->collector->toArray();
         
-        $this->assertEquals(1, $data['cache_hits']);
-        $this->assertEquals(1, $data['cache_misses']);
+        $this->assertEquals(2, $data['cache_hits']);
+        $this->assertEquals(2, $data['cache_misses']);
         $this->assertEquals(1, $data['cache_writes']);
         $this->assertEquals(1, $data['cache_deletes']);
-        $this->assertEquals(4, $data['cache_total']);
+        $this->assertEquals(6, $data['cache_total']);
     }
 
     public function testCountsLockOperationsSeparately(): void

@@ -177,7 +177,7 @@ class CacheCollector implements CollectorInterface
 
         foreach ($this->operations as $op) {
             match ($op['type']) {
-                'get' => $op['hit'] ? $hits++ : $misses++,
+                'get', 'get_multiple' => $op['hit'] ? $hits++ : $misses++,
                 'set', 'forever', 'add', 'set_multiple' => $writes++,
                 'delete', 'forget', 'delete_multiple', 'clear' => $deletes++,
                 default => null,

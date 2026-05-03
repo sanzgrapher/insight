@@ -59,4 +59,28 @@ class ProfilerCacheStoreTest extends TestCase
         $this->assertContains('lock_release', $types);
         $this->assertGreaterThanOrEqual(3, $data['cache_lock_operations']);
     }
+
+    public function testGetMultipleTracksHitsWithoutComparingAgainstDefaultValue(): void
+    {
+        $this->store->set('same_as_default', 'fallback', 60);
+        $this->store->set('other', 'actual', 60);
+
+        $values = $this->store->getMultiple(['same_as_default', 'other', 'missing'], 'fallback');
+
+        $this->assertSame([
+            'same_as_default' => 'fallback',
+            'other' => 'actual',
+            'missing' => 'fallback',
+        ], $values);
+
+        $data = $this->collector->toArray();
+        $multiReads = array_values(array_filter($data['cache_operations'], fn (array $operation): bool => $operation['type'] === 'get_multiple'));
+
+        $this->assertCount(3, $multiReads);
+        $this->assertTrue($multiReads[0]['hit']);
+        $this->assertTrue($multiReads[1]['hit']);
+        $this->assertFalse($multiReads[2]['hit']);
+        $this->assertSame(2, $data['cache_hits']);
+        $this->assertSame(1, $data['cache_misses']);
+    }
 }

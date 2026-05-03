@@ -9,7 +9,6 @@ use JsonException;
 
 class FileStorage implements StorageInterface
 {
-    private int $lastCleanupTime = 0;
     private const CLEANUP_INTERVAL = 86400; // Run cleanup every day
     private const SECONDS_PER_DAY = 86400;
 
@@ -25,6 +24,11 @@ class FileStorage implements StorageInterface
     protected function dir(): string
     {
         return $this->baseDir;
+    }
+
+    protected function cleanupMarkerPath(): string
+    {
+        return $this->dir() . DIRECTORY_SEPARATOR . '.cleanup-marker';
     }
 
     public function put(string $id, array $data): void
@@ -158,12 +162,12 @@ class FileStorage implements StorageInterface
     private function cleanupOldFiles(): void
     {
         $now = time();
+        $markerPath = $this->cleanupMarkerPath();
+        $lastCleanupTime = is_file($markerPath) ? (int) (filemtime($markerPath) ?: 0) : 0;
 
-        if ($now - $this->lastCleanupTime < self::CLEANUP_INTERVAL) {
+        if ($lastCleanupTime > 0 && ($now - $lastCleanupTime) < self::CLEANUP_INTERVAL) {
             return;
         }
-
-        $this->lastCleanupTime = $now;
         $dir = $this->dir();
 
         if (! is_dir($dir)) {
@@ -180,5 +184,7 @@ class FileStorage implements StorageInterface
                 unlink($file);
             }
         }
+
+        touch($markerPath, $now);
     }
 }

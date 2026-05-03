@@ -5,7 +5,6 @@ namespace Doppar\Insight\Collectors;
 use Doppar\Insight\Contracts\CollectorInterface;
 use Phaseolies\Http\Request;
 use Phaseolies\Http\Response;
-use Phaseolies\Support\Facades\Auth;
 
 class SessionCollector implements CollectorInterface
 {
@@ -23,9 +22,7 @@ class SessionCollector implements CollectorInterface
             'session_data' => [],
         ];
 
-        // Collect session data if available
-        if (session_status() === PHP_SESSION_ACTIVE || @session_start()) {
-            // Collect relevant session data (excluding sensitive info)
+        if (isset($_SESSION) && is_array($_SESSION)) {
             $sessionData = $_SESSION;
             unset($sessionData['password'], $sessionData['_token']);
             $this->data['session_data'] = $sessionData;

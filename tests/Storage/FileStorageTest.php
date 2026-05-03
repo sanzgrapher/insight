@@ -25,8 +25,12 @@ class FileStorageTest extends TestCase
     {
         // Clean up test directory
         if (is_dir($this->testDir)) {
-            $files = glob($this->testDir . '/*.json') ?: [];
-            foreach ($files as $file) {
+            $entries = scandir($this->testDir) ?: [];
+            foreach ($entries as $entry) {
+                if ($entry === '.' || $entry === '..') {
+                    continue;
+                }
+                $file = $this->testDir . DIRECTORY_SEPARATOR . $entry;
                 if (is_file($file)) {
                     unlink($file);
                 }
@@ -49,6 +53,9 @@ class FileStorageTest extends TestCase
         
         // Cleanup
         unlink($customDir . '/test-id.json');
+        if (is_file($customDir . '/.cleanup-marker')) {
+            unlink($customDir . '/.cleanup-marker');
+        }
         rmdir($customDir);
     }
 
@@ -314,5 +321,25 @@ class FileStorageTest extends TestCase
 
         $this->assertCount(1, $recent);
         $this->assertSame('valid', $recent[0]['id']);
+    }
+
+    public function testCleanupIntervalIsSharedAcrossStorageInstances(): void
+    {
+        if (! is_dir($this->testDir)) {
+            mkdir($this->testDir, 0777, true);
+        }
+
+        $stalePath = $this->testDir . '/stale.json';
+        file_put_contents($stalePath, json_encode(['id' => 'stale']));
+        touch($stalePath, time() - (3 * 86400));
+
+        $markerPath = $this->testDir . '/.cleanup-marker';
+        touch($markerPath, time());
+
+        $freshInstance = new FileStorage($this->testDir, 1);
+        $freshInstance->put('new', ['id' => 'new']);
+
+        $this->assertFileExists($stalePath);
+        $this->assertFileExists($markerPath);
     }
 }
