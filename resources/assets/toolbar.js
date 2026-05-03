@@ -2556,6 +2556,76 @@ window.DopparProfiler = {
             color: #ebebf0;
             overflow-wrap: anywhere;
           }
+          .perf-bar-list {
+            display: grid;
+            gap: 10px;
+            margin-top: 12px;
+          }
+          .perf-bar-item {
+            display: grid;
+            gap: 6px;
+          }
+          .perf-bar-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            min-width: 0;
+          }
+          .perf-bar-label {
+            color: #ebebf0;
+            font-size: 12px;
+            font-weight: 800;
+            min-width: 0;
+          }
+          .perf-bar-value {
+            color: #888899;
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+          }
+          .perf-bar-track {
+            position: relative;
+            height: 8px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.06);
+            overflow: hidden;
+          }
+          .perf-bar-fill {
+            position: absolute;
+            inset: 0 auto 0 0;
+            border-radius: 999px;
+          }
+          .perf-bar-fill-sql {
+            background: linear-gradient(90deg, rgba(96,165,250,0.95), rgba(59,130,246,0.7));
+          }
+          .perf-bar-fill-outbound {
+            background: linear-gradient(90deg, rgba(45,212,191,0.9), rgba(20,184,166,0.68));
+          }
+          .perf-bar-fill-app {
+            background: linear-gradient(90deg, rgba(245,158,11,0.88), rgba(217,119,6,0.66));
+          }
+          .perf-flag-list {
+            display: grid;
+            gap: 7px;
+            margin-top: 10px;
+          }
+          .perf-flag-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 9px 10px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+          }
+          .perf-flag-copy {
+            color: #cdd5e4;
+            font-size: 12px;
+            font-weight: 700;
+            min-width: 0;
+          }
           .ov-route-list {
             display: grid;
             gap: 7px;
@@ -2843,6 +2913,24 @@ window.DopparProfiler = {
           </div>
         `;
 
+        const perfDurationMs = Number(data.duration_ms || 0);
+        const perfSqlMs = Number(data.sql_total_time_ms || 0);
+        const perfOutboundMs = Number(data.http_requests_total_time_ms || 0);
+        const perfAccountedMs = Math.min(perfDurationMs, perfSqlMs + perfOutboundMs);
+        const perfAppMs = Math.max(0, perfDurationMs - perfAccountedMs);
+        const perfSqlPct = perfDurationMs > 0 ? Math.min(100, (perfSqlMs / perfDurationMs) * 100) : 0;
+        const perfOutboundPct = perfDurationMs > 0 ? Math.min(100, (perfOutboundMs / perfDurationMs) * 100) : 0;
+        const perfAppPct = perfDurationMs > 0 ? Math.max(0, 100 - perfSqlPct - perfOutboundPct) : 0;
+        const perfCacheReads = Number(data.cache_hits || 0) + Number(data.cache_misses || 0);
+        const perfCacheHitRate = perfCacheReads > 0 ? ((Number(data.cache_hits || 0) / perfCacheReads) * 100).toFixed(1) : '0.0';
+        const perfWarnings = [
+          Number(data.sql_slow_count || 0) > 0 ? { label: 'Slow queries detected', value: `${escapeHtml(data.sql_slow_count || 0)} slow` } : null,
+          Number(data.sql_n_plus_one_count || 0) > 0 ? { label: 'Potential N+1 patterns', value: `${escapeHtml(data.sql_n_plus_one_count || 0)} hint${Number(data.sql_n_plus_one_count || 0) === 1 ? '' : 's'}` } : null,
+          Number(data.cache_misses || 0) > 0 ? { label: 'Cache misses in this request', value: `${escapeHtml(data.cache_misses || 0)} miss${Number(data.cache_misses || 0) === 1 ? '' : 'es'}` } : null,
+          Number(data.http_requests_count || 0) > 0 ? { label: 'Outgoing HTTP calls made', value: `${escapeHtml(data.http_requests_count || 0)} request${Number(data.http_requests_count || 0) === 1 ? '' : 's'}` } : null,
+          Number(data.redirect_count || 0) > 0 ? { label: 'Redirect chain followed', value: `${escapeHtml(data.redirect_count || 0)} hop${Number(data.redirect_count || 0) === 1 ? '' : 's'}` } : null,
+          data.exception_class ? { label: 'Exception captured', value: escapeHtml(String(data.exception_class).split(String.fromCharCode(92)).pop() || data.exception_class) } : null,
+        ].filter(Boolean);
         const performanceSection = `
           <div class="section">
             <div class="section-title"><span class="section-title-main">Performance Profile</span></div>
@@ -2858,14 +2946,145 @@ window.DopparProfiler = {
                 <div class="summary-note">Maximum memory footprint recorded.</div>
               </div>
               <div class="summary-card">
-                <div class="summary-label">SQL Time</div>
-                <div class="summary-value">${escapeHtml(data.sql_total_time_ms?.toFixed?.(2) ?? data.sql_total_time_ms ?? 0)} ms</div>
-                <div class="summary-note">Time spent in database calls.</div>
+                <div class="summary-label">Response Size</div>
+                <div class="summary-value">${formatBytes(data.response_body_size || 0)}</div>
+                <div class="summary-note">Body size returned to the client.</div>
               </div>
               <div class="summary-card">
-                <div class="summary-label">Queries</div>
-                <div class="summary-value">${escapeHtml(data.sql_total_count || 0)}</div>
-                <div class="summary-note">Executed SQL statements in this lifecycle.</div>
+                <div class="summary-label">Outgoing HTTP</div>
+                <div class="summary-value">${escapeHtml(data.http_requests_count || 0)}</div>
+                <div class="summary-note">${escapeHtml(data.http_requests_total_time_ms?.toFixed?.(2) ?? data.http_requests_total_time_ms ?? 0)} ms total across external calls.</div>
+              </div>
+            </div>
+            <div class="ov-dashboard">
+              <div class="ov-two-col">
+                <div>
+                  <div class="ov-section-label">
+                    <span>Timing Mix</span>
+                    <span class="ov-kpi-chip">${escapeHtml(perfDurationMs.toFixed(1))} ms total</span>
+                  </div>
+                  <div class="ov-app-headline">${escapeHtml(perfAppMs.toFixed(2))} ms stayed inside app work</div>
+                  <div class="ov-app-sub">Breakdown of observed request time between SQL, outbound HTTP, and everything else in the app lifecycle.</div>
+                  <div class="perf-bar-list">
+                    <div class="perf-bar-item">
+                      <div class="perf-bar-head">
+                        <span class="perf-bar-label">Database time</span>
+                        <span class="perf-bar-value">${escapeHtml(perfSqlMs.toFixed(2))} ms • ${escapeHtml(perfSqlPct.toFixed(1))}%</span>
+                      </div>
+                      <div class="perf-bar-track"><span class="perf-bar-fill perf-bar-fill-sql" style="width:${perfSqlPct.toFixed(1)}%"></span></div>
+                    </div>
+                    <div class="perf-bar-item">
+                      <div class="perf-bar-head">
+                        <span class="perf-bar-label">Outbound HTTP time</span>
+                        <span class="perf-bar-value">${escapeHtml(perfOutboundMs.toFixed(2))} ms • ${escapeHtml(perfOutboundPct.toFixed(1))}%</span>
+                      </div>
+                      <div class="perf-bar-track"><span class="perf-bar-fill perf-bar-fill-outbound" style="width:${perfOutboundPct.toFixed(1)}%"></span></div>
+                    </div>
+                    <div class="perf-bar-item">
+                      <div class="perf-bar-head">
+                        <span class="perf-bar-label">App / framework time</span>
+                        <span class="perf-bar-value">${escapeHtml(perfAppMs.toFixed(2))} ms • ${escapeHtml(perfAppPct.toFixed(1))}%</span>
+                      </div>
+                      <div class="perf-bar-track"><span class="perf-bar-fill perf-bar-fill-app" style="width:${perfAppPct.toFixed(1)}%"></span></div>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div class="ov-section-label">
+                    <span>Request Signals</span>
+                    <span class="ov-kpi-chip ${perfWarnings.length ? 'ov-kpi-warn' : ''}">${perfWarnings.length ? `${perfWarnings.length} flags` : 'Healthy'}</span>
+                  </div>
+                  <div class="ov-app-headline">${escapeHtml(data.response_status || data.status || 0)} response with ${escapeHtml(data.logs_total_count || 0)} log${Number(data.logs_total_count || 0) === 1 ? '' : 's'}</div>
+                  <div class="ov-app-sub">Fast high-signal checks for issues that matter in a single request: slow SQL, N+1 hints, cache misses, redirects, and exceptions.</div>
+                  ${perfWarnings.length ? `
+                    <div class="perf-flag-list">
+                      ${perfWarnings.map((flag) => `
+                        <div class="perf-flag-item">
+                          <span class="perf-flag-copy">${flag.label}</span>
+                          <span class="ov-kpi-chip ov-kpi-warn">${flag.value}</span>
+                        </div>
+                      `).join('')}
+                    </div>
+                  ` : '<div class="ov-empty">No obvious performance warnings were detected in this request.</div>'}
+                </div>
+              </div>
+              <div class="ov-two-col">
+                <div>
+                  <div class="ov-section-label">
+                    <span>Database Behavior</span>
+                    <span class="ov-kpi-chip">${escapeHtml(data.sql_total_count || 0)} queries</span>
+                  </div>
+                  <div class="ov-stat-grid">
+                    <div class="ov-stat-card">
+                      <div class="ov-stat-label">SQL Time</div>
+                      <div class="ov-stat-value">${escapeHtml(perfSqlMs.toFixed(2))} ms</div>
+                      <div class="ov-stat-note">Combined database execution time.</div>
+                    </div>
+                    <div class="ov-stat-card">
+                      <div class="ov-stat-label">Slow Queries</div>
+                      <div class="ov-stat-value">${escapeHtml(data.sql_slow_count || 0)}</div>
+                      <div class="ov-stat-note">Queries above the Insight slow threshold.</div>
+                    </div>
+                    <div class="ov-stat-card">
+                      <div class="ov-stat-label">Duplicate Groups</div>
+                      <div class="ov-stat-value">${escapeHtml(data.sql_duplicate_group_count || 0)}</div>
+                      <div class="ov-stat-note">Repeated SQL fingerprints in this request.</div>
+                    </div>
+                    <div class="ov-stat-card">
+                      <div class="ov-stat-label">N+1 Hints</div>
+                      <div class="ov-stat-value">${escapeHtml(data.sql_n_plus_one_count || 0)}</div>
+                      <div class="ov-stat-note">Potential repeated select patterns with varying bindings.</div>
+                    </div>
+                    <div class="ov-stat-card">
+                      <div class="ov-stat-label">Slow Threshold</div>
+                      <div class="ov-stat-value">${escapeHtml(data.sql_slow_threshold_ms || 0)} ms</div>
+                      <div class="ov-stat-note">Current threshold used to mark slow queries.</div>
+                    </div>
+                    <div class="ov-stat-card">
+                      <div class="ov-stat-label">Result Pressure</div>
+                      <div class="ov-stat-value">${escapeHtml(data.sql_duplicate_total_count || 0)}</div>
+                      <div class="ov-stat-note">Total repeated statements across duplicate groups.</div>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div class="ov-section-label">
+                    <span>Response + Cache</span>
+                    <span class="ov-kpi-chip">${escapeHtml(data.response_content_type || data.content_type || 'unknown')}</span>
+                  </div>
+                  <div class="ov-stat-grid">
+                    <div class="ov-stat-card">
+                      <div class="ov-stat-label">Cache Hit Rate</div>
+                      <div class="ov-stat-value">${perfCacheHitRate}%</div>
+                      <div class="ov-stat-note">${escapeHtml(data.cache_hits || 0)} hits / ${escapeHtml(data.cache_misses || 0)} misses in current request.</div>
+                    </div>
+                    <div class="ov-stat-card">
+                      <div class="ov-stat-label">Cache Ops</div>
+                      <div class="ov-stat-value">${escapeHtml(data.cache_total || 0)}</div>
+                      <div class="ov-stat-note">${escapeHtml(data.cache_lock_operations || 0)} lock event${Number(data.cache_lock_operations || 0) === 1 ? '' : 's'} included.</div>
+                    </div>
+                    <div class="ov-stat-card">
+                      <div class="ov-stat-label">Outbound Calls</div>
+                      <div class="ov-stat-value">${escapeHtml(data.http_requests_count || 0)}</div>
+                      <div class="ov-stat-note">${escapeHtml(perfOutboundMs.toFixed(2))} ms spent on external IO.</div>
+                    </div>
+                    <div class="ov-stat-card">
+                      <div class="ov-stat-label">Logs</div>
+                      <div class="ov-stat-value">${escapeHtml(data.logs_total_count || 0)}</div>
+                      <div class="ov-stat-note">Runtime log entries emitted during this request.</div>
+                    </div>
+                    <div class="ov-stat-card">
+                      <div class="ov-stat-label">Redirects</div>
+                      <div class="ov-stat-value">${escapeHtml(data.redirect_count || 0)}</div>
+                      <div class="ov-stat-note">${data.redirect_count ? 'Redirect chain was captured for this request.' : 'No redirect chain captured.'}</div>
+                    </div>
+                    <div class="ov-stat-card">
+                      <div class="ov-stat-label">Response Size</div>
+                      <div class="ov-stat-value">${formatBytes(data.response_body_size || 0)}</div>
+                      <div class="ov-stat-note">Useful for spotting oversized HTML or JSON payloads.</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

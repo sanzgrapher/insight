@@ -79,6 +79,19 @@ class ResponseCollectorTest extends TestCase
         $this->assertEquals('application/json', $data['response_content_type']);
     }
 
+    public function testInfersDefaultHtmlContentTypeWhenHeaderIsMissing(): void
+    {
+        $request = $this->createRequest('GET', '/posts');
+        $response = $this->createResponse(200, null, '<html><body>Posts</body></html>');
+
+        $this->collector->start($request);
+        $this->collector->stop($request, $response);
+
+        $data = $this->collector->toArray();
+
+        $this->assertSame('text/html; charset=UTF-8', $data['response_content_type']);
+    }
+
     public function testDetectsRedirections(): void
     {
         $request = $this->createRequest();

@@ -29,7 +29,7 @@ class ResponseCollector implements CollectorInterface
 
         // Collect response info
         $statusCode = $response->getStatusCode();
-        $contentType = $response->headers->get('Content-Type') ?? '';
+        $contentType = $this->resolveContentType($request, $response);
 
         // Detect redirects
         $isRedirect = $response->isRedirection();
@@ -54,5 +54,31 @@ class ResponseCollector implements CollectorInterface
     public function toArray(): array
     {
         return $this->data;
+    }
+
+    protected function resolveContentType(Request $request, Response $response): string
+    {
+        $contentType = $response->headers->get('Content-Type') ?? '';
+        if ($contentType !== '') {
+            return $contentType;
+        }
+
+        if ($response->isInformational() || $response->isEmpty()) {
+            return '';
+        }
+
+        $format = $request->getRequestFormat(null);
+        if ($format !== null) {
+            $mimeType = $request->getMimeType($format);
+            if (is_string($mimeType) && $mimeType !== '') {
+                if (stripos($mimeType, 'text/') === 0 && stripos($mimeType, 'charset') === false) {
+                    return $mimeType . '; charset=UTF-8';
+                }
+
+                return $mimeType;
+            }
+        }
+
+        return 'text/html; charset=UTF-8';
     }
 }
