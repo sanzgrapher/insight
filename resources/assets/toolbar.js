@@ -2815,6 +2815,19 @@ window.DopparProfiler = {
             }
             return `${duration.toFixed(0)}ms`;
           };
+          const formatRangeAxisLabel = (timestamp, rangeMs) => {
+            const date = new Date(timestamp);
+            if(Number.isNaN(date.getTime())){
+              return '—';
+            }
+            if(rangeMs <= 60 * 60 * 1000){
+              return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+            }
+            if(rangeMs <= 24 * 60 * 60 * 1000){
+              return date.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+            }
+            return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+          };
           const formatExceptionLabel = (value) => {
             if(!value){
               return 'Unhandled exception';
@@ -3039,9 +3052,8 @@ window.DopparProfiler = {
             const selectedRange = rangeOptions.find((range) => range.key === activeRange) || rangeOptions[1];
             const latestTimestamp = historyDataset.length ? historyDataset[historyDataset.length - 1].timestamp : Date.now();
             const cutoff = latestTimestamp - selectedRange.ms;
-            const formatAxisLabel = (ts) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const axisStart = formatAxisLabel(cutoff);
-            const axisEnd = formatAxisLabel(latestTimestamp);
+            const axisStart = formatRangeAxisLabel(cutoff, selectedRange.ms);
+            const axisEnd = formatRangeAxisLabel(latestTimestamp, selectedRange.ms);
             const filtered = historyDataset.filter((item) => item.timestamp >= cutoff);
             const matched = aggregateRoutes(filtered).filter((route) => {
               const query = searchTerm.trim().toLowerCase();
@@ -3289,9 +3301,8 @@ window.DopparProfiler = {
             };
             const p95 = calcP95(durations);
             const buckets = buildBuckets(filtered, rangeMs, 24);
-            const formatAxisLabel = (ts) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const axisStart = formatAxisLabel(cutoff);
-            const axisEnd = formatAxisLabel(latestTs);
+            const axisStart = formatRangeAxisLabel(cutoff, rangeMs);
+            const axisEnd = formatRangeAxisLabel(latestTs, rangeMs);
             const durationRange = maxDuration > 0
               ? (minDuration > 0 ? `${formatDuration(minDuration)} – ${formatDuration(maxDuration)}` : formatDuration(maxDuration))
               : '—';
