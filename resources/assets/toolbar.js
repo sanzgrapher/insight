@@ -360,6 +360,26 @@ window.DopparProfiler = {
             display: grid;
             gap: 3px;
           }
+          .nav-section-label {
+            padding: 10px 10px 2px;
+            font-size: 10px;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+            color: #55566a;
+            font-weight: 800;
+          }
+          .nav-section-copy {
+            padding: 0 10px 8px;
+            font-size: 11px;
+            line-height: 1.35;
+            color: #6a7184;
+            font-weight: 600;
+          }
+          .nav-section-divider {
+            height: 1px;
+            margin: 6px 10px 4px;
+            background: rgba(255,255,255,0.06);
+          }
           .nav-main {
             display: flex;
             align-items: center;
@@ -1819,6 +1839,7 @@ window.DopparProfiler = {
           .panel[data-theme="dark"] .hero-copy,
           .panel[data-theme="dark"] .summary-note,
           .panel[data-theme="dark"] .metric-note,
+          .panel[data-theme="dark"] .nav-section-label,
           .panel[data-theme="dark"] .history-duration,
           .panel[data-theme="dark"] .history-captured,
           .panel[data-theme="dark"] .history-request-id,
@@ -1841,6 +1862,7 @@ window.DopparProfiler = {
           .panel[data-theme="dark"] .summary-value,
           .panel[data-theme="dark"] .metric-value,
           .panel[data-theme="dark"] .section-title-main,
+          .panel[data-theme="dark"] .nav-section-copy,
           .panel[data-theme="dark"] .history-route,
           .panel[data-theme="dark"] .history-card-value,
           .panel[data-theme="dark"] .history-route-count,
@@ -1879,6 +1901,7 @@ window.DopparProfiler = {
           .panel[data-theme="dark"] .history-item,
           .panel[data-theme="dark"] .history-card,
           .panel[data-theme="dark"] .history-kpi,
+          .panel[data-theme="dark"] .nav-section-divider,
           .panel[data-theme="dark"] .history-route-table,
           .panel[data-theme="dark"] .history-error-item,
           .panel[data-theme="dark"] .history-search,
@@ -1900,6 +1923,10 @@ window.DopparProfiler = {
           .panel[data-theme="dark"] .history-empty-state {
             background: #18181B;
             box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+          }
+          .panel[data-theme="dark"] .nav-section-divider {
+            background: rgba(255,255,255,0.06);
+            box-shadow: none;
           }
           .panel[data-theme="dark"] .history-loading {
             background: rgba(255,255,255,0.02);
@@ -2620,8 +2647,13 @@ window.DopparProfiler = {
                 </div>
               </div>
               <nav class="sidebar-nav">
+                <div class="nav-section-label">Cross-Request Views</div>
+                <div class="nav-section-copy">Overview and History combine this request with recent captured traffic.</div>
                 <button class="nav-button active" type="button" data-view="overview"><span class="nav-main"><span class="nav-icon nav-icon-overview"></span><span class="nav-label">Overview</span></span></button>
                 <button class="nav-button" type="button" data-view="history"><span class="nav-main"><span class="nav-icon nav-icon-history"></span><span class="nav-label">History</span></span></button>
+                <div class="nav-section-divider" aria-hidden="true"></div>
+                <div class="nav-section-label">Current Request</div>
+                <div class="nav-section-copy">Everything below is captured from the request currently open in this panel.</div>
                 <button class="nav-button" type="button" data-view="http"><span class="nav-main"><span class="nav-icon nav-icon-http"></span><span class="nav-label">HTTP</span></span></button>
                 <button class="nav-button" type="button" data-view="database"><span class="nav-main"><span class="nav-icon nav-icon-database"></span><span class="nav-label">Database</span></span></button>
                 <button class="nav-button" type="button" data-view="cache"><span class="nav-main"><span class="nav-icon nav-icon-cache"></span><span class="nav-label">Cache</span></span></button>
