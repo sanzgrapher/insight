@@ -58,6 +58,8 @@ class ToolbarRenderer
             '{{SQL_TIME}}' => number_format($data['sql_total_time_ms'] ?? 0, 1),
             '{{CACHE_SUMMARY}}' => $this->formatCacheSummary($data),
             '{{LOGS_COUNT}}' => (string)($data['logs_total_count'] ?? 0),
+            '{{SESSION_COUNT}}' => (string)count((array)($data['session_data'] ?? [])),
+            '{{RESPONSE_SIZE}}' => $this->formatResponseSize($data),
             '{{FRAMEWORK_VERSION}}' => $this->escape($data['framework_version'] ?? 'unknown'),
             '{{PHP_VERSION}}' => $this->escape($data['php_version'] ?? PHP_VERSION),
             '{{IS_REDIRECT}}' => ($data['is_redirect'] ?? false) ? 'true' : 'false',
@@ -88,9 +90,37 @@ class ToolbarRenderer
      */
     protected function formatMemoryPeak(array $data): string
     {
-        $memoryPeak = (float) ($data['memory_peak'] ?? 0);
+        $bytes = (float) ($data['memory_peak'] ?? 0);
 
-        return number_format($memoryPeak / (1024 * 1024), 1) . ' MB';
+        if ($bytes >= 1048576) {
+            return number_format($bytes / 1048576, 2) . ' MB';
+        }
+
+        if ($bytes >= 1024) {
+            return number_format($bytes / 1024, 1) . ' KB';
+        }
+
+        return (int) $bytes . ' B';
+    }
+
+    /**
+     * Format response body size from profiler data
+     *
+     * @param array<string, mixed> $data
+     */
+    protected function formatResponseSize(array $data): string
+    {
+        $bytes = (int) ($data['response_body_size'] ?? 0);
+
+        if ($bytes >= 1048576) {
+            return number_format($bytes / 1048576, 2) . ' MB';
+        }
+
+        if ($bytes >= 1024) {
+            return number_format($bytes / 1024, 1) . ' KB';
+        }
+
+        return $bytes . ' B';
     }
 
     /**
