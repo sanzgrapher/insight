@@ -3036,6 +3036,7 @@ window.DopparProfiler = {
             historyRanges.querySelectorAll('[data-history-range]').forEach((button) => {
               button.addEventListener('click', () => {
                 activeRange = button.getAttribute('data-history-range') || '24h';
+                renderRangeButtons();
                 renderHistoryDashboard();
               });
             });
