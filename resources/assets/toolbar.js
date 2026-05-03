@@ -706,16 +706,23 @@ window.DopparProfiler = {
           }
           .api-shell {
             display: grid;
-            gap: 16px;
+            gap: 12px;
+          }
+          .api-eyebrow {
+            font-size: 10px;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+            font-weight: 800;
+            color: #55566a;
+            margin-bottom: 12px;
           }
           .api-operation {
             display: grid;
-            gap: 12px;
+            gap: 14px;
             padding: 18px;
-            border-radius: 18px;
-            background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(246,248,255,0.92));
-            border: 1px solid rgba(132,134,255,0.14);
-            box-shadow: 0 8px 18px rgba(37, 51, 77, 0.05);
+            border-radius: 16px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.07);
           }
           .api-line {
             display: flex;
@@ -727,12 +734,12 @@ window.DopparProfiler = {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            min-width: 56px;
-            padding: 7px 12px;
-            border-radius: 999px;
-            background: rgba(20, 125, 100, 0.12);
-            color: #147d64;
-            border: 1px solid rgba(20, 125, 100, 0.16);
+            min-width: 58px;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: rgba(34, 197, 94, 0.14);
+            color: #22c55e;
+            border: 1px solid rgba(34, 197, 94, 0.22);
             font-size: 11px;
             font-weight: 900;
             letter-spacing: .14em;
@@ -741,14 +748,39 @@ window.DopparProfiler = {
           .api-path {
             display: inline-flex;
             align-items: center;
-            min-height: 40px;
+            flex: 1;
+            min-height: 38px;
             padding: 0 14px;
-            border-radius: 14px;
-            background: rgba(248, 250, 255, 0.98);
-            border: 1px solid rgba(132,134,255,0.12);
-            color: #172033;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.07);
+            color: #ebebf0;
             font: 13px/1.4 "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
             word-break: break-all;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+          .api-open-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 7px 12px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #888899;
+            font-size: 11px;
+            font-weight: 700;
+            text-decoration: none;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background .18s ease, color .18s ease;
+          }
+          .api-open-btn:hover {
+            background: rgba(255,255,255,0.09);
+            color: #ebebf0;
           }
           .api-actions {
             display: flex;
@@ -759,23 +791,42 @@ window.DopparProfiler = {
           .api-meta {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 8px;
           }
           .api-meta-chip {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 7px 10px;
+            padding: 5px 10px;
             border-radius: 999px;
-            background: rgba(132,134,255,0.08);
-            border: 1px solid rgba(132,134,255,0.12);
-            color: #54627c;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #888899;
             font-size: 11px;
             font-weight: 700;
           }
+          .api-chip-success {
+            background: rgba(34, 197, 94, 0.10);
+            border-color: rgba(34, 197, 94, 0.18);
+            color: #22c55e;
+          }
+          .api-chip-teal {
+            background: rgba(15, 139, 141, 0.10);
+            border-color: rgba(15, 139, 141, 0.18);
+            color: #2ab4b6;
+          }
+          .api-chip-mono {
+            background: rgba(167, 139, 250, 0.10);
+            border-color: rgba(167, 139, 250, 0.16);
+            color: #a78bfa;
+            font-family: "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
+          }
           .api-response-shell {
             display: grid;
-            gap: 12px;
+            gap: 0;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.07);
+            overflow: hidden;
           }
           .api-response-head {
             display: flex;
@@ -783,46 +834,46 @@ window.DopparProfiler = {
             justify-content: space-between;
             gap: 12px;
             flex-wrap: wrap;
+            padding: 12px 16px;
+            background: rgba(255,255,255,0.04);
+            border-bottom: 1px solid rgba(255,255,255,0.07);
           }
           .api-response-title {
-            color: #172033;
-            font-size: 16px;
+            font-size: 12px;
             font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .12em;
+            color: #55566a;
           }
           .copy-action {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            min-width: 152px;
-            justify-content: center;
-            transition:
-              transform .16s ease,
-              box-shadow .2s ease,
-              background .2s ease,
-              border-color .2s ease;
-            box-shadow:
-              0 12px 22px rgba(90, 94, 240, 0.18),
-              inset 0 1px 0 rgba(255,255,255,0.2);
+            gap: 7px;
+            padding: 6px 14px;
+            border-radius: 8px;
+            background: rgba(15, 139, 141, 0.16);
+            border: 1px solid rgba(15, 139, 141, 0.28);
+            color: #2ab4b6;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: .06em;
+            cursor: pointer;
+            transition: background .18s ease, color .18s ease, transform .16s ease;
           }
           .copy-action:hover {
             transform: translateY(-1px);
-            box-shadow:
-              0 16px 28px rgba(90, 94, 240, 0.24),
-              inset 0 1px 0 rgba(255,255,255,0.22);
+            background: rgba(15, 139, 141, 0.22);
+            color: #3dcacb;
           }
           .copy-action.is-success {
-            background: linear-gradient(180deg, #22ae82, #157b64);
-            border-color: rgba(21, 123, 100, 0.85);
-            box-shadow:
-              0 12px 24px rgba(21, 123, 100, 0.22),
-              inset 0 1px 0 rgba(255,255,255,0.2);
+            background: rgba(34, 197, 94, 0.14);
+            border-color: rgba(34, 197, 94, 0.24);
+            color: #22c55e;
           }
           .copy-action.is-error {
-            background: linear-gradient(180deg, #e06a78, #bf3c44);
-            border-color: rgba(191, 60, 68, 0.84);
-            box-shadow:
-              0 12px 24px rgba(191, 60, 68, 0.22),
-              inset 0 1px 0 rgba(255,255,255,0.2);
+            background: rgba(239, 68, 68, 0.14);
+            border-color: rgba(239, 68, 68, 0.24);
+            color: #ef4444;
           }
           .copy-icon {
             width: 14px;
@@ -973,15 +1024,18 @@ window.DopparProfiler = {
           }
           .code-block {
             margin: 0;
-            padding: 14px 16px;
-            border-radius: 16px;
-            border: 1px solid rgba(132,134,255,0.1);
-            background: rgba(246,248,255,0.96);
-            color: #172033;
-            font: 12px/1.7 "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
+            padding: 16px 18px;
+            border-radius: 0;
+            border: none;
+            background: #0d0d10;
+            color: #ebebf0;
+            font: 12px/1.75 "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
             white-space: pre-wrap;
             word-break: break-word;
             overflow-x: auto;
+          }
+          .api-response-shell > .code-block:last-child {
+            border-radius: 0 0 15px 15px;
           }
           .code-block-compact {
             padding: 10px 12px;
@@ -1233,16 +1287,12 @@ window.DopparProfiler = {
           .panel[data-theme="dark"] .section,
           .panel[data-theme="dark"] .summary-card,
           .panel[data-theme="dark"] .metric,
-          .panel[data-theme="dark"] .api-shell,
-          .panel[data-theme="dark"] .api-operation,
-          .panel[data-theme="dark"] .api-response-shell,
           .panel[data-theme="dark"] .sql-item,
           .panel[data-theme="dark"] .redirect-chain-item,
           .panel[data-theme="dark"] .log-card,
           .panel[data-theme="dark"] .cache-op-card,
           .panel[data-theme="dark"] .property-table,
-          .panel[data-theme="dark"] .row,
-          .panel[data-theme="dark"] .api-path {
+          .panel[data-theme="dark"] .row {
             background: #18181B;
             border-color: rgba(255,255,255,0.07);
             box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
@@ -1352,7 +1402,9 @@ window.DopparProfiler = {
           }
           .panel[data-theme="dark"] .section-copy,
           .panel[data-theme="dark"] .metric-label,
-          .panel[data-theme="dark"] .summary-label {
+          .panel[data-theme="dark"] .summary-label,
+          .panel[data-theme="dark"] .api-response-title,
+          .panel[data-theme="dark"] .api-eyebrow {
             color: #55566a;
           }
           .panel[data-theme="dark"] .hero-request-copy-icon {
@@ -1683,24 +1735,31 @@ window.DopparProfiler = {
           <div class="section">
             <div class="section-title">
               <span class="section-title-main">JSON API</span>
+              <a class="api-open-btn" href="${jsonApiPath}" target="_blank" rel="noreferrer">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+                Open in Browser
+              </a>
             </div>
+            <p class="section-copy">Access the raw profiler payload for this request via the REST endpoint below.</p>
             <div class="api-shell">
               <div class="api-operation">
+                <div class="api-eyebrow">Profiler Endpoint</div>
                 <div class="api-line">
                   <span class="api-method">GET</span>
                   <span class="api-path">${jsonApiPath}</span>
                 </div>
                 <div class="api-meta">
-                  <span class="api-meta-chip">Status 200</span>
-                  <span class="api-meta-chip">Content-Type application/json</span>
-                  <span class="api-meta-chip">Request ${escapeHtml(data.id)}</span>
+                  <span class="api-meta-chip api-chip-success">● 200 OK</span>
+                  <span class="api-meta-chip api-chip-teal">application/json</span>
+                  <span class="api-meta-chip api-chip-mono">${escapeHtml(data.id.slice(0, 12))}…</span>
                 </div>
               </div>
               <div class="api-response-shell">
                 <div class="api-response-head">
-                  <button class="dp-btn dp-btn-primary copy-action" type="button" data-action="json-api-copy">
+                  <span class="api-response-title">Response Payload</span>
+                  <button class="copy-action" type="button" data-action="json-api-copy">
                     <span class="copy-icon" aria-hidden="true"></span>
-                    Copy Payload
+                    Copy JSON
                   </button>
                 </div>
                 ${buildCodeBlock(data)}
