@@ -1388,18 +1388,25 @@ window.DopparProfiler = {
           .history-method-chip {
             display: inline-flex;
             align-items: center;
-            justify-content: center;
-            min-width: 60px;
-            padding: 5px 10px;
-            border-radius: 8px;
-            background: rgba(34, 197, 94, 0.12);
-            border: 1px solid rgba(34, 197, 94, 0.18);
-            color: #22c55e;
+            justify-content: flex-start;
+            min-width: 0;
+            padding: 0;
+            border-radius: 0;
+            background: transparent;
+            border: 0;
+            color: #cbd5e1;
             font-size: 10px;
             font-weight: 900;
             letter-spacing: .14em;
             text-transform: uppercase;
           }
+          .history-method-chip[data-method="GET"] { color: #22c55e; }
+          .history-method-chip[data-method="POST"] { color: #14b8a6; }
+          .history-method-chip[data-method="PUT"] { color: #f59e0b; }
+          .history-method-chip[data-method="PATCH"] { color: #fb923c; }
+          .history-method-chip[data-method="DELETE"] { color: #ef4444; }
+          .history-method-chip[data-method="OPTIONS"] { color: #60a5fa; }
+          .history-method-chip[data-method="HEAD"] { color: #a78bfa; }
           .history-path-cell {
             min-width: 120px;
             max-width: 260px;
@@ -1910,10 +1917,17 @@ window.DopparProfiler = {
             color: #888899;
           }
           .panel[data-theme="dark"] .history-method-chip {
-            background: rgba(34, 197, 94, 0.12);
-            border-color: rgba(34, 197, 94, 0.18);
-            color: #22c55e;
+            background: transparent;
+            border-color: transparent;
+            color: #cbd5e1;
           }
+          .panel[data-theme="dark"] .history-method-chip[data-method="GET"] { color: #22c55e; }
+          .panel[data-theme="dark"] .history-method-chip[data-method="POST"] { color: #2dd4bf; }
+          .panel[data-theme="dark"] .history-method-chip[data-method="PUT"] { color: #fbbf24; }
+          .panel[data-theme="dark"] .history-method-chip[data-method="PATCH"] { color: #fb923c; }
+          .panel[data-theme="dark"] .history-method-chip[data-method="DELETE"] { color: #f87171; }
+          .panel[data-theme="dark"] .history-method-chip[data-method="OPTIONS"] { color: #60a5fa; }
+          .panel[data-theme="dark"] .history-method-chip[data-method="HEAD"] { color: #c4b5fd; }
           .panel[data-theme="dark"] .history-toggle.active {
             background: rgba(15, 139, 141, 0.18);
             border-color: rgba(15, 139, 141, 0.26);
@@ -2735,6 +2749,10 @@ window.DopparProfiler = {
             const lastSeparatorIndex = label.lastIndexOf(namespaceSeparator);
             return (lastSeparatorIndex >= 0 ? label.slice(lastSeparatorIndex + 1) : label) || 'Unhandled exception';
           };
+          const renderMethodLabel = (method) => {
+            const normalizedMethod = String(method || 'GET').toUpperCase();
+            return `<span class="history-method-chip" data-method="${escapeHtml(normalizedMethod)}">${escapeHtml(normalizedMethod)}</span>`;
+          };
           const historyBadgeClass = (status) => {
             const code = Number(status || 0);
             if(code >= 500 || code >= 400){
@@ -2993,7 +3011,7 @@ window.DopparProfiler = {
             const hottestErrorRoute = topErrorRoutes.length ? `${topErrorRoutes[0].method} ${topErrorRoutes[0].route}` : '—';
             const routeRows = matched.slice(0, 18).map((route) => `
               <tr>
-                <td class="history-col-method"><span class="history-method-chip">${escapeHtml(route.method)}</span></td>
+                <td class="history-col-method">${renderMethodLabel(route.method)}</td>
                 <td class="history-col-path"><span class="history-path-cell">${escapeHtml(route.route)}</span></td>
                 <td class="history-col-requests"><span class="history-cell-number">${escapeHtml(formatCompactNumber(route.requests))}</span></td>
                 <td class="history-col-3xx"><span class="history-cell-number">${escapeHtml(formatCompactNumber(route.status3xx))}</span></td>
@@ -3028,7 +3046,7 @@ window.DopparProfiler = {
               <div class="ov-chip-row">
                 ${topErrorRoutes.map((route) => `
                   <span class="ov-chip">
-                    <span class="history-method-chip">${escapeHtml(route.method)}</span>
+                    ${renderMethodLabel(route.method)}
                     <span class="ov-chip-value">${escapeHtml(route.route)} • ${escapeHtml(formatCompactNumber(route.status4xx + route.status5xx))}</span>
                   </span>
                 `).join('')}
@@ -3291,7 +3309,7 @@ window.DopparProfiler = {
                       <div class="ov-chip-row">
                         ${topErrorRoutes.map((route) => `
                           <span class="ov-chip">
-                            <span class="history-method-chip">${escapeHtml(route.method)}</span>
+                            ${renderMethodLabel(route.method)}
                             <span class="ov-chip-value">${escapeHtml(route.route)} • ${escapeHtml(formatCompactNumber(route.status4xx + route.status5xx))}</span>
                           </span>
                         `).join('')}
@@ -3306,7 +3324,7 @@ window.DopparProfiler = {
                       <div class="ov-route-list">
                         ${slowRoutes.map((route) => `
                           <div class="ov-route-item">
-                            <span class="history-method-chip">${escapeHtml(route.method)}</span>
+                            ${renderMethodLabel(route.method)}
                             <span class="ov-route-path">${escapeHtml(route.route)}</span>
                             <span class="ov-p95-chip">P95 ${escapeHtml(formatDuration(route.maxDuration))}</span>
                           </div>
