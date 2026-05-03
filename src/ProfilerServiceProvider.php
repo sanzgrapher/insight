@@ -2,7 +2,14 @@
 
 namespace Doppar\Insight;
 
+use Doppar\Insight\Support\ErrorHistoryRecorder;
+use Doppar\Insight\Support\InsightBeforeExceptionHandler;
+use Doppar\Insight\Support\ProfilingRouter;
+use Phaseolies\Http\Request;
+use Phaseolies\Http\Response;
+use Phaseolies\Support\Router;
 use Phaseolies\Providers\ServiceProvider;
+use Throwable;
 
 class ProfilerServiceProvider extends ServiceProvider
 {
@@ -29,8 +36,10 @@ class ProfilerServiceProvider extends ServiceProvider
         $profiler = $this->app->make(Profiler::class);
 
         if ($profiler->isGloballyEnabled()) {
+            $this->registerErrorTracking();
             $this->registerRoutes();
             $this->registerMiddleware();
+            $this->wrapApplicationRouter();
             $this->registerHooks($profiler);
         }
     }
@@ -101,6 +110,69 @@ class ProfilerServiceProvider extends ServiceProvider
                 app(\Doppar\Insight\Middleware\ProfilerMiddleware::class)
             );
         }
+    }
+
+    /**
+     * Register package-level error tracking hooks.
+     *
+     * This keeps Insight self-contained for route-miss 4xx responses and
+     * uncaught exceptions, without requiring app route fallbacks.
+     */
+    protected function registerErrorTracking(): void
+    {
+        $this->registerFallbackBeforeExceptionHandler();
+
+        if (! method_exists($this->app, 'terminating')) {
+            return;
+        }
+
+        $this->app->terminating(function (
+            Request $request,
+            ?Response $response = null,
+            ?Throwable $exception = null
+        ): void {
+            if (! $exception instanceof Throwable) {
+                return;
+            }
+
+            app(ErrorHistoryRecorder::class)->record($exception, $request);
+        });
+    }
+
+    /**
+     * Provide a default global exception hook when the host app does not define one.
+     */
+    protected function registerFallbackBeforeExceptionHandler(): void
+    {
+        $alias = 'App\\Http\\Exceptions\\BeforeExceptionHandler';
+
+        if (! class_exists($alias)) {
+            class_alias(InsightBeforeExceptionHandler::class, $alias);
+        }
+    }
+
+    /**
+     * Wrap the application router so pre-middleware HTTP exceptions like
+     * route-miss 404s are still recorded by Insight.
+     */
+    protected function wrapApplicationRouter(): void
+    {
+        if (! isset($this->app->router) || ! $this->app->router instanceof Router) {
+            return;
+        }
+
+        if ($this->app->router instanceof ProfilingRouter) {
+            return;
+        }
+
+        $router = new ProfilingRouter(
+            $this->app->router,
+            app(ErrorHistoryRecorder::class)
+        );
+
+        $this->app->router = $router;
+        $this->app->instance('route', $router);
+        $this->app->instance(Router::class, $router);
     }
 
     /**

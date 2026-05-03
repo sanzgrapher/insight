@@ -12,13 +12,13 @@ $router->get('/_insight/api/history', function (Request $request) {
     $profiler = app(Profiler::class);
 
     if (! $profiler->isEnabledFor($request)) {
-        return ['error' => 'Forbidden'];
+        return response()->json(['error' => 'Forbidden'], 403);
     }
 
     $limit = (int) $request->query('limit', 300);
     $limit = max(1, min($limit, 1000));
 
-    return $profiler->getRecentRequests($limit);
+    return response()->json($profiler->getRecentRequests($limit), 200);
 });
 
 // API endpoint for JSON data (used by toolbar panel)
@@ -28,7 +28,7 @@ $router->get('/_insight/api/{id}', function (Request $request) {
 
     // Extra guard: only serve when globally enabled and IP allowed
     if (! $profiler->isEnabledFor($request)) {
-        return ['error' => 'Forbidden']; // Will become JSON 200; keep it simple for now
+        return response()->json(['error' => 'Forbidden'], 403);
     }
 
     $params = $request->getRouteParams();
@@ -36,11 +36,10 @@ $router->get('/_insight/api/{id}', function (Request $request) {
     $data = $id ? $profiler->getData($id) : null;
 
     if (! $data) {
-        // Router will turn array into JSON and set 200; to enforce 404 we can use response()->json
-        return ['error' => 'Not found'];
+        return response()->json(['error' => 'Not found'], 404);
     }
 
-    return $data;
+    return response()->json($data, 200);
 });
 
 // Full details page with tabs

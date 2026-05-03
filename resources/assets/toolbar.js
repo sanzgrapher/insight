@@ -206,7 +206,7 @@ window.DopparProfiler = {
     if(this.open){
       this.cancelCloseAnimation();
       const id = document.getElementById('doppar-profiler').dataset.requestId;
-      fetch('/_insight/api/' + id).then(r=>r.json()).then(data=>{
+      fetch('/_insight/api/' + encodeURIComponent(id) + '?_=' + Date.now(), { cache: 'no-store' }).then(r=>r.json()).then(data=>{
         const toolbarLogo = document.getElementById('doppar-profiler')?.shadowRoot?.querySelector('.dp-launcher-mark img')?.getAttribute('src') || '';
         const escapeHtml = (value) => {
           const div = document.createElement('div');
@@ -4074,7 +4074,7 @@ window.DopparProfiler = {
           };
 
           renderRangeButtons();
-          fetch('/_insight/api/history?limit=500').then((response) => response.json()).then((history) => {
+          fetch('/_insight/api/history?limit=500&_=' + Date.now(), { cache: 'no-store' }).then((response) => response.json()).then((history) => {
             if(!Array.isArray(history)){
               historyShell.innerHTML = '<div class="no-data">Unable to load request history right now.</div>';
               if(overviewShell) overviewShell.innerHTML = '<div class="no-data">Unable to load activity data.</div>';
