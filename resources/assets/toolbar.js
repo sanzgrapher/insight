@@ -993,75 +993,79 @@ window.DopparProfiler = {
           .history-loading {
             padding: 18px;
             border-radius: 16px;
-            border: 1px dashed rgba(132,134,255,0.16);
-            background: rgba(255,255,255,0.56);
-            color: #607089;
+            border: 1px dashed rgba(255,255,255,0.10);
+            background: rgba(255,255,255,0.03);
+            color: #888899;
             text-align: center;
             font-size: 13px;
             font-weight: 700;
           }
           .history-list {
             display: grid;
-            gap: 12px;
+            gap: 10px;
           }
           .history-item {
             display: grid;
             grid-template-columns: minmax(0, 1fr) auto;
             gap: 14px;
             align-items: center;
-            padding: 16px;
-            border-radius: 18px;
+            padding: 14px 16px;
+            border-radius: 16px;
             text-decoration: none;
-            background: rgba(255,255,255,0.84);
-            border: 1px solid rgba(132,134,255,0.12);
-            box-shadow: 0 8px 18px rgba(37, 51, 77, 0.05);
-            transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+            background: #18181B;
+            border: 1px solid rgba(255,255,255,0.07);
+            transition: border-color .18s ease, background .18s ease;
           }
           .history-item:hover {
-            transform: translateY(-1px);
-            border-color: rgba(90,94,240,0.22);
-            box-shadow: 0 10px 22px rgba(37, 51, 77, 0.08);
+            border-color: rgba(42,180,182,0.22);
+            background: rgba(255,255,255,0.04);
           }
           .history-main {
             min-width: 0;
             display: grid;
-            gap: 10px;
+            gap: 8px;
           }
           .history-top,
           .history-meta {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: wrap;
+            min-width: 0;
           }
           .history-method {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            min-width: 54px;
-            padding: 7px 10px;
-            border-radius: 999px;
-            background: rgba(20, 125, 100, 0.12);
-            border: 1px solid rgba(20, 125, 100, 0.18);
-            color: #147d64;
-            font-size: 11px;
+            min-width: 52px;
+            padding: 5px 10px;
+            border-radius: 8px;
+            background: rgba(34, 197, 94, 0.12);
+            border: 1px solid rgba(34, 197, 94, 0.20);
+            color: #22c55e;
+            font-size: 10px;
             font-weight: 900;
             letter-spacing: .14em;
             text-transform: uppercase;
+            flex: 0 0 auto;
           }
           .history-route {
             min-width: 0;
-            color: #172033;
-            font-size: 15px;
-            font-weight: 800;
-            word-break: break-word;
+            color: #ebebf0;
+            font-size: 14px;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-family: "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
           }
           .history-duration,
           .history-captured,
           .history-request-id {
-            color: #68788f;
-            font-size: 12px;
+            color: #55566a;
+            font-size: 11px;
             font-weight: 700;
+            white-space: nowrap;
           }
           .history-request-id {
             font-family: "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
@@ -1069,56 +1073,64 @@ window.DopparProfiler = {
           .history-open {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            color: #5a5ef0;
-            font-size: 12px;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #888899;
+            font-size: 11px;
             font-weight: 800;
             white-space: nowrap;
+            transition: background .18s ease, color .18s ease;
+          }
+          .history-open:hover {
+            background: rgba(255,255,255,0.09);
+            color: #ebebf0;
           }
           .history-open::after {
             content: "↗";
-            font-size: 13px;
+            font-size: 12px;
           }
           .history-dashboard {
             display: grid;
-            gap: 16px;
+            gap: 14px;
           }
           .history-header {
             display: flex;
             align-items: flex-start;
             justify-content: space-between;
-            gap: 16px;
+            gap: 12px;
             flex-wrap: wrap;
           }
           .history-range-pills {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
             flex-wrap: wrap;
           }
           .history-range-pill {
             appearance: none;
-            border: 1px solid rgba(132,134,255,0.12);
-            background: rgba(255,255,255,0.76);
-            color: #64748b;
-            padding: 8px 11px;
-            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.04);
+            color: #888899;
+            padding: 6px 11px;
+            border-radius: 8px;
             font-size: 11px;
             font-weight: 800;
-            letter-spacing: .08em;
+            letter-spacing: .06em;
             text-transform: uppercase;
             cursor: pointer;
-            transition: background .18s ease, color .18s ease, border-color .18s ease, transform .18s ease;
+            transition: background .18s ease, color .18s ease, border-color .18s ease;
           }
           .history-range-pill:hover {
-            transform: translateY(-1px);
-            border-color: rgba(90,94,240,0.20);
-            color: #384860;
+            background: rgba(255,255,255,0.07);
+            color: #ebebf0;
           }
           .history-range-pill.active {
-            background: linear-gradient(135deg, rgba(90,94,240,0.16), rgba(57,143,255,0.18));
-            border-color: rgba(90,94,240,0.24);
-            color: #3055c7;
+            background: rgba(15, 139, 141, 0.16);
+            border-color: rgba(15, 139, 141, 0.28);
+            color: #2ab4b6;
           }
           .history-shell {
             gap: 18px;
@@ -1126,36 +1138,33 @@ window.DopparProfiler = {
           .history-overview-grid {
             display: grid;
             grid-template-columns: 1.15fr .95fr;
-            gap: 14px;
+            gap: 12px;
           }
           .history-card {
-            padding: 18px;
-            border-radius: 20px;
-            background: rgba(255,255,255,0.78);
-            border: 1px solid rgba(132,134,255,0.10);
-            box-shadow:
-              inset 0 1px 0 rgba(255,255,255,0.82),
-              0 10px 24px rgba(37, 51, 77, 0.05);
+            padding: 16px;
+            border-radius: 16px;
+            background: #18181B;
+            border: 1px solid rgba(255,255,255,0.07);
           }
           .history-card-header {
             display: flex;
             align-items: flex-start;
             justify-content: space-between;
             gap: 12px;
-            margin-bottom: 14px;
+            margin-bottom: 12px;
             flex-wrap: wrap;
           }
           .history-card-title {
-            font-size: 11px;
+            font-size: 10px;
             letter-spacing: .16em;
             text-transform: uppercase;
-            color: #76829a;
+            color: #55566a;
             font-weight: 800;
             margin-bottom: 8px;
           }
           .history-card-value {
-            color: #172033;
-            font-size: 31px;
+            color: #ebebf0;
+            font-size: 28px;
             line-height: 1;
             letter-spacing: -.04em;
             font-weight: 900;
@@ -1163,29 +1172,29 @@ window.DopparProfiler = {
           .history-card-meta {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: wrap;
             justify-content: flex-end;
           }
           .history-card-note {
-            color: #64748b;
+            color: #888899;
             font-size: 12px;
             font-weight: 700;
           }
           .history-kpis {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 10px;
-            margin-bottom: 16px;
+            gap: 8px;
+            margin-bottom: 14px;
           }
           .history-kpi {
             padding: 12px;
-            border-radius: 16px;
-            background: rgba(255,255,255,0.52);
-            border: 1px solid rgba(132,134,255,0.08);
+            border-radius: 14px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
           }
           .history-kpi-label {
-            color: #7a879c;
+            color: #55566a;
             font-size: 10px;
             font-weight: 800;
             letter-spacing: .14em;
@@ -1193,14 +1202,14 @@ window.DopparProfiler = {
             margin-bottom: 8px;
           }
           .history-kpi-value {
-            color: #172033;
-            font-size: 18px;
+            color: #ebebf0;
+            font-size: 17px;
             font-weight: 900;
             line-height: 1;
           }
           .history-chart-wrap {
             display: grid;
-            gap: 8px;
+            gap: 6px;
           }
           .history-chart {
             width: 100%;
@@ -1212,211 +1221,231 @@ window.DopparProfiler = {
             align-items: center;
             justify-content: space-between;
             gap: 10px;
-            color: #77859b;
+            color: #55566a;
             font-size: 11px;
             font-weight: 700;
           }
           .history-grid-line {
-            stroke: rgba(132,134,255,0.10);
+            stroke: rgba(255,255,255,0.06);
             stroke-width: 1;
           }
           .history-bar-muted {
-            fill: rgba(255,255,255,0.18);
+            fill: rgba(255,255,255,0.10);
           }
           .history-bar-success {
-            fill: rgba(132,132,132,0.45);
+            fill: rgba(42,180,182,0.55);
           }
           .history-bar-warning {
-            fill: rgba(242,193,78,0.78);
+            fill: rgba(245,158,11,0.72);
           }
           .history-bar-error {
-            fill: rgba(239,68,68,0.78);
+            fill: rgba(239,68,68,0.72);
           }
           .history-line-avg {
             fill: none;
-            stroke: rgba(255,255,255,0.18);
+            stroke: rgba(255,255,255,0.16);
             stroke-width: 2;
           }
           .history-line-max {
             fill: none;
-            stroke: rgba(242,193,78,0.88);
+            stroke: rgba(245,158,11,0.85);
             stroke-width: 2.2;
           }
           .history-table-shell {
             display: grid;
-            gap: 14px;
+            gap: 12px;
             min-width: 0;
           }
           .history-table-head {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 14px;
+            gap: 10px;
             flex-wrap: wrap;
           }
           .history-route-count {
-            color: #172033;
-            font-size: 15px;
+            color: #ebebf0;
+            font-size: 14px;
             font-weight: 800;
           }
           .history-search-wrap {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: wrap;
+            flex: 1 1 auto;
           }
           .history-search {
-            min-width: min(320px, 100%);
-            padding: 10px 12px;
-            border-radius: 12px;
-            border: 1px solid rgba(132,134,255,0.12);
-            background: rgba(255,255,255,0.76);
-            color: #172033;
-            font-size: 13px;
-            font-weight: 700;
+            flex: 1 1 160px;
+            min-width: 0;
+            padding: 9px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.04);
+            color: #ebebf0;
+            font-size: 12px;
+            font-weight: 600;
             outline: none;
+            transition: border-color .18s ease, background .18s ease;
+          }
+          .history-search:focus {
+            border-color: rgba(42,180,182,0.30);
+            background: rgba(255,255,255,0.06);
           }
           .history-search::placeholder {
-            color: #8b97aa;
+            color: #55566a;
             font-weight: 600;
           }
           .history-toggle-group {
             display: inline-flex;
-            gap: 6px;
-            flex-wrap: wrap;
+            gap: 4px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 10px;
+            padding: 3px;
+            flex-wrap: nowrap;
           }
           .history-toggle {
             appearance: none;
-            border: 1px solid rgba(132,134,255,0.12);
-            background: rgba(255,255,255,0.76);
-            color: #64748b;
-            padding: 9px 12px;
-            border-radius: 10px;
+            border: 1px solid transparent;
+            background: transparent;
+            color: #888899;
+            padding: 6px 11px;
+            border-radius: 8px;
             font-size: 11px;
             font-weight: 800;
             cursor: pointer;
+            white-space: nowrap;
+            transition: background .18s ease, color .18s ease, border-color .18s ease;
+          }
+          .history-toggle:hover {
+            color: #ebebf0;
+            background: rgba(255,255,255,0.06);
           }
           .history-toggle.active {
-            background: rgba(23,32,51,0.94);
-            border-color: rgba(23,32,51,0.94);
-            color: #f8fafc;
+            background: rgba(15, 139, 141, 0.18);
+            border-color: rgba(15, 139, 141, 0.26);
+            color: #2ab4b6;
           }
           .history-route-table {
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
             overflow: hidden;
-            border-radius: 16px;
-            border: 1px solid rgba(132,134,255,0.10);
-            background: rgba(255,255,255,0.84);
-            table-layout: fixed;
-            min-width: 0;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.07);
+            background: #18181B;
+            table-layout: auto;
+            min-width: 520px;
           }
           .history-route-table th,
           .history-route-table td {
-            padding: 11px 12px;
-            border-bottom: 1px solid rgba(132,134,255,0.08);
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
             text-align: left;
             vertical-align: middle;
-            min-width: 0;
           }
           .history-route-table th {
-            color: #76829a;
+            color: #55566a;
             font-size: 10px;
-            letter-spacing: .16em;
+            letter-spacing: .14em;
             text-transform: uppercase;
             font-weight: 800;
-            background: rgba(132,134,255,0.06);
+            background: rgba(255,255,255,0.04);
+            white-space: nowrap;
           }
           .history-route-table td {
-            color: #172033;
+            color: #ebebf0;
             font-size: 13px;
-            font-weight: 700;
-            overflow-wrap: anywhere;
+            font-weight: 600;
           }
           .history-route-table tr:last-child td {
             border-bottom: 0;
           }
           .history-route-table tbody tr:hover td {
-            background: rgba(132,134,255,0.05);
+            background: rgba(42,180,182,0.04);
           }
           .history-table-scroll {
             width: 100%;
             max-width: 100%;
             overflow-x: auto;
             overflow-y: hidden;
-            border-radius: 16px;
+            border-radius: 14px;
             -webkit-overflow-scrolling: touch;
           }
           .history-table-scroll::-webkit-scrollbar {
-            height: 10px;
+            height: 6px;
+          }
+          .history-table-scroll::-webkit-scrollbar-track {
+            background: transparent;
           }
           .history-table-scroll::-webkit-scrollbar-thumb {
-            background: rgba(132,134,255,0.18);
+            background: rgba(255,255,255,0.12);
             border-radius: 999px;
           }
           .history-method-chip {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            min-width: 72px;
-            padding: 7px 10px;
-            border-radius: 999px;
-            background: rgba(255,255,255,0.56);
-            border: 1px solid rgba(132,134,255,0.10);
-            color: #475569;
+            min-width: 60px;
+            padding: 5px 10px;
+            border-radius: 8px;
+            background: rgba(34, 197, 94, 0.12);
+            border: 1px solid rgba(34, 197, 94, 0.18);
+            color: #22c55e;
             font-size: 10px;
             font-weight: 900;
             letter-spacing: .14em;
             text-transform: uppercase;
           }
           .history-path-cell {
-            min-width: 0;
+            min-width: 120px;
+            max-width: 260px;
             display: block;
-            word-break: break-word;
-            color: inherit;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #ebebf0;
+            font-family: "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 12px;
           }
           .history-cell-number {
             white-space: nowrap;
-            color: inherit;
+            color: #888899;
+            font-size: 13px;
+            font-weight: 700;
           }
-          .history-col-method {
-            width: 110px;
+          .history-cell-number.has-value {
+            color: #ebebf0;
           }
-          .history-col-path {
-            width: auto;
-          }
-          .history-col-requests {
-            width: 94px;
-          }
+          .history-col-method { width: 90px; }
+          .history-col-path { width: auto; }
+          .history-col-requests { width: 80px; }
           .history-col-3xx,
           .history-col-4xx,
-          .history-col-5xx,
+          .history-col-5xx { width: 60px; }
           .history-col-avg,
-          .history-col-max {
-            width: 74px;
-          }
+          .history-col-max { width: 68px; }
           .history-empty-state {
-            padding: 20px;
-            border-radius: 16px;
-            background: rgba(255,255,255,0.56);
-            border: 1px dashed rgba(132,134,255,0.12);
-            color: #64748b;
+            padding: 24px 16px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.02);
+            border: 1px dashed rgba(255,255,255,0.09);
+            color: #55566a;
             font-size: 13px;
             font-weight: 700;
             text-align: center;
           }
           .history-error-feed {
             display: grid;
-            gap: 10px;
+            gap: 8px;
           }
           .history-error-item {
             display: grid;
             gap: 8px;
-            padding: 12px;
-            border-radius: 14px;
-            border: 1px solid rgba(132,134,255,0.10);
-            background: rgba(255,255,255,0.58);
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.07);
+            background: rgba(255,255,255,0.03);
             min-width: 0;
           }
           .history-error-head {
@@ -1427,21 +1456,21 @@ window.DopparProfiler = {
             flex-wrap: wrap;
           }
           .history-error-path {
-            color: #172033;
+            color: #ebebf0;
             font-size: 13px;
             font-weight: 800;
             min-width: 0;
             overflow-wrap: anywhere;
           }
           .history-error-text {
-            color: #475569;
+            color: #888899;
             font-size: 12px;
-            font-weight: 700;
+            font-weight: 600;
             line-height: 1.45;
             overflow-wrap: anywhere;
           }
           .history-error-meta {
-            color: #76829a;
+            color: #55566a;
             font-size: 11px;
             font-weight: 700;
             display: flex;
@@ -1878,19 +1907,19 @@ window.DopparProfiler = {
             color: #888899;
           }
           .panel[data-theme="dark"] .history-method-chip {
-            background: rgba(255,255,255,0.06);
-            border-color: rgba(255,255,255,0.08);
-            color: #cbd5e1;
+            background: rgba(34, 197, 94, 0.12);
+            border-color: rgba(34, 197, 94, 0.18);
+            color: #22c55e;
           }
           .panel[data-theme="dark"] .history-toggle.active {
-            background: rgba(255,255,255,0.92);
-            border-color: rgba(255,255,255,0.92);
-            color: #111827;
+            background: rgba(15, 139, 141, 0.18);
+            border-color: rgba(15, 139, 141, 0.26);
+            color: #2ab4b6;
           }
           .panel[data-theme="dark"] .history-range-pill.active {
-            background: linear-gradient(135deg, rgba(59,130,246,0.34), rgba(37,99,235,0.26));
-            border-color: rgba(96,165,250,0.26);
-            color: #dbeafe;
+            background: rgba(15, 139, 141, 0.16);
+            border-color: rgba(15, 139, 141, 0.28);
+            color: #2ab4b6;
           }
           .panel[data-theme="dark"] .history-route-table th {
             background: rgba(255,255,255,0.04);
@@ -1899,16 +1928,16 @@ window.DopparProfiler = {
           .panel[data-theme="dark"] .history-search,
           .panel[data-theme="dark"] .history-toggle,
           .panel[data-theme="dark"] .history-range-pill {
-            color: #e5edf8;
+            color: #ebebf0;
           }
           .panel[data-theme="dark"] .history-search::placeholder {
-            color: #6f7d93;
+            color: #55566a;
           }
           .panel[data-theme="dark"] .history-error-text {
-            color: #cbd5e1;
+            color: #888899;
           }
           .panel[data-theme="dark"] .history-error-meta {
-            color: #94a3b8;
+            color: #55566a;
           }
           .panel[data-theme="dark"] .history-route-table tbody tr:hover td {
             background: rgba(255,255,255,0.03);
@@ -1920,7 +1949,7 @@ window.DopparProfiler = {
             stroke: rgba(255,255,255,0.08);
           }
           .panel[data-theme="dark"] .history-bar-success {
-            fill: rgba(255,255,255,0.14);
+            fill: rgba(42,180,182,0.72);
           }
           .panel[data-theme="dark"] .history-bar-warning {
             fill: rgba(245,158,11,0.74);
@@ -1933,6 +1962,11 @@ window.DopparProfiler = {
           }
           .panel[data-theme="dark"] .history-line-max {
             stroke: rgba(245,158,11,0.90);
+          }
+          .panel[data-theme="dark"] .log-level {
+            background: rgba(42, 180, 182, 0.12);
+            border: 1px solid rgba(42, 180, 182, 0.18);
+            color: #2ab4b6;
           }
           .panel[data-theme="dark"] .sql-time,
           .panel[data-theme="dark"] .redirect-chain-duration,
@@ -1980,6 +2014,9 @@ window.DopparProfiler = {
           }
           .panel[data-theme="dark"] .hero-request-copy-icon {
             filter: brightness(1.6);
+          }
+          .panel[data-theme="dark"] .json__item--collapsible::before {
+            color: #60a5fa;
           }
           .panel[data-theme="dark"] .json__item--collapsible::after {
             background: rgba(255, 255, 255, 0.12);
