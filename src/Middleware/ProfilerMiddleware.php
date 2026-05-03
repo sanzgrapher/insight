@@ -36,6 +36,12 @@ class ProfilerMiddleware implements \Phaseolies\Middleware\Contracts\Middleware
             throw $exception;
         }
 
+        if ($this->shouldDiscardBootstrapProbe($response, $profiler)) {
+            $profiler->discard();
+
+            return $response;
+        }
+
         $profiler->stop($request, $response);
 
         // If this is a redirect, store the profiler data in session for the next request
@@ -65,5 +71,17 @@ class ProfilerMiddleware implements \Phaseolies\Middleware\Contracts\Middleware
         }
 
         return $response;
+    }
+
+    protected function shouldDiscardBootstrapProbe(Response $response, $profiler): bool
+    {
+        if (! is_object($profiler) || ! method_exists($profiler, 'isRunning') || ! $profiler->isRunning()) {
+            return false;
+        }
+
+        return $response->statusCode === 200
+            && $response->body === null
+            && $response->original === null
+            && $response->exception === null;
     }
 }

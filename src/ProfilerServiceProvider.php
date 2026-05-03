@@ -13,6 +13,8 @@ use Throwable;
 
 class ProfilerServiceProvider extends ServiceProvider
 {
+    protected static bool $middlewareRegistered = false;
+
     public function register(): void
     {
         $this->mergeConfig(__DIR__ . '/../config/insight.php', 'insight');
@@ -103,12 +105,17 @@ class ProfilerServiceProvider extends ServiceProvider
      */
     protected function registerMiddleware(): void
     {
+        if (self::$middlewareRegistered) {
+            return;
+        }
+
         $router = app('route');
 
         if (is_object($router) && method_exists($router, 'applyMiddleware')) {
             $router->applyMiddleware(
                 app(\Doppar\Insight\Middleware\ProfilerMiddleware::class)
             );
+            self::$middlewareRegistered = true;
         }
     }
 

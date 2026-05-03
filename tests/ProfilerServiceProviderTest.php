@@ -9,6 +9,7 @@ use Doppar\Insight\Collectors\RequestCollector;
 use Doppar\Insight\Collectors\ResponseCollector;
 use Doppar\Insight\Collectors\TimeMemoryCollector;
 use Doppar\Insight\Contracts\StorageInterface;
+use Doppar\Insight\Middleware\ProfilerMiddleware;
 use Doppar\Insight\Profiler;
 use Doppar\Insight\ProfilerServiceProvider;
 use Doppar\Insight\Support\ErrorHistoryRecorder;
@@ -28,6 +29,9 @@ class ProfilerServiceProviderTest extends TestCase
         parent::setUp();
 
         $this->originalContainer = Container::getInstance();
+        $property = new \ReflectionProperty(ProfilerServiceProvider::class, 'middlewareRegistered');
+        $property->setAccessible(true);
+        $property->setValue(null, false);
     }
 
     protected function tearDown(): void
@@ -191,5 +195,41 @@ class ProfilerServiceProviderTest extends TestCase
             $this->assertSame('/wrapped-missing-page', $recent[0]['route']);
             $this->assertSame('GET', $recent[0]['method']);
         }
+    }
+
+    public function testRegisterMiddlewareIsIdempotent(): void
+    {
+        $router = new class {
+            public int $calls = 0;
+
+            public function applyMiddleware($middleware): void
+            {
+                if (! $middleware instanceof ProfilerMiddleware) {
+                    throw new \RuntimeException('Unexpected middleware type.');
+                }
+
+                $this->calls++;
+            }
+        };
+
+        /** @var Application&\PHPUnit\Framework\MockObject\MockObject $app */
+        $app = $this->getMockBuilder(Application::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods([])
+            ->getMock();
+
+        $app->instance('route', $router);
+        $app->instance(ProfilerMiddleware::class, new ProfilerMiddleware());
+
+        Container::setInstance($app);
+
+        $provider = new ProfilerServiceProvider($app);
+
+        $method = new \ReflectionMethod($provider, 'registerMiddleware');
+        $method->setAccessible(true);
+        $method->invoke($provider);
+        $method->invoke($provider);
+
+        $this->assertSame(1, $router->calls);
     }
 }

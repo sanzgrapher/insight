@@ -135,6 +135,16 @@ class Profiler
         return $this->stopped;
     }
 
+    public function discard(): void
+    {
+        $this->data = [];
+        $this->requestId = '';
+        $this->startTime = 0.0;
+        $this->startMemory = 0;
+        $this->started = false;
+        $this->stopped = false;
+    }
+
     protected function finalize(Request $request, Response $response): void
     {
         if (! $this->started || $this->stopped) {
