@@ -28,7 +28,6 @@ class ProfilerServiceProviderTest extends TestCase
 
         $this->originalContainer = Container::getInstance();
         $property = new \ReflectionProperty(ProfilerServiceProvider::class, 'middlewareRegistered');
-        $property->setAccessible(true);
         $property->setValue(null, false);
     }
 
@@ -105,7 +104,6 @@ class ProfilerServiceProviderTest extends TestCase
         $provider = new ProfilerServiceProvider($app);
 
         $method = new ReflectionMethod($provider, 'registerErrorTracking');
-        $method->setAccessible(true);
         $method->invoke($provider);
 
         $this->assertIsCallable($terminatingCallback);
@@ -141,11 +139,12 @@ class ProfilerServiceProviderTest extends TestCase
             }
         };
 
-        /** @var Application&\PHPUnit\Framework\MockObject\MockObject $app */
-        $app = $this->getMockBuilder(Application::class)
-            ->disableOriginalConstructor()
-            ->onlyMethods([])
-            ->getMock();
+        $app = new class extends Application
+        {
+            public function __construct()
+            {
+            }
+        };
 
         $app->instance('route', $router);
         $app->instance(ProfilerMiddleware::class, new ProfilerMiddleware());
@@ -155,7 +154,6 @@ class ProfilerServiceProviderTest extends TestCase
         $provider = new ProfilerServiceProvider($app);
 
         $method = new \ReflectionMethod($provider, 'registerMiddleware');
-        $method->setAccessible(true);
         $method->invoke($provider);
         $method->invoke($provider);
 

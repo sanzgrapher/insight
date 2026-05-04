@@ -28,10 +28,9 @@ class ProfilerPdoStatementTest extends TestCase
         $this->pdo->exec("INSERT INTO users (name) VALUES ('A'), ('B'), ('C')");
 
         $connections = new ReflectionProperty(Database::class, 'connections');
-        $connections->setAccessible(true);
         $currentConnections = $connections->getValue();
         $currentConnections['sqlite_test'] = $this->pdo;
-        $connections->setValue($currentConnections);
+        $connections->setValue(null, $currentConnections);
 
         $this->collector = new SqlCollector();
         $this->collector->start($this->createRequest());
@@ -42,10 +41,9 @@ class ProfilerPdoStatementTest extends TestCase
         SqlCollector::setActive(null);
 
         $connections = new ReflectionProperty(Database::class, 'connections');
-        $connections->setAccessible(true);
         $currentConnections = $connections->getValue();
         unset($currentConnections['sqlite_test']);
-        $connections->setValue($currentConnections);
+        $connections->setValue(null, $currentConnections);
 
         parent::tearDown();
     }
