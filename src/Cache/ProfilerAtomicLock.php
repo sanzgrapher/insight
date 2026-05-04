@@ -64,6 +64,7 @@ class ProfilerAtomicLock extends AtomicLock
         }
 
         $remaining = null;
+
         try {
             $remaining = $this->getRemainingTime();
         } catch (\Throwable) {
