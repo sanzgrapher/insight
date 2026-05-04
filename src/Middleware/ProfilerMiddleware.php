@@ -65,7 +65,7 @@ class ProfilerMiddleware implements \Phaseolies\Middleware\Contracts\Middleware
 
             // Clear redirect chain from session after rendering toolbar
             // (it's already saved in profiler data)
-            if (session_status() === PHP_SESSION_ACTIVE && isset($_SESSION) && is_array($_SESSION)) {
+            if (session_status() === PHP_SESSION_ACTIVE && isset($_SESSION)) {
                 unset($_SESSION['_insight_redirect_chain']);
             }
         }
@@ -73,9 +73,9 @@ class ProfilerMiddleware implements \Phaseolies\Middleware\Contracts\Middleware
         return $response;
     }
 
-    protected function shouldDiscardBootstrapProbe(Response $response, $profiler): bool
+    protected function shouldDiscardBootstrapProbe(Response $response, object $profiler): bool
     {
-        if (! is_object($profiler) || ! method_exists($profiler, 'isRunning') || ! $profiler->isRunning()) {
+        if (! method_exists($profiler, 'isRunning') || ! $profiler->isRunning()) {
             return false;
         }
 

@@ -237,7 +237,7 @@ class Profiler
      */
     public function getRedirectChain(bool $clear = false): array
     {
-        if (session_status() === PHP_SESSION_ACTIVE && isset($_SESSION) && is_array($_SESSION)) {
+        if (session_status() === PHP_SESSION_ACTIVE && isset($_SESSION)) {
             $chain = $_SESSION['_insight_redirect_chain'] ?? [];
             // Clear the chain only if requested
             if ($clear) {

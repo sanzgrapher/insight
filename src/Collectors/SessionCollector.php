@@ -22,7 +22,7 @@ class SessionCollector implements CollectorInterface
             'session_data' => [],
         ];
 
-        if (isset($_SESSION) && is_array($_SESSION)) {
+        if (isset($_SESSION)) {
             $sessionData = $_SESSION;
             unset($sessionData['password'], $sessionData['_token']);
             $this->data['session_data'] = $sessionData;

@@ -59,6 +59,10 @@ class ProfilerCacheStore extends CacheStore
         return $result;
     }
 
+    /**
+     * @param iterable<int, string> $keys
+     * @return iterable<string, mixed>
+     */
     public function getMultiple($keys, $default = null): iterable
     {
         $keys = $this->normalizeKeyList($keys);
@@ -94,6 +98,9 @@ class ProfilerCacheStore extends CacheStore
         return $results;
     }
 
+    /**
+     * @param iterable<string, mixed> $values
+     */
     public function setMultiple($values, $ttl = null): bool
     {
         $result = parent::setMultiple($values, $ttl);
@@ -105,6 +112,9 @@ class ProfilerCacheStore extends CacheStore
         return $result;
     }
 
+    /**
+     * @param iterable<int, string> $keys
+     */
     public function deleteMultiple($keys): bool
     {
         $result = parent::deleteMultiple($keys);

@@ -126,10 +126,6 @@ class ProfilerServiceProvider extends ServiceProvider
     {
         $this->registerFallbackBeforeExceptionHandler();
 
-        if (! method_exists($this->app, 'terminating')) {
-            return;
-        }
-
         $this->app->terminating(function (
             Request $request,
             ?Response $response = null,
