@@ -1,13 +1,18 @@
 .redirect-info {
-    background: rgba(59, 130, 246, 0.05);
-    border-left: 3px solid #3b82f6;
-    padding: 12px;
-    margin: 12px 0;
-    border-radius: 6px;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    background: linear-gradient(135deg, rgba(96, 165, 250, 0.08), rgba(255, 255, 255, 0.01));
+    border: 1px solid rgba(96, 165, 250, 0.16);
+    padding: 16px 18px;
+    margin: 14px 0;
+    border-radius: 16px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .redirect-url {
-    color: #1e40af;
-    font-weight: 600;
-    word-break: break-all;
+    color: var(--dp-info);
+    font-weight: 800;
+    word-break: break-word;
+    font-family: var(--dp-font-mono);
 }

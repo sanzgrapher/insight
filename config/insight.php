@@ -25,9 +25,23 @@ return [
     | usage, old entries are automatically removed after the specified number
     | of days.
     |
-    | Default: 1 days
+    | Default: 30 days
     |
     */
 
-    'retention_days' => 1,
+    'retention_days' => 30,
+
+    /*
+    |--------------------------------------------------------------------------
+    | SQL Profiling
+    |--------------------------------------------------------------------------
+    |
+    | These thresholds drive the query metadata exposed by Insight. Slow
+    | queries are flagged per statement, while repeated select statements
+    | with varying bindings can be highlighted as potential N+1 patterns.
+    |
+    */
+
+    'sql_slow_threshold_ms' => 100,
+    'sql_n_plus_one_threshold' => 3,
 ];

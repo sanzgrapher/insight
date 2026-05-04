@@ -25,7 +25,7 @@ class TimeMemoryCollector implements CollectorInterface
 
     public function stop(Request $request, Response $response): void
     {
-        $this->peak = memory_get_peak_usage(true);
+        $this->peak = memory_get_peak_usage(false);
     }
 
     public function toArray(): array

@@ -22,13 +22,15 @@ class PerformanceComponent extends InsightComponent {
     }
     
     buildMetrics(metrics) {
-        let html = '';
+        let html = '<div class="summary-grid">';
         for (const [key, value] of Object.entries(metrics)) {
-            html += `<div class="row">
-                <span class="key">${key}:</span>
-                <span class="val">${value}</span>
+            html += `<div class="summary-card performance-metric">
+                <div class="summary-card-label">${this.escapeHtml(key)}</div>
+                <div class="summary-card-value">${this.escapeHtml(String(value))}</div>
+                <div class="performance-note">Captured directly from this request lifecycle snapshot.</div>
             </div>`;
         }
+        html += '</div>';
         return html;
     }
 }

@@ -4,8 +4,10 @@ namespace Doppar\Insight\Middleware;
 
 use Closure;
 use Doppar\Insight\Profiler;
+use Doppar\Insight\Support\ErrorHistoryRecorder;
 use Phaseolies\Http\Request;
 use Phaseolies\Http\Response;
+use Throwable;
 
 class ProfilerMiddleware implements \Phaseolies\Middleware\Contracts\Middleware
 {
@@ -25,14 +27,28 @@ class ProfilerMiddleware implements \Phaseolies\Middleware\Contracts\Middleware
         }
 
         $profiler->start($request);
-        $response = $next($request);
+
+        try {
+            $response = $next($request);
+        } catch (Throwable $exception) {
+            app(ErrorHistoryRecorder::class)->record($exception, $request);
+
+            throw $exception;
+        }
+
+        if ($this->shouldDiscardBootstrapProbe($response, $profiler)) {
+            $profiler->discard();
+
+            return $response;
+        }
+
         $profiler->stop($request, $response);
 
         // If this is a redirect, store the profiler data in session for the next request
         $status = $response->getStatusCode();
         if ($status >= 300 && $status < 400) {
             $redirectData = $profiler->getCurrentData();
-            if (session_status() === PHP_SESSION_ACTIVE || session_start()) {
+            if (session_status() === PHP_SESSION_ACTIVE || @session_start()) {
                 $_SESSION['_insight_redirect_chain'] = $_SESSION['_insight_redirect_chain'] ?? [];
                 $_SESSION['_insight_redirect_chain'][] = $redirectData;
             }
@@ -49,11 +65,23 @@ class ProfilerMiddleware implements \Phaseolies\Middleware\Contracts\Middleware
 
             // Clear redirect chain from session after rendering toolbar
             // (it's already saved in profiler data)
-            if (session_status() === PHP_SESSION_ACTIVE || session_start()) {
+            if (session_status() === PHP_SESSION_ACTIVE && isset($_SESSION)) {
                 unset($_SESSION['_insight_redirect_chain']);
             }
         }
 
         return $response;
+    }
+
+    protected function shouldDiscardBootstrapProbe(Response $response, object $profiler): bool
+    {
+        if (! method_exists($profiler, 'isRunning') || ! $profiler->isRunning()) {
+            return false;
+        }
+
+        return $response->statusCode === 200
+            && $response->body === null
+            && $response->original === null
+            && $response->exception === null;
     }
 }

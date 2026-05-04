@@ -5,12 +5,12 @@ namespace Doppar\Insight\Collectors;
 use Doppar\Insight\Contracts\CollectorInterface;
 use Phaseolies\Http\Request;
 use Phaseolies\Http\Response;
-use Phaseolies\Support\Facades\Cache;
 
 class CacheCollector implements CollectorInterface
 {
     /** @var array<int, array<string, mixed>> */
     protected array $operations = [];
+
     protected static ?self $active = null;
 
     public static function setActive(?self $collector): void
@@ -40,10 +40,17 @@ class CacheCollector implements CollectorInterface
     }
 
     /**
-     * Register a cache operation
+     * Register a cache operation.
+     *
+     * @param array<string, mixed> $meta
      */
-    public function registerOperation(string $type, string $key, mixed $value = null, bool $hit = false): void
-    {
+    public function registerOperation(
+        string $type,
+        string $key,
+        mixed $value = null,
+        bool $hit = false,
+        array $meta = []
+    ): void {
         $normalized = $this->normalizedForJson($value);
         $valueJson = null;
         if ($normalized !== null) {
@@ -51,24 +58,36 @@ class CacheCollector implements CollectorInterface
             $valueJson = $encoded === false ? null : (strlen($encoded) > 10000 ? substr($encoded, 0, 10000) . "\n… (truncated)" : $encoded);
         }
 
-        $this->operations[] = [
+        $operation = [
             'type' => $type,
             'key' => $key,
             'value' => $this->formatValue($value),
             'value_json' => $valueJson,
             'hit' => $hit,
             'time' => microtime(true),
+            'store_name' => $meta['store_name'] ?? null,
+            'store_driver' => $meta['store_driver'] ?? null,
+            'ttl_seconds' => array_key_exists('ttl_seconds', $meta) ? $meta['ttl_seconds'] : null,
+            'expires_at_unix' => array_key_exists('expires_at_unix', $meta) ? $meta['expires_at_unix'] : null,
+            'expires_at' => $meta['expires_at'] ?? null,
+            'tags' => isset($meta['tags']) && is_array($meta['tags']) ? array_values($meta['tags']) : [],
         ];
+
+        foreach ($meta as $metaKey => $metaValue) {
+            if (! array_key_exists($metaKey, $operation)) {
+                $operation[$metaKey] = $metaValue;
+            }
+        }
+
+        $this->operations[] = $operation;
     }
 
     protected function formatValue(mixed $value): mixed
     {
-        // Strings: truncate to avoid huge payloads in UI
         if (is_string($value)) {
             return strlen($value) > 2000 ? substr($value, 0, 2000) . '…' : $value;
         }
 
-        // Arrays/objects: try to JSON encode similar to session details
         if (is_array($value) || is_object($value)) {
             $normalized = $this->normalizedForJson($value);
             if ($normalized === null) {
@@ -78,9 +97,7 @@ class CacheCollector implements CollectorInterface
             if ($json === false) {
                 return '[object ' . (is_object($value) ? get_class($value) : 'array') . ']';
             }
-            // Provide a compact single-line preview (trim if huge)
             if (is_object($value) && \is_a($value, '\\Phaseolies\\Support\\Collection')) {
-                // Specialized preview for collections
                 $count = $value->count();
                 $first = null;
 
@@ -90,29 +107,22 @@ class CacheCollector implements CollectorInterface
                     $first = null;
                 }
                 $model = is_object($first) ? get_class($first) : 'unknown';
-                $preview = "Collection(" . $model . ")[" . $count . "]";
 
-                return $preview;
+                return "Collection(" . $model . ")[" . $count . "]";
             }
 
-            $preview = strlen($json) > 2000 ? substr($json, 0, 2000) . '…' : $json;
-
-            return $preview;
+            return strlen($json) > 2000 ? substr($json, 0, 2000) . '…' : $json;
         }
 
         return $value;
     }
 
-    /**
-     * Normalize mixed value into array/scalar suitable for JSON UI rendering.
-     */
     protected function normalizedForJson(mixed $value): mixed
     {
         if (is_array($value)) {
             return $value;
         }
         if (is_object($value)) {
-            // Show framework collections with metadata for better UX in UI
             if (\is_a($value, '\\Phaseolies\\Support\\Collection')) {
                 $first = null;
 
@@ -135,27 +145,25 @@ class CacheCollector implements CollectorInterface
             if (method_exists($value, 'toArray')) {
                 try {
                     return $value->toArray();
-                } catch (\Throwable) { /* ignore */
+                } catch (\Throwable) {
                 }
             }
             if ($value instanceof \JsonSerializable) {
                 try {
                     return $value->jsonSerialize();
-                } catch (\Throwable) { /* ignore */
+                } catch (\Throwable) {
                 }
             }
             if ($value instanceof \Traversable) {
                 try {
                     return iterator_to_array($value);
-                } catch (\Throwable) { /* ignore */
+                } catch (\Throwable) {
                 }
             }
 
-            // Fallback: expose public props, may be empty
             return (array) $value;
         }
 
-        // Scalars not needed as JSON blocks
         return null;
     }
 
@@ -165,14 +173,19 @@ class CacheCollector implements CollectorInterface
         $misses = 0;
         $writes = 0;
         $deletes = 0;
+        $lockOperations = 0;
 
         foreach ($this->operations as $op) {
             match ($op['type']) {
-                'get' => $op['hit'] ? $hits++ : $misses++,
-                'set', 'forever' => $writes++,
-                'delete', 'forget' => $deletes++,
+                'get', 'get_multiple' => $op['hit'] ? $hits++ : $misses++,
+                'set', 'forever', 'add', 'set_multiple' => $writes++,
+                'delete', 'forget', 'delete_multiple', 'clear' => $deletes++,
                 default => null,
             };
+
+            if (str_starts_with((string) $op['type'], 'lock_')) {
+                $lockOperations++;
+            }
         }
 
         return [
@@ -181,6 +194,7 @@ class CacheCollector implements CollectorInterface
             'cache_misses' => $misses,
             'cache_writes' => $writes,
             'cache_deletes' => $deletes,
+            'cache_lock_operations' => $lockOperations,
             'cache_total' => count($this->operations),
         ];
     }

@@ -2,10 +2,17 @@
 
 namespace Doppar\Insight;
 
+use Doppar\Insight\Support\ErrorHistoryRecorder;
+use Doppar\Insight\Support\InsightBeforeExceptionHandler;
+use Phaseolies\Http\Request;
+use Phaseolies\Http\Response;
 use Phaseolies\Providers\ServiceProvider;
+use Throwable;
 
 class ProfilerServiceProvider extends ServiceProvider
 {
+    protected static bool $middlewareRegistered = false;
+
     public function register(): void
     {
         $this->mergeConfig(__DIR__ . '/../config/insight.php', 'insight');
@@ -29,6 +36,7 @@ class ProfilerServiceProvider extends ServiceProvider
         $profiler = $this->app->make(Profiler::class);
 
         if ($profiler->isGloballyEnabled()) {
+            $this->registerErrorTracking();
             $this->registerRoutes();
             $this->registerMiddleware();
             $this->registerHooks($profiler);
@@ -94,12 +102,52 @@ class ProfilerServiceProvider extends ServiceProvider
      */
     protected function registerMiddleware(): void
     {
+        if (self::$middlewareRegistered) {
+            return;
+        }
+
         $router = app('route');
 
         if (is_object($router) && method_exists($router, 'applyMiddleware')) {
             $router->applyMiddleware(
                 app(\Doppar\Insight\Middleware\ProfilerMiddleware::class)
             );
+            self::$middlewareRegistered = true;
+        }
+    }
+
+    /**
+     * Register package-level error tracking hooks.
+     *
+     * This keeps Insight self-contained for route-miss 4xx responses and
+     * uncaught exceptions, without requiring app route fallbacks.
+     */
+    protected function registerErrorTracking(): void
+    {
+        $this->registerFallbackBeforeExceptionHandler();
+
+        $this->app->terminating(function (
+            Request $request,
+            ?Response $response = null,
+            ?Throwable $exception = null
+        ): void {
+            if (! $exception instanceof Throwable) {
+                return;
+            }
+
+            app(ErrorHistoryRecorder::class)->record($exception, $request);
+        });
+    }
+
+    /**
+     * Provide a default global exception hook when the host app does not define one.
+     */
+    protected function registerFallbackBeforeExceptionHandler(): void
+    {
+        $alias = 'App\\Http\\Exceptions\\BeforeExceptionHandler';
+
+        if (! class_exists($alias)) {
+            class_alias(InsightBeforeExceptionHandler::class, $alias);
         }
     }
 

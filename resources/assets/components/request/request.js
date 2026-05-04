@@ -26,7 +26,7 @@ class RequestComponent extends InsightComponent {
     buildFilesSection(files) {
         if (!files || Object.keys(files).length === 0) return '';
         
-        let html = '<h3 style="color: #f3f4f6; margin: 24px 0 12px;">Uploaded Files</h3>';
+        let html = '<h3 class="subsection-title">Uploaded Files</h3>';
         html += '<table class="data-table"><thead><tr><th>Field</th><th>Name</th><th>Type</th><th>Size</th></tr></thead><tbody>';
         
         for (const [key, file] of Object.entries(files)) {

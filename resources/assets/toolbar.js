@@ -1,5 +1,128 @@
 window.DopparProfiler = {
   open: false,
+  closeAnimationPromise: null,
+  cancelCloseAnimation(){
+    if(this.closeAnimationPromise){
+      this.closeAnimationPromise.cancelled = true;
+      this.closeAnimationPromise = null;
+    }
+  },
+  async copyText(text){
+    if(navigator.clipboard && window.isSecureContext){
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', 'readonly');
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    textarea.style.pointerEvents = 'none';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+
+    let copied = false;
+    try {
+      copied = document.execCommand('copy');
+    } finally {
+      document.body.removeChild(textarea);
+    }
+
+    if(!copied){
+      throw new Error('Copy command failed');
+    }
+
+    return true;
+  },
+  setCopyButtonState(button, state){
+    if(!button){
+      return;
+    }
+    button.classList.remove('is-success', 'is-error');
+    if(state === 'success'){
+      button.classList.add('is-success');
+      button.innerHTML = '<span class="copy-icon copy-icon-success" aria-hidden="true"></span>Copied';
+      return;
+    }
+    if(state === 'error'){
+      button.classList.add('is-error');
+      button.innerHTML = '<span class="copy-icon copy-icon-error" aria-hidden="true"></span>Copy failed';
+      return;
+    }
+    button.innerHTML = '<span class="copy-icon" aria-hidden="true"></span>Copy Payload';
+  },
+  getQuickViewTheme(){
+    try {
+      return window.localStorage.getItem('doppar.insight.quickview.theme') === 'light' ? 'light' : 'dark';
+    } catch (error) {
+      return 'light';
+    }
+  },
+  setQuickViewTheme(panel, theme){
+    if(!panel){
+      return;
+    }
+    const resolved = theme === 'dark' ? 'dark' : 'light';
+    panel.setAttribute('data-theme', resolved);
+    panel.querySelectorAll('[data-action="toggle-theme"]').forEach((button) => {
+      button.setAttribute('data-theme-mode', resolved);
+      button.setAttribute('aria-pressed', resolved === 'dark' ? 'true' : 'false');
+      button.setAttribute('aria-label', resolved === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+      button.innerHTML = resolved === 'dark'
+        ? '<span class="theme-switch-icon theme-switch-icon-dark" aria-hidden="true"></span>'
+        : '<span class="theme-switch-icon theme-switch-icon-light" aria-hidden="true"></span>';
+    });
+    try {
+      window.localStorage.setItem('doppar.insight.quickview.theme', resolved);
+    } catch (error) {}
+  },
+  getToolbarBounds(){
+    const host = document.getElementById('doppar-profiler');
+    if(!host || !host.shadowRoot){
+      return null;
+    }
+    const toolbar = host.shadowRoot.querySelector('.dp-root');
+    return toolbar ? toolbar.getBoundingClientRect() : null;
+  },
+  animatePanelOpen(panel){
+    if(!panel){
+      return;
+    }
+    this.cancelCloseAnimation();
+    panel.style.willChange = '';
+    panel.style.overflow = '';
+    panel.style.opacity = '1';
+    panel.style.transform = '';
+    panel.style.filter = '';
+    panel.style.clipPath = '';
+    panel.style.borderRadius = '';
+  },
+  closePanel(root){
+    this.cancelCloseAnimation();
+    if(root){
+      root.innerHTML = '';
+    }
+    return Promise.resolve();
+  },
+  syncPanelPosition(){
+    const host = document.getElementById('doppar-profiler-panel');
+    const bounds = this.getToolbarBounds();
+    if(!host || !bounds){
+      return;
+    }
+
+    const gap = 14;
+    const availableHeight = Math.max(220, bounds.top - gap - 12);
+
+    host.style.left = bounds.left + 'px';
+    host.style.right = 'auto';
+    host.style.width = bounds.width + 'px';
+    host.style.bottom = (window.innerHeight - bounds.top + gap) + 'px';
+    host.style.setProperty('--dp-panel-available-height', availableHeight + 'px');
+  },
   ensurePanelRoot(){
     let host = document.getElementById('doppar-profiler-panel');
     if(!host){
@@ -8,11 +131,10 @@ window.DopparProfiler = {
       // Isolate the host from page CSS as much as possible
       host.style.all = 'initial';
       host.style.position = 'fixed';
-      host.style.right = '10px';
-      host.style.bottom = '48px';
       host.style.zIndex = '2147483647';
       document.body.appendChild(host);
     }
+    this.syncPanelPosition();
     if(!host.shadowRoot){
       host.attachShadow({mode:'open'});
     }
@@ -26,373 +148,2522 @@ window.DopparProfiler = {
     this.open = !this.open;
     const root = this.ensurePanelRoot();
     if(this.open){
+      this.cancelCloseAnimation();
       const id = document.getElementById('doppar-profiler').dataset.requestId;
-      fetch('/_insight/api/' + id).then(r=>r.json()).then(data=>{
-        // Shadow DOM content
+      fetch('/_insight/api/' + encodeURIComponent(id) + '?_=' + Date.now(), { cache: 'no-store' }).then(r=>r.json()).then(data=>{
+        const toolbarLogo = document.getElementById('doppar-profiler')?.shadowRoot?.querySelector('.dp-launcher-mark img')?.getAttribute('src') || '';
+        const escapeHtml = (value) => {
+          const div = document.createElement('div');
+          div.textContent = String(value ?? '');
+          return div.innerHTML;
+        };
+        const formatBytes = (bytes) => {
+          const size = Number(bytes || 0);
+          if(!size){
+            return '0 Bytes';
+          }
+          const units = ['Bytes', 'KB', 'MB', 'GB'];
+          const index = Math.min(units.length - 1, Math.floor(Math.log(size) / Math.log(1024)));
+          return `${Math.round((size / Math.pow(1024, index)) * 100) / 100} ${units[index]}`;
+        };
+        const truncateText = (value, max = 88) => {
+          const text = String(value ?? '');
+          return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+        };
+        const prettyJson = (value) => escapeHtml(JSON.stringify(value, null, 2));
+        const hasEntries = (value) => {
+          if(Array.isArray(value)){
+            return value.length > 0;
+          }
+          return !!value && typeof value === 'object' && Object.keys(value).length > 0;
+        };
+        const formatCellValue = (value) => {
+          if(value === null || value === undefined || value === ''){
+            return '<span class="muted-value">N/A</span>';
+          }
+          if(typeof value === 'object'){
+            return `<pre class="code-block code-block-compact">${prettyJson(value)}</pre>`;
+          }
+          return escapeHtml(String(value));
+        };
+        const buildPropertyTable = (dataset, keyHeader = 'Property', valueHeader = 'Value') => {
+          if(!hasEntries(dataset)){
+            return '';
+          }
+          const rows = Object.entries(dataset).map(([key, value]) => `
+            <tr>
+              <td>${escapeHtml(key)}</td>
+              <td>${formatCellValue(value)}</td>
+            </tr>
+          `).join('');
+          return `
+            <table class="property-table">
+              <thead>
+                <tr>
+                  <th>${escapeHtml(keyHeader)}</th>
+                  <th>${escapeHtml(valueHeader)}</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          `;
+        };
+        const buildFilesTable = (files) => {
+          if(!hasEntries(files)){
+            return '';
+          }
+          const rows = Object.entries(files).map(([key, file]) => `
+            <tr>
+              <td>${escapeHtml(key)}</td>
+              <td>${escapeHtml(file?.name || 'N/A')}</td>
+              <td>${escapeHtml(file?.type || 'N/A')}</td>
+              <td>${file?.size ? `${(Number(file.size) / 1024).toFixed(2)} KB` : 'N/A'}</td>
+            </tr>
+          `).join('');
+          return `
+            <table class="property-table">
+              <thead>
+                <tr>
+                  <th>Field</th>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>Size</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          `;
+        };
+        const buildSubsection = (title, content) => {
+          if(!content){
+            return '';
+          }
+          return `
+            <div class="subsection">
+              <div class="subsection-title">${escapeHtml(title)}</div>
+              ${content}
+            </div>
+          `;
+        };
+        const buildCodeBlock = (value) => {
+          if(value === null || value === undefined || value === ''){
+            return '';
+          }
+          const output = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+          return `<pre class="code-block">${escapeHtml(output)}</pre>`;
+        };
+        const requestUrl = data.url || data.route || '/';
+        const buildJsonViewerItem = (key, value) => {
+          const isArray = Array.isArray(value);
+          const type = isArray ? 'array' : typeof value;
+          const keyHtml = escapeHtml(String(key));
+
+          if(value !== null && (type === 'object' || isArray)){
+            const label = isArray ? `array[${value.length}]` : 'object';
+            const children = Object.entries(value).map(([childKey, childValue]) => buildJsonViewerItem(childKey, childValue)).join('');
+
+            return `
+              <details class="json__node">
+                <summary class="json__item json__item--collapsible">
+                  <span class="json__key">${keyHtml}</span>
+                  <span class="json__value json__value--type-${type}">${escapeHtml(label)}</span>
+                </summary>
+                <div class="json__children">
+                  ${children}
+                </div>
+              </details>
+            `;
+          }
+
+          const valueOutput = type === 'string'
+            ? `"${escapeHtml(String(value))}"`
+            : escapeHtml(String(value));
+
+          return `
+            <div class="json__item">
+              <div class="json__key">${keyHtml}</div>
+              <div class="json__value json__value--${type}">${valueOutput}</div>
+            </div>
+          `;
+        };
+        const buildJsonViewer = (value) => {
+          if(!value || typeof value !== 'object'){
+            return buildCodeBlock(value);
+          }
+
+          return `
+            <div class="json">
+              ${Object.entries(value).map(([key, childValue]) => buildJsonViewerItem(key, childValue)).join('')}
+            </div>
+          `;
+        };
         const css = `
           :host{all:initial}
 
           .panel {
-              background: linear-gradient(135deg, #ddd 0%, #f8fafc 100%);
-              color: #1f2937;
-              border: 2px solid #e5e7eb;
-              border-radius: 16px;
-              padding: 24px;
-              width: 720px;
-              max-height: 75vh;
-              overflow: auto;
-              box-shadow: 
-                  0 20px 60px rgba(0, 0, 0, 0.15),
-                  0 8px 32px rgba(0, 0, 0, 0.1),
-                  inset 0 1px 0 rgba(255, 255, 255, 0.8);
-              font: 14px/1.6 system-ui, Segoe UI, Roboto, Helvetica, Arial;
-              position: relative;
-              backdrop-filter: blur(10px);
+            --dp-scrollbar-size: 2px;
+            --dp-scrollbar-track: transparent;
+            --dp-scrollbar-thumb: rgba(132,134,255,0.22);
+            --dp-scrollbar-thumb-hover: rgba(132,134,255,0.34);
+            width: 100%;
+            max-height: min(78vh, var(--dp-panel-available-height, 78vh));
+            overflow: auto;
+            border-radius: 26px;
+            padding: 14px;
+            color: #142133;
+            font: 14px/1.65 "Aptos", "Segoe UI Variable", "Segoe UI", sans-serif;
+            background:
+              radial-gradient(circle at top right, rgba(132, 134, 255, 0.16), transparent 22%),
+              radial-gradient(circle at bottom left, rgba(15, 139, 141, 0.14), transparent 26%),
+              linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(245, 247, 255, 0.95));
+            border: 1px solid rgba(132, 134, 255, 0.24);
+            box-shadow:
+              0 28px 64px rgba(57, 72, 102, 0.18),
+              inset 0 1px 0 rgba(255,255,255,0.8);
+            backdrop-filter: blur(16px);
+            position: relative;
+            scrollbar-width: thin;
+            scrollbar-color: var(--dp-scrollbar-thumb) var(--dp-scrollbar-track);
+          }
+          .panel::-webkit-scrollbar,
+          .sidebar-nav::-webkit-scrollbar,
+          .history-table-scroll::-webkit-scrollbar {
+            width: var(--dp-scrollbar-size);
+            height: var(--dp-scrollbar-size);
+          }
+          .panel::-webkit-scrollbar-track,
+          .sidebar-nav::-webkit-scrollbar-track,
+          .history-table-scroll::-webkit-scrollbar-track {
+            background: var(--dp-scrollbar-track);
+          }
+          .panel::-webkit-scrollbar-button,
+          .sidebar-nav::-webkit-scrollbar-button,
+          .history-table-scroll::-webkit-scrollbar-button {
+            display: none;
+            width: 0;
+            height: 0;
+          }
+          .panel::-webkit-scrollbar-thumb,
+          .sidebar-nav::-webkit-scrollbar-thumb,
+          .history-table-scroll::-webkit-scrollbar-thumb {
+            background: var(--dp-scrollbar-thumb);
+            border-radius: 999px;
+          }
+          .panel::-webkit-scrollbar-thumb:hover,
+          .sidebar-nav::-webkit-scrollbar-thumb:hover,
+          .history-table-scroll::-webkit-scrollbar-thumb:hover {
+            background: var(--dp-scrollbar-thumb-hover);
           }
 
           .panel::before {
-              content: '';
-              position: absolute;
-              top: 0;
-              left: 0;
-              right: 0;
-              height: 4px;
-              background-size: 200% 100%;
-              animation: gradientShift 3s ease infinite;
-              border-radius: 16px 16px 0 0;
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 26px;
+            pointer-events: none;
+            background: linear-gradient(180deg, rgba(255,255,255,0.56), transparent 22%);
           }
 
-          @keyframes gradientShift {
-              0% { background-position: 0% 50%; }
-              50% { background-position: 100% 50%; }
-              100% { background-position: 0% 50%; }
+          .workspace {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: 210px minmax(0, 1fr);
+            gap: 14px;
+            min-height: 420px;
+            align-items: start;
+          }
+          .sidebar {
+            position: sticky;
+            top: 0;
+            align-self: start;
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr);
+            min-height: 0;
+            max-height: calc(min(78vh, var(--dp-panel-available-height, 78vh)) - 28px);
+            padding: 12px;
+            border-radius: 20px;
+            background: #18181B;
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            color: #ebebf0;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+            overflow: hidden;
+          }
+          .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px 10px;
+            margin-bottom: 6px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+          }
+          .sidebar-mark {
+            width: 40px;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 40px;
+            border-radius: 14px;
+            background:
+              linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)),
+              linear-gradient(180deg, rgba(143,146,255,0.22), rgba(116,121,255,0.18));
+            border: 1px solid rgba(132, 134, 255, 0.2);
+            box-shadow:
+              0 10px 20px rgba(132, 134, 255, 0.24),
+              inset 0 1px 0 rgba(255,255,255,0.14);
+          }
+          .sidebar-mark img {
+            width: 18px;
+            height: 18px;
+          }
+          .sidebar-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: #ebebf0;
+            line-height: 1.08;
+          }
+          .sidebar-copy {
+            margin-top: 4px;
+            font-size: 11px;
+            color: #55566a;
+          }
+          .sidebar-nav {
+            display: grid;
+            gap: 3px;
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding-right: 0;
+            margin-right: -6px;
+            overscroll-behavior: contain;
+            scrollbar-width: thin;
+            scrollbar-color: var(--dp-scrollbar-thumb) var(--dp-scrollbar-track);
+          }
+          .sidebar-nav::-webkit-scrollbar-track {
+            margin-block: 4px;
+          }
+          .nav-section-label {
+            padding: 10px 10px 2px;
+            font-size: 10px;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+            color: #55566a;
+            font-weight: 800;
+          }
+          .nav-section-copy {
+            padding: 0 10px 8px;
+            font-size: 11px;
+            line-height: 1.35;
+            color: #6a7184;
+            font-weight: 600;
+          }
+          .nav-section-divider {
+            height: 1px;
+            margin: 6px 10px 4px;
+            background: rgba(255,255,255,0.06);
+          }
+          .nav-main {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+          }
+          .nav-icon {
+            width: 18px;
+            height: 18px;
+            flex: 0 0 18px;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 18px 18px;
+            opacity: 0.9;
+          }
+          .nav-icon-overview { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='7' height='7' rx='1.5'/%3E%3Crect x='14' y='3' width='7' height='7' rx='1.5'/%3E%3Crect x='3' y='14' width='7' height='7' rx='1.5'/%3E%3Crect x='14' y='14' width='7' height='7' rx='1.5'/%3E%3C/svg%3E"); }
+          .nav-icon-history { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 8v5l3 2'/%3E%3Cpath d='M3.05 11A9 9 0 1 1 6 17.3'/%3E%3Cpath d='M3 4v5h5'/%3E%3C/svg%3E"); }
+          .nav-icon-http { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M3 12h18'/%3E%3Cpath d='M12 3a15 15 0 0 1 0 18'/%3E%3Cpath d='M12 3a15 15 0 0 0 0 18'/%3E%3C/svg%3E"); }
+          .nav-icon-database { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cellipse cx='12' cy='5' rx='7' ry='3'/%3E%3Cpath d='M5 5v14c0 1.7 3.1 3 7 3s7-1.3 7-3V5'/%3E%3Cpath d='M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3'/%3E%3C/svg%3E"); }
+          .nav-icon-cache { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3 4 7l8 4 8-4-8-4Z'/%3E%3Cpath d='m4 12 8 4 8-4'/%3E%3Cpath d='m4 17 8 4 8-4'/%3E%3C/svg%3E"); }
+          .nav-icon-auth { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3 5 6v6c0 5 3.4 8 7 9 3.6-1 7-4 7-9V6l-7-3Z'/%3E%3Cpath d='m9.5 12 1.7 1.7L14.8 10'/%3E%3C/svg%3E"); }
+          .nav-icon-request { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 4v14'/%3E%3Cpath d='m7 13 5 5 5-5'/%3E%3Cpath d='M5 5h14'/%3E%3C/svg%3E"); }
+          .nav-icon-response { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 20V6'/%3E%3Cpath d='m17 11-5-5-5 5'/%3E%3Cpath d='M5 19h14'/%3E%3C/svg%3E"); }
+          .nav-icon-performance { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 16a8 8 0 1 1 15 0'/%3E%3Cpath d='M12 12 9 15'/%3E%3Cpath d='M12 12h5'/%3E%3C/svg%3E"); }
+          .nav-icon-session { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='16' height='16' rx='2'/%3E%3Cpath d='M8 9h8'/%3E%3Cpath d='M8 13h8'/%3E%3Cpath d='M8 17h5'/%3E%3C/svg%3E"); }
+          .nav-icon-logs { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3h8l4 4v14H4V3h4'/%3E%3Cpath d='M14 3v5h5'/%3E%3Cpath d='M8 13h8'/%3E%3Cpath d='M8 17h6'/%3E%3C/svg%3E"); }
+          .nav-icon-json { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 8c-1.5 0-2.5 1-2.5 2.5v3C5.5 15 4.5 16 3 16'/%3E%3Cpath d='M16 8c1.5 0 2.5 1 2.5 2.5v3c0 1 1 2 2.5 2'/%3E%3Cpath d='M10 6 8 18'/%3E%3Cpath d='M14 6l2 12'/%3E%3C/svg%3E"); }
+          .nav-label {
+            color: inherit;
+            font-size: 13px;
+            font-weight: 800;
+          }
+          .nav-button {
+            appearance: none;
+            border: 0;
+            width: 100%;
+            text-align: left;
+            padding: 9px 10px;
+            border-radius: 14px;
+            background: transparent;
+            color: #888899;
+            font: inherit;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 12px;
+            transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+          }
+          .nav-button:hover {
+            background: rgba(255,255,255,0.06);
+            color: #ebebf0;
+          }
+          .nav-button.active {
+            background: linear-gradient(135deg, rgba(15, 139, 141, 0.18), rgba(42, 114, 212, 0.14));
+            color: #2ab4b6;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+          }
+          .nav-kicker {
+            font-size: 10px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: #55566a;
+          }
+          .canvas {
+            min-width: 0;
+          }
+          .view-section {
+            display: none;
+          }
+          .view-section.active {
+            display: block;
+          }
+          .hero {
+            padding: 18px;
+            border-radius: 22px;
+            background: rgba(255,255,255,0.72);
+            border: 1px solid rgba(132,134,255,0.12);
+            box-shadow:
+              inset 0 1px 0 rgba(255,255,255,0.8),
+              0 8px 20px rgba(37, 51, 77, 0.06);
+            margin-bottom: 16px;
+          }
+          .hero-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+          }
+          .hero-top > div {
+            min-width: 0;
+            flex: 1 1 420px;
+          }
+          .eyebrow {
+            font-size: 11px;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+            color: #6b7890;
+            font-weight: 800;
+            margin-bottom: 8px;
+          }
+          .hero-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 8px;
+          }
+          .hero-title {
+            font-size: 28px;
+            line-height: 1.15;
+            font-weight: 800;
+            letter-spacing: -.04em;
+            margin: 0 0 8px;
+            color: #152238;
+          }
+          .hero-request-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-sizing: border-box;
+            width: 100%;
+            max-width: 100%;
+            min-height: 60px;
+            padding: 12px 16px;
+            border-radius: 16px;
+            background: #ffffff;
+            border: 1px solid rgba(17, 40, 61, 0.1);
+            box-shadow:
+              0 1px 2px rgba(15, 23, 42, 0.04),
+              0 10px 20px rgba(37, 51, 77, 0.04),
+              inset 0 1px 0 rgba(255,255,255,0.96);
+            margin: 0 0 12px;
+            overflow: hidden;
+          }
+          .hero-method-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 56px;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: linear-gradient(180deg, #d8f8e7, #cdf6df);
+            border: 1px solid rgba(20, 125, 100, 0.08);
+            color: #0f7a66;
+            font-size: 12px;
+            font-weight: 900;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+            flex: 0 0 auto;
+          }
+          .hero-url {
+            min-width: 0;
+            flex: 1 1 auto;
+            color: #5d6b80;
+            font: 13px/1.5 "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .hero-request-copy {
+            appearance: none;
+            border: 0;
+            background: transparent;
+            color: #69778f;
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex: 0 0 34px;
+            margin-left: auto;
+            transition: background .18s ease, color .18s ease, transform .18s ease;
+          }
+          .hero-request-copy:hover {
+            background: rgba(240, 244, 255, 0.72);
+            color: #475672;
+            transform: translateY(-1px);
+          }
+          .hero-request-copy.is-success {
+            background: rgba(20, 125, 100, 0.12);
+            color: #147d64;
+          }
+          .hero-request-copy.is-error {
+            background: rgba(191, 60, 68, 0.12);
+            color: #bf3c44;
+          }
+          .hero-request-copy-icon {
+            width: 18px;
+            height: 18px;
+            display: inline-flex;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 18px 18px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2369778f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='9' y='9' width='11' height='11' rx='2'/%3E%3Cpath d='M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'/%3E%3C/svg%3E");
+          }
+          .hero-title small {
+            display: inline-flex;
+            margin-right: 10px;
+            padding: 7px 10px;
+            border-radius: 999px;
+            background: rgba(132, 134, 255, 0.1);
+            color: #5a5ef0;
+            border: 1px solid rgba(132, 134, 255, 0.16);
+            font-size: 11px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+          }
+          .hero-copy {
+            color: #5e6d85;
+            max-width: 520px;
+          }
+          .hero-top-actions {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+          }
+          .theme-switch {
+            appearance: none;
+            border: 1px solid rgba(132,134,255,0.14);
+            background: rgba(255,255,255,0.82);
+            color: #4f5d75;
+            width: 38px;
+            height: 38px;
+            min-height: 38px;
+            padding: 0;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.82);
+            transition: background .18s ease, color .18s ease, border-color .18s ease, transform .18s ease;
+            flex: 0 0 38px;
+          }
+          .theme-switch:hover {
+            transform: translateY(-1px);
+            background: rgba(248,250,255,0.96);
+            color: #273550;
+          }
+          .theme-switch-icon {
+            width: 16px;
+            height: 16px;
+            display: inline-flex;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 16px 16px;
+          }
+          .theme-switch-icon-light {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235a5ef0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2v2'/%3E%3Cpath d='M12 20v2'/%3E%3Cpath d='m4.93 4.93 1.41 1.41'/%3E%3Cpath d='m17.66 17.66 1.41 1.41'/%3E%3Cpath d='M2 12h2'/%3E%3Cpath d='M20 12h2'/%3E%3Cpath d='m6.34 17.66-1.41 1.41'/%3E%3Cpath d='m19.07 4.93-1.41 1.41'/%3E%3C/svg%3E");
+          }
+          .theme-switch-icon-dark {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d9e4ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3a6 6 0 1 0 9 9 9 9 0 1 1-9-9Z'/%3E%3C/svg%3E");
+          }
+          .hero-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(132,134,255,0.14);
+            background: rgba(255,255,255,0.76);
+            font-weight: 800;
+          }
+          .hero-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: currentColor;
+          }
+          .hero-status.ok { color: #8ef0bd; }
+          .hero-status.warn { color: #ffd277; }
+          .hero-status.err { color: #ff9f97; }
+
+          .metrics {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+          }
+          .metric {
+            padding: 14px;
+            border-radius: 18px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(246,248,255,0.9));
+            border: 1px solid rgba(132,134,255,0.12);
+            box-shadow: 0 4px 12px rgba(37, 51, 77, 0.05);
+          }
+          .metric-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .16em;
+            color: #74829a;
+            font-weight: 800;
+            margin-bottom: 8px;
+          }
+          .metric-value {
+            font-size: 26px;
+            line-height: 1;
+            font-weight: 800;
+            letter-spacing: -.04em;
+            color: #172033;
+          }
+          .metric-note {
+            margin-top: 8px;
+            color: #66758d;
+            font-size: 12px;
           }
 
           .section {
-              margin-bottom: 24px;
-              padding-bottom: 20px;
-              border-bottom: 2px solid #f3f4f6;
-              position: relative;
+            padding: 18px;
+            border-radius: 22px;
+            background: rgba(255,255,255,0.74);
+            border: 1px solid rgba(132,134,255,0.12);
+            box-shadow:
+              inset 0 1px 0 rgba(255,255,255,0.82),
+              0 10px 24px rgba(37, 51, 77, 0.05);
           }
-
-          .section:last-child {
-              border-bottom: none;
-              margin-bottom: 0;
-          }
-
           .section-title {
-              font-size: 16px;
-              font-weight: 700;
-              color: #1f2937;
-              margin-bottom: 16px;
-              display: flex;
-              align-items: center;
-              gap: 12px;
-              padding-left: 12px;
+            font-size: 17px;
+            font-weight: 800;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+          }
+          .section-title-main {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: #172033;
+          }
+          .section-copy {
+            color: #607089;
+            margin-bottom: 14px;
+          }
+          .api-shell {
+            display: grid;
+            gap: 12px;
+          }
+          .api-eyebrow {
+            font-size: 10px;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+            font-weight: 800;
+            color: #55566a;
+            margin-bottom: 12px;
+          }
+          .api-operation {
+            display: grid;
+            gap: 14px;
+            padding: 18px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.07);
+          }
+          .api-line {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+          }
+          .api-method {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 58px;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: rgba(34, 197, 94, 0.14);
+            color: #22c55e;
+            border: 1px solid rgba(34, 197, 94, 0.22);
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+          }
+          .api-path {
+            display: inline-flex;
+            align-items: center;
+            flex: 1;
+            min-height: 38px;
+            padding: 0 14px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.07);
+            color: #ebebf0;
+            font: 13px/1.4 "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
+            word-break: break-all;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+          .api-open-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 7px 12px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #888899;
+            font-size: 11px;
+            font-weight: 700;
+            text-decoration: none;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background .18s ease, color .18s ease;
+          }
+          .api-open-btn:hover {
+            background: rgba(255,255,255,0.09);
+            color: #ebebf0;
+          }
+          .api-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+          }
+          .api-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+          }
+          .api-meta-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 10px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #888899;
+            font-size: 11px;
+            font-weight: 700;
+          }
+          .api-chip-success {
+            background: rgba(34, 197, 94, 0.10);
+            border-color: rgba(34, 197, 94, 0.18);
+            color: #22c55e;
+          }
+          .api-chip-teal {
+            background: rgba(15, 139, 141, 0.10);
+            border-color: rgba(15, 139, 141, 0.18);
+            color: #2ab4b6;
+          }
+          .api-chip-mono {
+            background: rgba(167, 139, 250, 0.10);
+            border-color: rgba(167, 139, 250, 0.16);
+            color: #a78bfa;
+            font-family: "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
+          }
+          .api-response-shell {
+            display: grid;
+            gap: 0;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.07);
+            overflow: hidden;
+          }
+          .api-response-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 12px 16px;
+            background: rgba(255,255,255,0.04);
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+          }
+          .api-response-title {
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .12em;
+            color: #55566a;
+          }
+          .copy-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 6px 14px;
+            border-radius: 8px;
+            background: rgba(15, 139, 141, 0.16);
+            border: 1px solid rgba(15, 139, 141, 0.28);
+            color: #2ab4b6;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: .06em;
+            cursor: pointer;
+            transition: background .18s ease, color .18s ease, transform .16s ease;
+          }
+          .copy-action:hover {
+            transform: translateY(-1px);
+            background: rgba(15, 139, 141, 0.22);
+            color: #3dcacb;
+          }
+          .copy-action.is-success {
+            background: rgba(34, 197, 94, 0.14);
+            border-color: rgba(34, 197, 94, 0.24);
+            color: #22c55e;
+          }
+          .copy-action.is-error {
+            background: rgba(239, 68, 68, 0.14);
+            border-color: rgba(239, 68, 68, 0.24);
+            color: #ef4444;
+          }
+          .copy-icon {
+            width: 14px;
+            height: 14px;
+            flex: 0 0 14px;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 14px 14px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='9' y='9' width='11' height='11' rx='2'/%3E%3Cpath d='M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'/%3E%3C/svg%3E");
+          }
+          .copy-icon-success {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 4 4L19 6'/%3E%3C/svg%3E");
+          }
+          .copy-icon-error {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 6 6 18'/%3E%3Cpath d='m6 6 12 12'/%3E%3C/svg%3E");
+          }
+          .section-stack {
+            display: grid;
+            gap: 16px;
+          }
+          .subsection {
+            display: grid;
+            gap: 10px;
+          }
+          .subsection-title {
+            color: #4f5d75;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: .14em;
+            text-transform: uppercase;
           }
 
           .badge {
-              display: inline-flex;
-              align-items: center;
-              gap: 6px;
-              padding: 6px 14px;
-              border-radius: 20px;
-              font-size: 12px;
-              font-weight: 700;
-              text-transform: uppercase;
-              letter-spacing: 0.5px;
-              border: 1px solid transparent;
-              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .12em;
+            border: 1px solid transparent;
           }
-
-          .badge-info {
-              background: linear-gradient(135deg, #eff6ff, #dbeafe);
-              color: #1e40af;
-              border-color: #93c5fd;
-          }
-
-          .badge-success {
-              background: linear-gradient(135deg, #d1fae5, #a7f3d0);
-              color: #065f46;
-              border-color: #6ee7b7;
-          }
-
-          .badge-warning {
-              background: linear-gradient(135deg, #fef3c7, #fde68a);
-              color: #92400e;
-              border-color: #fbbf24;
-          }
-
-          .badge-error {
-              background: linear-gradient(135deg, #fee2e2, #fecaca);
-              color: #991b1b;
-              border-color: #fca5a5;
-          }
+          .badge-info { background: rgba(132, 134, 255, 0.1); color: #5a5ef0; border-color: rgba(132, 134, 255, 0.16); }
+          .badge-success { background: rgba(20, 125, 100, 0.12); color: #147d64; border-color: rgba(20, 125, 100, 0.16); }
+          .badge-warning { background: rgba(242, 193, 78, 0.18); color: #b66912; border-color: rgba(242, 193, 78, 0.18); }
+          .badge-error { background: rgba(239, 68, 68, 0.12); color: #c9485b; border-color: rgba(239, 68, 68, 0.16); }
 
           .row {
-              margin: 12px 0;
-              display: flex;
-              align-items: center;
-              gap: 16px;
-              padding: 10px 16px;
-              background: #f9fafb;
-              border-radius: 10px;
-              border: 1px solid #e5e7eb;
-              transition: all 0.2s ease;
+            margin: 10px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.78);
+            border: 1px solid rgba(132,134,255,0.1);
           }
-
-          .row:hover {
-              background: #ffffff;
-              border-color: #d1d5db;
-              transform: translateY(-1px);
-              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-          }
-
           .key {
-              color: #6b7280;
-              display: inline-block;
-              min-width: 140px;
-              font-weight: 600;
-              font-size: 13px;
-              text-transform: uppercase;
-              letter-spacing: 0.5px;
+            min-width: 108px;
+            color: #728198;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: .12em;
+            text-transform: uppercase;
           }
-
           .val {
-              color: #1f2937;
-              flex: 1;
-              font-weight: 600;
-              font-size: 14px;
-              word-break: break-word;
+            flex: 1;
+            color: #172033;
+            font-weight: 700;
+            word-break: break-word;
           }
 
-          .sql-list {
-              margin-top: 16px;
+          .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+          }
+          .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+          }
+          .summary-card {
+            padding: 16px;
+            border-radius: 18px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(246,248,255,0.92));
+            border: 1px solid rgba(132,134,255,0.12);
+            box-shadow: 0 6px 14px rgba(37, 51, 77, 0.05);
+          }
+          .summary-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .16em;
+            font-weight: 800;
+            color: #76829a;
+            margin-bottom: 10px;
+          }
+          .summary-value {
+            color: #172033;
+            font-size: 22px;
+            line-height: 1.08;
+            letter-spacing: -.03em;
+            font-weight: 800;
+          }
+          .summary-note {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #63738b;
+          }
+          .history-shell {
+            display: grid;
+            gap: 12px;
+          }
+          .history-loading {
+            padding: 18px;
+            border-radius: 16px;
+            border: 1px dashed rgba(255,255,255,0.10);
+            background: rgba(255,255,255,0.03);
+            color: #888899;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 700;
+          }
+          .history-list {
+            display: grid;
+            gap: 10px;
+          }
+          .history-item {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 14px;
+            align-items: center;
+            padding: 14px 16px;
+            border-radius: 16px;
+            text-decoration: none;
+            background: #18181B;
+            border: 1px solid rgba(255,255,255,0.07);
+            transition: border-color .18s ease, background .18s ease;
+          }
+          .history-item:hover {
+            border-color: rgba(42,180,182,0.22);
+            background: rgba(255,255,255,0.04);
+          }
+          .history-main {
+            min-width: 0;
+            display: grid;
+            gap: 8px;
+          }
+          .history-top,
+          .history-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            min-width: 0;
+          }
+          .history-method {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 52px;
+            padding: 5px 10px;
+            border-radius: 8px;
+            background: rgba(34, 197, 94, 0.12);
+            border: 1px solid rgba(34, 197, 94, 0.20);
+            color: #22c55e;
+            font-size: 10px;
+            font-weight: 900;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            flex: 0 0 auto;
+          }
+          .history-route {
+            min-width: 0;
+            color: #ebebf0;
+            font-size: 14px;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-family: "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
+          }
+          .history-duration,
+          .history-captured,
+          .history-request-id {
+            color: #55566a;
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+          }
+          .history-request-id {
+            font-family: "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
+          }
+          .history-open {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #888899;
+            font-size: 11px;
+            font-weight: 800;
+            white-space: nowrap;
+            transition: background .18s ease, color .18s ease;
+          }
+          .history-open:hover {
+            background: rgba(255,255,255,0.09);
+            color: #ebebf0;
+          }
+          .history-open::after {
+            content: "↗";
+            font-size: 12px;
+          }
+          .history-dashboard {
+            display: grid;
+            gap: 14px;
+          }
+          .history-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+          }
+          .history-range-pills {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            flex-wrap: wrap;
+          }
+          .history-range-pill {
+            appearance: none;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.04);
+            color: #888899;
+            padding: 6px 11px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: background .18s ease, color .18s ease, border-color .18s ease;
+          }
+          .history-range-pill:hover {
+            background: rgba(255,255,255,0.07);
+            color: #ebebf0;
+          }
+          .history-range-pill.active {
+            background: rgba(15, 139, 141, 0.16);
+            border-color: rgba(15, 139, 141, 0.28);
+            color: #2ab4b6;
+          }
+          .history-shell {
+            gap: 18px;
+          }
+          .history-overview-grid {
+            display: grid;
+            grid-template-columns: 1.15fr .95fr;
+            gap: 12px;
+          }
+          .history-card {
+            padding: 16px;
+            border-radius: 16px;
+            background: #18181B;
+            border: 1px solid rgba(255,255,255,0.07);
+          }
+          .history-card-wide {
+            grid-column: 1 / -1;
+          }
+          .history-card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+          }
+          .history-card-title {
+            font-size: 10px;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+            color: #55566a;
+            font-weight: 800;
+            margin-bottom: 8px;
+          }
+          .history-card-value {
+            color: #ebebf0;
+            font-size: 28px;
+            line-height: 1;
+            letter-spacing: -.04em;
+            font-weight: 900;
+          }
+          .history-card-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+          }
+          .history-card-note {
+            color: #888899;
+            font-size: 12px;
+            font-weight: 700;
+          }
+          .history-kpis {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+            margin-bottom: 14px;
+          }
+          .history-kpi {
+            padding: 12px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+          }
+          .history-kpi-label {
+            color: #55566a;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+          }
+          .history-kpi-value {
+            color: #ebebf0;
+            font-size: 17px;
+            font-weight: 900;
+            line-height: 1;
+          }
+          .history-chart-wrap {
+            display: grid;
+            gap: 6px;
+          }
+          .history-chart {
+            width: 100%;
+            height: 154px;
+            display: block;
+          }
+          .history-chart-axis {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            color: #55566a;
+            font-size: 11px;
+            font-weight: 700;
+          }
+          .history-grid-line {
+            stroke: rgba(255,255,255,0.06);
+            stroke-width: 1;
+          }
+          .history-bar-muted {
+            fill: rgba(255,255,255,0.10);
+          }
+          .history-bar-success {
+            fill: rgba(42,180,182,0.55);
+          }
+          .history-bar-warning {
+            fill: rgba(245,158,11,0.72);
+          }
+          .history-bar-error {
+            fill: rgba(239,68,68,0.72);
+          }
+          .history-line-avg {
+            fill: none;
+            stroke: rgba(255,255,255,0.16);
+            stroke-width: 2;
+          }
+          .history-line-max {
+            fill: none;
+            stroke: rgba(245,158,11,0.85);
+            stroke-width: 2.2;
+          }
+          .history-table-shell {
+            display: grid;
+            gap: 12px;
+            min-width: 0;
+          }
+          .history-table-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+          }
+          .history-route-count {
+            color: #ebebf0;
+            font-size: 14px;
+            font-weight: 800;
+          }
+          .history-search-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            flex: 1 1 auto;
+          }
+          .history-search {
+            flex: 1 1 160px;
+            min-width: 0;
+            padding: 9px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.04);
+            color: #ebebf0;
+            font-size: 12px;
+            font-weight: 600;
+            outline: none;
+            transition: border-color .18s ease, background .18s ease;
+          }
+          .history-search:focus {
+            border-color: rgba(42,180,182,0.30);
+            background: rgba(255,255,255,0.06);
+          }
+          .history-search::placeholder {
+            color: #55566a;
+            font-weight: 600;
+          }
+          .history-toggle-group {
+            display: inline-flex;
+            gap: 4px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 10px;
+            padding: 3px;
+            flex-wrap: nowrap;
+          }
+          .history-toggle {
+            appearance: none;
+            border: 1px solid transparent;
+            background: transparent;
+            color: #888899;
+            padding: 6px 11px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 800;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background .18s ease, color .18s ease, border-color .18s ease;
+          }
+          .history-toggle:hover {
+            color: #ebebf0;
+            background: rgba(255,255,255,0.06);
+          }
+          .history-toggle.active {
+            background: rgba(15, 139, 141, 0.18);
+            border-color: rgba(15, 139, 141, 0.26);
+            color: #2ab4b6;
+          }
+          .history-route-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            overflow: hidden;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.07);
+            background: #18181B;
+            table-layout: auto;
+            min-width: 520px;
+          }
+          .history-route-table th,
+          .history-route-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            text-align: left;
+            vertical-align: middle;
+          }
+          .history-route-table th {
+            color: #55566a;
+            font-size: 10px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            font-weight: 800;
+            background: rgba(255,255,255,0.04);
+            white-space: nowrap;
+          }
+          .history-route-table td {
+            color: #ebebf0;
+            font-size: 13px;
+            font-weight: 600;
+          }
+          .history-route-table tr:last-child td {
+            border-bottom: 0;
+          }
+          .history-route-table tbody tr:hover td {
+            background: rgba(42,180,182,0.04);
+          }
+          .history-table-scroll {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+            border-radius: 14px;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: var(--dp-scrollbar-thumb) var(--dp-scrollbar-track);
+          }
+          .history-method-chip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: flex-start;
+            min-width: 0;
+            padding: 0;
+            border-radius: 0;
+            background: transparent;
+            border: 0;
+            color: #cbd5e1;
+            font-size: 10px;
+            font-weight: 900;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+          }
+          .history-method-chip[data-method="GET"] { color: #22c55e; }
+          .history-method-chip[data-method="POST"] { color: #14b8a6; }
+          .history-method-chip[data-method="PUT"] { color: #f59e0b; }
+          .history-method-chip[data-method="PATCH"] { color: #fb923c; }
+          .history-method-chip[data-method="DELETE"] { color: #ef4444; }
+          .history-method-chip[data-method="OPTIONS"] { color: #60a5fa; }
+          .history-method-chip[data-method="HEAD"] { color: #a78bfa; }
+          .history-path-cell {
+            min-width: 120px;
+            max-width: 260px;
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #ebebf0;
+            font-family: "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 12px;
+          }
+          .history-cell-number {
+            white-space: nowrap;
+            color: #888899;
+            font-size: 13px;
+            font-weight: 700;
+          }
+          .history-cell-number.has-value {
+            color: #ebebf0;
+          }
+          .history-count-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 28px;
+            padding: 3px 1px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 800;
+            line-height: 1;
+            white-space: nowrap;
+          }
+          .history-count-badge-alert {
+            color: #ffb5c0;
+            background: rgba(239, 68, 68, 0.16);
+            border: 1px solid rgba(239, 68, 68, 0.28);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+          }
+          .history-col-method { width: 90px; }
+          .history-col-path { width: auto; }
+          .history-col-requests { width: 80px; }
+          .history-col-3xx,
+          .history-col-4xx,
+          .history-col-5xx { width: 60px; }
+          .history-col-avg,
+          .history-col-max { width: 68px; }
+          .history-empty-state {
+            padding: 24px 16px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.02);
+            border: 1px dashed rgba(255,255,255,0.09);
+            color: #55566a;
+            font-size: 13px;
+            font-weight: 700;
+            text-align: center;
+          }
+          .cache-table-shell {
+            display: grid;
+            gap: 12px;
+            min-width: 0;
+            margin-top: 14px;
+          }
+          .cache-table-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+          }
+          .cache-table-count {
+            color: #ebebf0;
+            font-size: 14px;
+            font-weight: 800;
+          }
+          .cache-table-note {
+            color: #888899;
+            font-size: 12px;
+            font-weight: 700;
+          }
+          .cache-table-scroll {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+            border-radius: 14px;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: var(--dp-scrollbar-thumb) var(--dp-scrollbar-track);
+          }
+          .cache-detail-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            overflow: hidden;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.07);
+            background: #18181B;
+            table-layout: auto;
+            min-width: 780px;
+          }
+          .cache-detail-table th,
+          .cache-detail-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            text-align: left;
+            vertical-align: top;
+          }
+          .cache-detail-table th {
+            color: #55566a;
+            font-size: 10px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            font-weight: 800;
+            background: rgba(255,255,255,0.04);
+            white-space: nowrap;
+          }
+          .cache-detail-table td {
+            color: #ebebf0;
+            font-size: 13px;
+            font-weight: 600;
+          }
+          .cache-detail-table tr:last-child td {
+            border-bottom: 0;
+          }
+          .cache-detail-table tbody tr:hover td {
+            background: rgba(42,180,182,0.04);
+          }
+          .cache-type-chip {
+            display: inline-flex;
+            align-items: center;
+            font-size: 10px;
+            font-weight: 900;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: #2ab4b6;
+          }
+          .cache-key-cell {
+            display: block;
+            min-width: 160px;
+            max-width: 260px;
+            color: #ebebf0;
+            font-family: "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 12px;
+            line-height: 1.55;
+            word-break: break-word;
+          }
+          .cache-store-cell {
+            display: grid;
+            gap: 2px;
+          }
+          .cache-store-name {
+            color: #ebebf0;
+            font-size: 12px;
+            font-weight: 800;
+          }
+          .cache-store-driver {
+            color: #888899;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+          }
+          .cache-status-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 58px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 900;
+            letter-spacing: .10em;
+            text-transform: uppercase;
+            white-space: nowrap;
+          }
+          .cache-status-hit {
+            background: rgba(34, 197, 94, 0.14);
+            border: 1px solid rgba(34, 197, 94, 0.22);
+            color: #22c55e;
+          }
+          .cache-status-miss,
+          .cache-status-failed {
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239, 68, 68, 0.18);
+            color: #f87171;
+          }
+          .cache-status-write,
+          .cache-status-pass {
+            background: rgba(96, 165, 250, 0.12);
+            border: 1px solid rgba(96, 165, 250, 0.18);
+            color: #60a5fa;
+          }
+          .cache-status-neutral {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.10);
+            color: #cbd5e1;
+          }
+          .cache-detail-meta {
+            display: grid;
+            gap: 4px;
+          }
+          .cache-meta-text {
+            color: #888899;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.5;
+            word-break: break-word;
+          }
+          .cache-value-preview {
+            color: #ebebf0;
+            font-size: 12px;
+            font-family: "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
+            line-height: 1.55;
+            word-break: break-word;
+          }
+          .cache-value-details {
+            display: grid;
+            gap: 8px;
+          }
+          .cache-value-summary {
+            cursor: pointer;
+            color: #cbd5e1;
+            font-size: 12px;
+            font-weight: 700;
+            list-style: none;
+          }
+          .cache-value-summary::-webkit-details-marker {
+            display: none;
+          }
+          .cache-value-summary::before {
+            content: "▸";
+            display: inline-block;
+            margin-right: 6px;
+            transition: transform .18s ease;
+          }
+          .cache-value-details[open] .cache-value-summary::before {
+            transform: rotate(90deg);
+          }
+          .cache-value-body {
+            margin-top: 2px;
+          }
+          .cache-col-type { width: 86px; }
+          .cache-col-key { width: 180px; }
+          .cache-col-value { width: auto; }
+          .cache-col-store { width: 110px; }
+          .cache-col-status { width: 90px; }
+          .cache-col-meta { width: 210px; }
+          .history-error-feed {
+            display: grid;
+            gap: 8px;
+          }
+          .history-error-item {
+            display: grid;
+            gap: 8px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.07);
+            background: rgba(255,255,255,0.03);
+            min-width: 0;
+          }
+          .history-error-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            flex-wrap: wrap;
+          }
+          .history-error-path {
+            color: #ebebf0;
+            font-size: 13px;
+            font-weight: 800;
+            min-width: 0;
+            overflow-wrap: anywhere;
+          }
+          .history-error-text {
+            color: #888899;
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 1.45;
+            overflow-wrap: anywhere;
+          }
+          .history-error-meta {
+            color: #55566a;
+            font-size: 11px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+          }
+          .history-error-empty {
+            padding: 16px;
+          }
+          .muted-value {
+            color: #8391a8;
+            font-style: italic;
           }
 
-          .sql-item {
-              border: 2px solid #e5e7eb;
-              border-radius: 12px;
-              padding: 18px;
-              margin-bottom: 12px;
-              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-              transition: all 0.3s ease;
-              position: relative;
-              overflow: hidden;
+          .property-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            overflow: hidden;
+            border-radius: 16px;
+            border: 1px solid rgba(132,134,255,0.12);
+            background: rgba(255,255,255,0.86);
+          }
+          .property-table th,
+          .property-table td {
+            padding: 13px 14px;
+            text-align: left;
+            border-bottom: 1px solid rgba(132,134,255,0.08);
+            vertical-align: top;
+          }
+          .property-table th {
+            background: rgba(132,134,255,0.08);
+            color: #53617a;
+            font-size: 11px;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            font-weight: 800;
+          }
+          .property-table td {
+            color: #172033;
+            font-size: 13px;
+            font-weight: 600;
+            word-break: break-word;
+          }
+          .property-table tr:last-child td {
+            border-bottom: 0;
+          }
+          .code-block {
+            margin: 0;
+            padding: 16px 18px;
+            border-radius: 0;
+            border: none;
+            background: #0d0d10;
+            color: #ebebf0;
+            font: 12px/1.75 "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-x: auto;
+          }
+          .api-response-shell > .code-block:last-child {
+            border-radius: 0 0 15px 15px;
+          }
+          .code-block-compact {
+            padding: 10px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+          }
+          .json {
+            font: 12px/1.6 "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
+            color: #172033;
+            background: rgba(246,248,255,0.96);
+            border: 1px solid rgba(132,134,255,0.1);
+            border-radius: 16px;
+            padding: 14px 16px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+          }
+          .json > .json__item {
+            display: block;
+          }
+          .json__node {
+            display: block;
+            margin-top: 8px;
+          }
+          .json__node:first-child {
+            margin-top: 0;
+          }
+          .json__children {
+            display: none;
+            padding-left: 18px;
+          }
+          .json__node[open] > .json__children {
+            display: block;
+          }
+          .json__item {
+            display: block;
+            margin-top: 8px;
+            padding-left: 18px;
+          }
+          .json__item--collapsible {
+            display: block;
+            cursor: pointer;
+            position: relative;
+            list-style: none;
+            margin-top: 0;
+          }
+          .json__item--collapsible::-webkit-details-marker {
+            display: none;
+          }
+          .json__item--collapsible::before {
+            content: "+";
+            position: absolute;
+            left: 2px;
+            top: 0;
+            color: #5a5ef0;
+            font-weight: 800;
+            user-select: none;
+          }
+          .json__item--collapsible::after {
+            content: "";
+            position: absolute;
+            left: 6px;
+            top: 22px;
+            width: 1px;
+            height: calc(100% - 18px);
+            background: rgba(17, 40, 61, 0.16);
+          }
+          .json__item--collapsible:hover > .json__key,
+          .json__item--collapsible:hover > .json__value {
+            text-decoration: underline;
+          }
+          .json__node[open] > .json__item--collapsible::before {
+            content: "-";
+          }
+          .json__key {
+            color: #5a5ef0;
+            display: inline;
+            font-weight: 700;
+          }
+          .json__key::after {
+            content: ": ";
+            color: #7f8ca3;
+          }
+          .json__value {
+            display: inline;
+          }
+          .json__value--string {
+            color: #147d64;
+          }
+          .json__value--number {
+            color: #7c3aed;
+          }
+          .json__value--boolean {
+            color: #b66912;
+          }
+          .json__value--object,
+          .json__value--type-object,
+          .json__value--type-array {
+            color: #c05621;
+          }
+          .json__value--undefined {
+            color: #8391a8;
+            font-style: italic;
+          }
+          .log-list {
+            display: grid;
+            gap: 12px;
+          }
+          .log-card {
+            padding: 14px;
+            border-radius: 16px;
+            border: 1px solid rgba(132,134,255,0.1);
+            background: rgba(255,255,255,0.82);
+          }
+          .log-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+          }
+          .log-level {
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 10px;
+            border-radius: 999px;
+            font-size: 10px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            font-weight: 800;
+            background: rgba(132,134,255,0.1);
+            color: #5a5ef0;
+          }
+          .log-time {
+            color: #728198;
+            font-size: 12px;
+            font-weight: 700;
+          }
+          .log-message {
+            color: #172033;
+            font-weight: 700;
+            margin-bottom: 10px;
+            word-break: break-word;
+          }
+          .pill-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+          }
+          .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(132,134,255,0.08);
+            border: 1px solid rgba(132,134,255,0.12);
+            color: #4f5d75;
+            font-size: 11px;
+            font-weight: 700;
           }
 
-          .sql-item:hover {
-              transform: translateY(-2px);
-              box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-          }
-
-          .sql-item:last-child {
-              margin-bottom: 0;
-          }
-
-          .sql-item::before {
-              content: '';
-              position: absolute;
-              top: 0;
-              left: 0;
-              width: 6px;
-              height: 100%;
-          }
-
-          .sql-header {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              margin-bottom: 12px;
-              flex-wrap: wrap;
-              gap: 12px;
-          }
-
-          .sql-time {
-              color: #059669;
-              font-weight: 800;
-              font-size: 14px;
-              background: #d1fae5;
-              padding: 4px 12px;
-              border-radius: 20px;
-              border: 1px solid #10b981;
-          }
-
-          .sql-rows {
-              color: #6b7280;
-              font-size: 12px;
-              margin-left: 12px;
-              font-weight: 600;
-              background: #f3f4f6;
-              padding: 4px 10px;
-              border-radius: 12px;
-          }
-
-          .sql-query {
-              color: #1f2937;
-              font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-              font-size: 13px;
-              line-height: 1.7;
-              word-break: break-all;
-              white-space: pre-wrap;
-              background: #f9fafb;
-              padding: 14px 16px;
-              border-radius: 10px;
-              margin-bottom: 12px;
-              border: 1px solid #e5e7eb;
-              font-weight: 500;
-          }
-
-          .sql-bindings {
-              font-size: 12px;
-              color: #6b7280;
-              font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-              background: #f3f4f6;
-              padding: 10px 14px;
-              border-radius: 8px;
-              border: 1px solid #e5e7eb;
-              margin-top: 8px;
-          }
-
-          .sql-error {
-              color: #dc2626;
-              font-size: 13px;
-              margin-top: 12px;
-              background: #fee2e2;
-              padding: 10px 14px;
-              border-radius: 8px;
-              border: 1px solid #fecaca;
-              font-weight: 600;
-          }
-
-          .no-data {
-              color: #9ca3af;
-              font-style: italic;
-              font-size: 14px;
-              text-align: center;
-              padding: 40px 20px;
-              background: #f9fafb;
-              border-radius: 12px;
-              border: 2px dashed #e5e7eb;
-          }
-
-          .redirect-row {
-              background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-              padding: 16px 20px;
-              margin: 16px 0;
-              border-radius: 12px;
-              border: 1px solid #dbeafe;
-              box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
-          }
-
-          .redirect-url {
-              color: #1e40af;
-              font-weight: 700;
-              word-break: break-all;
-              font-size: 14px;
-              font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-          }
-
-          .redirect-chain-list {
-              margin-top: 16px;
-          }
-
+          .sql-list { display: grid; gap: 12px; }
+          .sql-item,
           .redirect-chain-item {
-              background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-              border: 2px solid #e5e7eb;
-              border-radius: 12px;
-              padding: 18px;
-              margin-bottom: 12px;
-              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-              transition: all 0.2s ease;
-              position: relative;
+            padding: 16px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.86);
+            border: 1px solid rgba(132,134,255,0.12);
           }
-
-          .redirect-chain-item:hover {
-              transform: translateY(-1px);
-              box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-              border-color: #d1d5db;
-          }
-
-          .redirect-chain-item:last-child {
-              margin-bottom: 0;
-          }
-
-          .redirect-chain-current::before {
-              position: absolute;
-              top: 16px;
-              right: 16px;
-              color: white;
-              font-size: 10px;
-              font-weight: 800;
-              padding: 4px 10px;
-              border-radius: 20px;
-              text-transform: uppercase;
-              letter-spacing: 0.5px;
-          }
-
+          .sql-header,
           .redirect-chain-header {
-              display: flex;
-              align-items: center;
-              gap: 12px;
-              flex-wrap: wrap;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 12px;
           }
-
-          .redirect-chain-status {
-              color: #f59e0b;
-              font-weight: 800;
-              font-size: 13px;
-              background: #fef3c7;
-              padding: 4px 12px;
-              border-radius: 20px;
-              border: 1px solid #fbbf24;
-          }
-
-          .redirect-chain-method {
-              color: #3b82f6;
-              font-size: 12px;
-              font-weight: 700;
-              background: #eff6ff;
-              padding: 4px 10px;
-              border-radius: 12px;
-              border: 1px solid #dbeafe;
-          }
-
-          .redirect-chain-path {
-              color: #1f2937;
-              font-size: 13px;
-              font-weight: 600;
-              flex: 1;
-              word-break: break-all;
-              font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-          }
-
+          .sql-time,
           .redirect-chain-duration {
-              color: #059669;
-              font-size: 12px;
-              font-weight: 800;
-              margin-left: auto;
-              background: #d1fae5;
-              padding: 4px 12px;
-              border-radius: 20px;
-              border: 1px solid #10b981;
+            color: #147d64;
+            font-weight: 800;
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(20, 125, 100, 0.12);
           }
-
+          .sql-rows,
+          .redirect-chain-method,
+          .redirect-chain-status {
+            font-size: 11px;
+            font-weight: 800;
+            border-radius: 999px;
+            padding: 4px 10px;
+            background: rgba(132,134,255,0.08);
+            color: #596883;
+          }
+          .sql-query,
+          .sql-bindings,
           .redirect-chain-arrow {
-              color: #3b82f6;
-              font-size: 12px;
-              margin-top: 12px;
-              padding-left: 28px;
-              font-weight: 600;
-              display: flex;
-              align-items: center;
-              gap: 8px;
+            background: rgba(246,248,255,0.96);
+            border: 1px solid rgba(132,134,255,0.1);
+            border-radius: 14px;
+            padding: 12px 14px;
+            font-family: "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
+          }
+          .sql-query,
+          .redirect-chain-path {
+            color: #172033;
+            word-break: break-word;
+          }
+          .sql-bindings,
+          .redirect-chain-arrow {
+            margin-top: 10px;
+            color: #607089;
+            font-size: 12px;
+          }
+          .sql-error {
+            margin-top: 10px;
+            color: #bf3c44;
+            background: rgba(191, 60, 68, 0.08);
+            border: 1px solid rgba(191, 60, 68, 0.14);
+            border-radius: 12px;
+            padding: 10px 12px;
+            font-weight: 700;
+          }
+          .no-data {
+            color: #728198;
+            font-style: italic;
+            text-align: center;
+            padding: 30px 16px;
+            background: rgba(255,255,255,0.56);
+            border-radius: 16px;
+            border: 1px dashed rgba(132,134,255,0.18);
           }
 
-          .redirect-chain-arrow::before {
-              content: '→';
-              font-size: 16px;
-              font-weight: 800;
+          .panel[data-theme="dark"] {
+            color: #ebebf0;
+            background: #09090B;
+            border-color: rgba(255, 255, 255, 0.08);
+            box-shadow:
+              0 28px 64px rgba(0, 0, 0, 0.6),
+              inset 0 1px 0 rgba(255,255,255,0.04);
+          }
+          .panel[data-theme="dark"]::before {
+            background: none;
+          }
+          .panel[data-theme="dark"] .hero,
+          .panel[data-theme="dark"] .section,
+          .panel[data-theme="dark"] .summary-card,
+          .panel[data-theme="dark"] .metric,
+          .panel[data-theme="dark"] .sql-item,
+          .panel[data-theme="dark"] .redirect-chain-item,
+          .panel[data-theme="dark"] .log-card,
+          .panel[data-theme="dark"] .cache-op-card,
+          .panel[data-theme="dark"] .property-table,
+          .panel[data-theme="dark"] .row {
+            background: #18181B;
+            border-color: rgba(255,255,255,0.07);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+          }
+          .panel[data-theme="dark"] .hero-request-bar,
+          .panel[data-theme="dark"] .code-block,
+          .panel[data-theme="dark"] .json,
+          .panel[data-theme="dark"] .sql-query,
+          .panel[data-theme="dark"] .sql-bindings,
+          .panel[data-theme="dark"] .redirect-chain-arrow {
+            background: #0d0d10;
+            border-color: rgba(255,255,255,0.08);
+            color: #ebebf0;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+          }
+          .panel[data-theme="dark"] .hero-url,
+          .panel[data-theme="dark"] .hero-copy,
+          .panel[data-theme="dark"] .summary-note,
+          .panel[data-theme="dark"] .metric-note,
+          .panel[data-theme="dark"] .nav-section-label,
+          .panel[data-theme="dark"] .history-duration,
+          .panel[data-theme="dark"] .history-captured,
+          .panel[data-theme="dark"] .history-request-id,
+          .panel[data-theme="dark"] .history-card-note,
+          .panel[data-theme="dark"] .history-chart-axis,
+          .panel[data-theme="dark"] .key,
+          .panel[data-theme="dark"] .log-time,
+          .panel[data-theme="dark"] .api-meta-chip,
+          .panel[data-theme="dark"] .sql-bindings,
+          .panel[data-theme="dark"] .redirect-chain-arrow,
+          .panel[data-theme="dark"] .muted-value,
+          .panel[data-theme="dark"] .no-data,
+          .panel[data-theme="dark"] .eyebrow,
+          .panel[data-theme="dark"] .subsection-title,
+          .panel[data-theme="dark"] .property-table th,
+          .panel[data-theme="dark"] .pill {
+            color: #888899;
+          }
+          .panel[data-theme="dark"] .hero-title,
+          .panel[data-theme="dark"] .summary-value,
+          .panel[data-theme="dark"] .metric-value,
+          .panel[data-theme="dark"] .section-title-main,
+          .panel[data-theme="dark"] .nav-section-copy,
+          .panel[data-theme="dark"] .history-route,
+          .panel[data-theme="dark"] .history-card-value,
+          .panel[data-theme="dark"] .history-route-count,
+          .panel[data-theme="dark"] .history-error-path,
+          .panel[data-theme="dark"] .val,
+          .panel[data-theme="dark"] .log-message,
+          .panel[data-theme="dark"] .sql-query,
+          .panel[data-theme="dark"] .redirect-chain-path,
+          .panel[data-theme="dark"] .api-response-title,
+          .panel[data-theme="dark"] .api-path,
+          .panel[data-theme="dark"] .property-table td,
+          .panel[data-theme="dark"] .json,
+          .panel[data-theme="dark"] .json__value {
+            color: #ebebf0;
+          }
+          .panel[data-theme="dark"] .theme-switch,
+          .panel[data-theme="dark"] .hero-status,
+          .panel[data-theme="dark"] .hero-request-copy {
+            background: #18181B;
+            border-color: rgba(255,255,255,0.08);
+            color: #ebebf0;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+          }
+          .panel[data-theme="dark"] .hero-request-copy:hover,
+          .panel[data-theme="dark"] .theme-switch:hover {
+            background: rgba(255,255,255,0.08);
+          }
+          .panel[data-theme="dark"] .hero-method-pill,
+          .panel[data-theme="dark"] .api-method {
+            background: rgba(34, 197, 94, 0.14);
+            border-color: rgba(34, 197, 94, 0.20);
+            color: #22c55e;
+          }
+          .panel[data-theme="dark"] .summary-card,
+          .panel[data-theme="dark"] .metric,
+          .panel[data-theme="dark"] .history-item,
+          .panel[data-theme="dark"] .history-card,
+          .panel[data-theme="dark"] .history-kpi,
+          .panel[data-theme="dark"] .nav-section-divider,
+          .panel[data-theme="dark"] .history-route-table,
+          .panel[data-theme="dark"] .cache-detail-table,
+          .panel[data-theme="dark"] .history-error-item,
+          .panel[data-theme="dark"] .history-search,
+          .panel[data-theme="dark"] .history-toggle,
+          .panel[data-theme="dark"] .history-range-pill,
+          .panel[data-theme="dark"] .history-empty-state {
+            border-color: rgba(255,255,255,0.07);
+          }
+          .panel[data-theme="dark"] .history-item {
+            background: #18181B;
+          }
+          .panel[data-theme="dark"] .history-card,
+          .panel[data-theme="dark"] .history-kpi,
+          .panel[data-theme="dark"] .history-route-table,
+          .panel[data-theme="dark"] .cache-detail-table,
+          .panel[data-theme="dark"] .history-error-item,
+          .panel[data-theme="dark"] .history-search,
+          .panel[data-theme="dark"] .history-toggle,
+          .panel[data-theme="dark"] .history-range-pill,
+          .panel[data-theme="dark"] .history-empty-state {
+            background: #18181B;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+          }
+          .panel[data-theme="dark"] .nav-section-divider {
+            background: rgba(255,255,255,0.06);
+            box-shadow: none;
+          }
+          .panel[data-theme="dark"] .history-loading {
+            background: rgba(255,255,255,0.02);
+            border-color: rgba(255,255,255,0.10);
+            color: #888899;
+          }
+          .panel[data-theme="dark"] .api-meta-chip,
+          .panel[data-theme="dark"] .pill,
+          .panel[data-theme="dark"] .sql-rows,
+          .panel[data-theme="dark"] .redirect-chain-method,
+          .panel[data-theme="dark"] .redirect-chain-status,
+          .panel[data-theme="dark"] .history-method {
+            background: rgba(255,255,255,0.06);
+            border-color: rgba(255,255,255,0.08);
+            color: #888899;
+          }
+          .panel[data-theme="dark"] .history-method-chip {
+            background: transparent;
+            border-color: transparent;
+            color: #cbd5e1;
+          }
+          .panel[data-theme="dark"] .history-method-chip[data-method="GET"] { color: #22c55e; }
+          .panel[data-theme="dark"] .history-method-chip[data-method="POST"] { color: #2dd4bf; }
+          .panel[data-theme="dark"] .history-method-chip[data-method="PUT"] { color: #fbbf24; }
+          .panel[data-theme="dark"] .history-method-chip[data-method="PATCH"] { color: #fb923c; }
+          .panel[data-theme="dark"] .history-method-chip[data-method="DELETE"] { color: #f87171; }
+          .panel[data-theme="dark"] .history-method-chip[data-method="OPTIONS"] { color: #60a5fa; }
+          .panel[data-theme="dark"] .history-method-chip[data-method="HEAD"] { color: #c4b5fd; }
+          .panel[data-theme="dark"] .history-toggle.active {
+            background: rgba(15, 139, 141, 0.18);
+            border-color: rgba(15, 139, 141, 0.26);
+            color: #2ab4b6;
+          }
+          .panel[data-theme="dark"] .history-range-pill.active {
+            background: rgba(15, 139, 141, 0.16);
+            border-color: rgba(15, 139, 141, 0.28);
+            color: #2ab4b6;
+          }
+          .panel[data-theme="dark"] .history-route-table th {
+            background: rgba(255,255,255,0.04);
+          }
+          .panel[data-theme="dark"] .cache-detail-table th {
+            background: rgba(255,255,255,0.04);
+          }
+          .panel[data-theme="dark"] .history-route-table td,
+          .panel[data-theme="dark"] .cache-detail-table td,
+          .panel[data-theme="dark"] .history-search,
+          .panel[data-theme="dark"] .history-toggle,
+          .panel[data-theme="dark"] .history-range-pill {
+            color: #ebebf0;
+          }
+          .panel[data-theme="dark"] .history-search::placeholder {
+            color: #55566a;
+          }
+          .panel[data-theme="dark"] .history-error-text {
+            color: #888899;
+          }
+          .panel[data-theme="dark"] .history-error-meta {
+            color: #55566a;
+          }
+          .panel[data-theme="dark"] .history-route-table tbody tr:hover td {
+            background: rgba(255,255,255,0.03);
+          }
+          .panel[data-theme="dark"] .cache-detail-table tbody tr:hover td {
+            background: rgba(255,255,255,0.03);
+          }
+          .panel[data-theme="dark"] .cache-meta-text,
+          .panel[data-theme="dark"] .cache-store-driver {
+            color: #888899;
+          }
+          .panel[data-theme="dark"] .cache-value-summary,
+          .panel[data-theme="dark"] .cache-value-preview,
+          .panel[data-theme="dark"] .cache-store-name,
+          .panel[data-theme="dark"] .cache-key-cell {
+            color: #ebebf0;
+          }
+          .panel[data-theme="dark"] {
+            --dp-scrollbar-thumb: rgba(255,255,255,0.16);
+            --dp-scrollbar-thumb-hover: rgba(255,255,255,0.28);
+          }
+          .panel[data-theme="dark"] .history-grid-line {
+            stroke: rgba(255,255,255,0.08);
+          }
+          .panel[data-theme="dark"] .history-bar-success {
+            fill: rgba(42,180,182,0.72);
+          }
+          .panel[data-theme="dark"] .history-bar-warning {
+            fill: rgba(245,158,11,0.74);
+          }
+          .panel[data-theme="dark"] .history-bar-error {
+            fill: rgba(239,68,68,0.74);
+          }
+          .panel[data-theme="dark"] .history-line-avg {
+            stroke: rgba(255,255,255,0.20);
+          }
+          .panel[data-theme="dark"] .history-line-max {
+            stroke: rgba(245,158,11,0.90);
+          }
+          .panel[data-theme="dark"] .log-level {
+            background: rgba(42, 180, 182, 0.12);
+            border: 1px solid rgba(42, 180, 182, 0.18);
+            color: #2ab4b6;
+          }
+          .panel[data-theme="dark"] .sql-time,
+          .panel[data-theme="dark"] .redirect-chain-duration,
+          .panel[data-theme="dark"] .badge-success {
+            background: rgba(34, 197, 94, 0.12);
+            border-color: rgba(34, 197, 94, 0.18);
+            color: #22c55e;
+          }
+          .panel[data-theme="dark"] .badge-info {
+            background: rgba(96, 165, 250, 0.12);
+            border-color: rgba(96, 165, 250, 0.18);
+            color: #60a5fa;
+          }
+          .panel[data-theme="dark"] .badge-warning {
+            background: rgba(245, 158, 11, 0.12);
+            border-color: rgba(245, 158, 11, 0.18);
+            color: #f59e0b;
+          }
+          .panel[data-theme="dark"] .badge-error {
+            background: rgba(239, 68, 68, 0.12);
+            border-color: rgba(239, 68, 68, 0.18);
+            color: #ef4444;
+          }
+          .panel[data-theme="dark"] .history-open {
+            color: #60a5fa;
+          }
+          .panel[data-theme="dark"] .hero-dot {
+            background: currentColor;
+          }
+          .panel[data-theme="dark"] .property-table th {
+            background: rgba(255,255,255,0.04);
+          }
+          .panel[data-theme="dark"] .no-data {
+            background: rgba(255,255,255,0.02);
+            border-color: rgba(255,255,255,0.10);
+            color: #55566a;
+            box-shadow: none;
+          }
+          .panel[data-theme="dark"] .section-copy,
+          .panel[data-theme="dark"] .metric-label,
+          .panel[data-theme="dark"] .summary-label,
+          .panel[data-theme="dark"] .api-response-title,
+          .panel[data-theme="dark"] .api-eyebrow {
+            color: #55566a;
+          }
+          .panel[data-theme="dark"] .hero-request-copy-icon {
+            filter: brightness(1.6);
+          }
+          .panel[data-theme="dark"] .json__item--collapsible::before {
+            color: #60a5fa;
+          }
+          .panel[data-theme="dark"] .json__item--collapsible::after {
+            background: rgba(255, 255, 255, 0.12);
+          }
+          .panel[data-theme="dark"] .json__key {
+            color: #60a5fa;
+          }
+          .panel[data-theme="dark"] .json__value--string {
+            color: #22c55e;
+          }
+          .panel[data-theme="dark"] .json__value--number {
+            color: #a78bfa;
+          }
+          .panel[data-theme="dark"] .json__value--boolean {
+            color: #f59e0b;
+          }
+          .panel[data-theme="dark"] .json__value--object,
+          .panel[data-theme="dark"] .json__value--type-object,
+          .panel[data-theme="dark"] .json__value--type-array {
+            color: #ef8354;
+          }
+
+          .ov-dashboard {
+            display: grid;
+            gap: 14px;
+            margin-top: 4px;
+          }
+          .ov-section-label {
+            font-size: 10px;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+            color: #55566a;
+            font-weight: 800;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+          }
+          .ov-two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+          }
+          .ov-kpi-chip {
+            font-size: 11px;
+            font-weight: 800;
+            color: #888899;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 4px 8px;
+            border-radius: 6px;
+            white-space: nowrap;
+          }
+          .ov-kpi-warn {
+            color: #f59e0b;
+            background: rgba(245,158,11,0.09);
+            border-color: rgba(245,158,11,0.16);
+          }
+          .ov-app-headline {
+            font-size: 18px;
+            font-weight: 900;
+            color: #ebebf0;
+            margin: 8px 0 4px;
+            line-height: 1.2;
+            letter-spacing: -.02em;
+          }
+          .ov-app-sub {
+            font-size: 12px;
+            color: #888899;
+            font-weight: 600;
+            margin-bottom: 12px;
+          }
+          .ov-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+            margin-top: 12px;
+          }
+          .ov-stat-card {
+            min-width: 0;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+          }
+          .ov-stat-label {
+            font-size: 10px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: #66687e;
+            font-weight: 800;
+            margin-bottom: 6px;
+          }
+          .ov-stat-value {
+            font-size: 15px;
+            line-height: 1.2;
+            color: #ebebf0;
+            font-weight: 900;
+            overflow-wrap: anywhere;
+          }
+          .ov-stat-note {
+            margin-top: 4px;
+            font-size: 11px;
+            line-height: 1.35;
+            color: #888899;
+            font-weight: 600;
+            overflow-wrap: anywhere;
+          }
+          .ov-chart-wrap {
+            margin-top: 12px;
+          }
+          .ov-chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+          }
+          .ov-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 0;
+            max-width: 100%;
+            padding: 6px 9px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.07);
+            background: rgba(255,255,255,0.03);
+            color: #cdd5e4;
+            font-size: 11px;
+            font-weight: 800;
+          }
+          .ov-chip-value {
+            color: #ebebf0;
+            overflow-wrap: anywhere;
+          }
+          .perf-bar-list {
+            display: grid;
+            gap: 10px;
+            margin-top: 12px;
+          }
+          .perf-bar-item {
+            display: grid;
+            gap: 6px;
+          }
+          .perf-bar-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            min-width: 0;
+          }
+          .perf-bar-label {
+            color: #ebebf0;
+            font-size: 12px;
+            font-weight: 800;
+            min-width: 0;
+          }
+          .perf-bar-value {
+            color: #888899;
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+          }
+          .perf-bar-track {
+            position: relative;
+            height: 8px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.06);
+            overflow: hidden;
+          }
+          .perf-bar-fill {
+            position: absolute;
+            inset: 0 auto 0 0;
+            border-radius: 999px;
+          }
+          .perf-bar-fill-sql {
+            background: linear-gradient(90deg, rgba(96,165,250,0.95), rgba(59,130,246,0.7));
+          }
+          .perf-bar-fill-outbound {
+            background: linear-gradient(90deg, rgba(45,212,191,0.9), rgba(20,184,166,0.68));
+          }
+          .perf-bar-fill-app {
+            background: linear-gradient(90deg, rgba(245,158,11,0.88), rgba(217,119,6,0.66));
+          }
+          .perf-flag-list {
+            display: grid;
+            gap: 7px;
+            margin-top: 10px;
+          }
+          .perf-flag-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 9px 10px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+          }
+          .perf-flag-copy {
+            color: #cdd5e4;
+            font-size: 12px;
+            font-weight: 700;
+            min-width: 0;
+          }
+          .ov-route-list {
+            display: grid;
+            gap: 7px;
+            margin-top: 10px;
+          }
+          .ov-route-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+            padding: 8px 10px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+          }
+          .ov-route-path {
+            flex: 1 1 auto;
+            min-width: 0;
+            font-family: "Berkeley Mono","SFMono-Regular",Consolas,monospace;
+            font-size: 12px;
+            color: #ebebf0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .ov-p95-chip {
+            flex: 0 0 auto;
+            font-size: 11px;
+            font-weight: 800;
+            color: #f59e0b;
+            background: rgba(245,158,11,0.09);
+            border: 1px solid rgba(245,158,11,0.16);
+            padding: 3px 7px;
+            border-radius: 6px;
+            white-space: nowrap;
+          }
+          .ov-empty {
+            padding: 20px 16px;
+            color: #55566a;
+            font-size: 13px;
+            font-weight: 700;
+            text-align: center;
+            background: rgba(255,255,255,0.02);
+            border-radius: 12px;
+            border: 1px dashed rgba(255,255,255,0.07);
+            margin-top: 10px;
+          }
+
+          @media (max-width: 1100px) {
+            .history-col-3xx,
+            .history-col-4xx,
+            .history-col-5xx {
+              display: none;
+            }
+          }
+          @media (max-width: 920px) {
+            .history-col-avg {
+              display: none;
+            }
+          }
+          @media (max-width: 820px) {
+            .panel { width: 100%; padding: 12px; }
+            .workspace { grid-template-columns: 1fr; }
+            .sidebar-nav { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+            .hero-top, .row { flex-direction: column; }
+            .hero-head {
+              width: 100%;
+            }
+            .history-overview-grid,
+            .history-kpis,
+            .ov-two-col,
+            .stats-grid { grid-template-columns: 1fr; }
+            .history-table-head,
+            .history-search-wrap {
+              align-items: stretch;
+            }
+            .history-search {
+              min-width: 100%;
+            }
+            .ov-stat-grid {
+              grid-template-columns: 1fr;
+            }
+            .metrics,
+            .history-item {
+              grid-template-columns: 1fr;
+            }
+            .history-col-max {
+              display: none;
+            }
+            .cache-col-store,
+            .cache-col-meta {
+              display: none;
+            }
+            .key { min-width: 0; }
           }
         `;
         root.innerHTML = '';
@@ -406,21 +2677,48 @@ window.DopparProfiler = {
         if(data.sql && Array.isArray(data.sql) && data.sql.length > 0){
           const totalCount = data.sql_total_count || data.sql.length;
           const totalTime = data.sql_total_time_ms?.toFixed?.(2) ?? data.sql_total_time_ms ?? 0;
+          const slowCount = Number(data.sql_slow_count || 0);
+          const nPlusOneCount = Number(data.sql_n_plus_one_count || 0);
+          const nPlusOneHints = Array.isArray(data.sql_n_plus_one_hints) ? data.sql_n_plus_one_hints : [];
           sqlSection = `
             <div class="section">
               <div class="section-title">
-                <span>Database Queries</span>
-                <span class="badge badge-info">${totalCount} queries</span>
-                <span class="badge badge-success">${totalTime} ms</span>
+                <span class="section-title-main">Database Queries</span>
+                <span>
+                  <span class="badge badge-info">${totalCount} queries</span>
+                  <span class="badge badge-success">${totalTime} ms</span>
+                  ${slowCount > 0 ? `<span class="badge badge-warning">${slowCount} slow</span>` : ''}
+                  ${nPlusOneCount > 0 ? `<span class="badge badge-error">${nPlusOneCount} N+1</span>` : ''}
+                </span>
               </div>
+              ${nPlusOneHints.length ? `
+                <div class="subsection" style="margin-bottom:14px;">
+                  <div class="subsection-title">Potential N+1 patterns</div>
+                  <div class="pill-row">
+                    ${nPlusOneHints.map((hint) => `
+                      <span class="pill">
+                        ${(hint.connection_name || 'db')} ${escapeHtml(hint.sql || '').slice(0, 60)}${(hint.sql || '').length > 60 ? '…' : ''} • ${escapeHtml(String(hint.duplicate_count || 0))}x • ${escapeHtml(String(hint.binding_variant_count || 0))} variants
+                      </span>
+                    `).join('')}
+                  </div>
+                </div>
+              ` : ''}
               <div class="sql-list">
                 ${data.sql.map((q, idx) => {
                   const duration = q.duration_ms?.toFixed?.(2) ?? q.duration_ms ?? 0;
                   const rowCount = q.row_count !== null && q.row_count !== undefined ? q.row_count : '?';
                   const bindings = q.bindings && Object.keys(q.bindings).length > 0 
-                    ? JSON.stringify(q.bindings) 
+                    ? escapeHtml(JSON.stringify(q.bindings)) 
                     : '';
-                  const error = q.error ? `<div class="sql-error">Error: ${q.error}</div>` : '';
+                  const error = q.error ? `<div class="sql-error">Error: ${escapeHtml(q.error)}</div>` : '';
+                  const metaPills = [
+                    q.connection_name ? `Connection: ${escapeHtml(q.connection_name)}` : '',
+                    q.driver_name ? `Driver: ${escapeHtml(String(q.driver_name).toUpperCase())}` : '',
+                    q.transaction_active === true ? 'Transaction: active' : (q.transaction_active === false ? 'Transaction: none' : ''),
+                    q.is_slow ? `Slow threshold ${escapeHtml(String(data.sql_slow_threshold_ms || 0))}ms` : '',
+                    q.duplicate_count > 1 ? `Duplicate ${escapeHtml(String(q.duplicate_count))}x` : '',
+                    q.n_plus_one_suspected ? `N+1 suspicion (${escapeHtml(String(q.binding_variant_count || 0))} variants)` : '',
+                  ].filter(Boolean);
                   return `
                     <div class="sql-item">
                       <div class="sql-header">
@@ -428,9 +2726,12 @@ window.DopparProfiler = {
                           <span class="badge badge-info">#${idx + 1}</span>
                           <span class="sql-time">${duration} ms</span>
                           <span class="sql-rows">${rowCount} rows</span>
+                          ${q.is_slow ? `<span class="badge badge-warning">Slow</span>` : ''}
+                          ${q.n_plus_one_suspected ? `<span class="badge badge-error">N+1</span>` : ''}
                         </div>
                       </div>
-                      <div class="sql-query">${q.sql || 'N/A'}</div>
+                      ${metaPills.length ? `<div class="pill-row" style="margin:0 0 12px 0;">${metaPills.map((pill) => `<span class="pill">${pill}</span>`).join('')}</div>` : ''}
+                      <div class="sql-query">${escapeHtml(q.sql || 'N/A')}</div>
                       ${bindings ? `<div class="sql-bindings">Bindings: ${bindings}</div>` : ''}
                       ${error}
                     </div>
@@ -442,19 +2743,8 @@ window.DopparProfiler = {
         } else {
           sqlSection = `
             <div class="section">
-              <div class="section-title">Database Queries</div>
+              <div class="section-title"><span class="section-title-main">Database Queries</span></div>
               <div class="no-data">No database queries detected</div>
-            </div>
-          `;
-        }
-        
-        // Build redirect section if applicable
-        let redirectSection = '';
-        if (data.is_redirect && data.redirect_url) {
-          redirectSection = `
-            <div class="row redirect-row">
-              <span class="key">Redirect to:</span> 
-              <span class="val redirect-url">→ ${data.redirect_url}</span>
             </div>
           `;
         }
@@ -478,11 +2768,11 @@ window.DopparProfiler = {
                     <div class="redirect-chain-header">
                       <span class="badge badge-info">#${idx + 1}</span>
                       <span class="redirect-chain-status">${itemStatus}</span>
-                      <span class="redirect-chain-method">${itemMethod}</span>
-                      <span class="redirect-chain-path">${itemPath}</span>
+                      <span class="redirect-chain-method">${escapeHtml(itemMethod)}</span>
+                      <span class="redirect-chain-path">${escapeHtml(itemPath)}</span>
                       <span class="redirect-chain-duration">${itemDuration} ms</span>
                     </div>
-                    ${itemRedirectUrl ? `<div class="redirect-chain-arrow">↓ Redirected to: ${itemRedirectUrl}</div>` : ''}
+                    ${itemRedirectUrl ? `<div class="redirect-chain-arrow">Redirected to: ${escapeHtml(itemRedirectUrl)}</div>` : ''}
                   </div>
                 `;
               }).join('');
@@ -490,7 +2780,7 @@ window.DopparProfiler = {
               redirectChainSection = `
                 <div class="section">
                   <div class="section-title">
-                    <span>Redirect Chain</span>
+                    <span class="section-title-main">Redirect Chain</span>
                     <span class="badge badge-warning">${chain.length} redirect${chain.length > 1 ? 's' : ''}</span>
                   </div>
                   <div class="redirect-chain-list">
@@ -499,8 +2789,8 @@ window.DopparProfiler = {
                       <div class="redirect-chain-header">
                         <span class="badge badge-success">Current</span>
                         <span class="redirect-chain-status">${data.status}</span>
-                        <span class="redirect-chain-method">${data.method}</span>
-                        <span class="redirect-chain-path">${data.route}</span>
+                        <span class="redirect-chain-method">${escapeHtml(data.method)}</span>
+                        <span class="redirect-chain-path">${escapeHtml(data.route)}</span>
                         <span class="redirect-chain-duration">${(data.duration_ms?.toFixed?.(1) ?? data.duration_ms)} ms</span>
                       </div>
                     </div>
@@ -514,42 +2804,1289 @@ window.DopparProfiler = {
         }
         
         // Build auth section
-        let authSection = '';
+        let authSection = '<div class="section"><div class="section-title"><span class="section-title-main">Authentication</span></div><div class="no-data">No authenticated user context captured for this request</div></div>';
         if (data.auth_authenticated) {
-          const userName = data.auth_user_name || 'User';
-          const userEmail = data.auth_user_email || '';
+          const userName = escapeHtml(data.auth_user_name || 'User');
+          const userEmail = escapeHtml(data.auth_user_email || '');
+          const authMeta = {};
+          if (data.auth_user_id !== null && data.auth_user_id !== undefined) authMeta['User ID'] = data.auth_user_id;
+          if (data.auth_guard) authMeta['Guard'] = data.auth_guard;
           authSection = `
             <div class="section">
               <div class="section-title">
-                <span>Authentication</span>
+                <span class="section-title-main">Authentication</span>
                 <span class="badge badge-success">Authenticated</span>
               </div>
               <div class="row"><span class="key">User:</span> <span class="val">${userName}</span></div>
               ${userEmail ? `<div class="row"><span class="key">Email:</span> <span class="val">${userEmail}</span></div>` : ''}
+              ${hasEntries(authMeta) ? buildSubsection('Metadata', buildPropertyTable(authMeta, 'Property', 'Value')) : ''}
+              ${hasEntries(data.auth_user) ? buildSubsection('User Payload', buildPropertyTable(data.auth_user, 'Property', 'Value')) : ''}
             </div>
           `;
         }
-        
-        wrap.innerHTML = `
+
+
+        const requestDetailsSection = `
           <div class="section">
-            <div class="section-title">Request Information</div>
-            <div class="row"><span class="key">Request ID:</span> <span class="val">${data.id}</span></div>
-            <div class="row"><span class="key">Method:</span> <span class="val">${data.method}</span></div>
-            <div class="row"><span class="key">Path:</span> <span class="val">${data.route}</span></div>
-            <div class="row"><span class="key">Status:</span> <span class="val">${data.status}</span></div>
-            ${redirectSection}
-            <div class="row"><span class="key">Duration:</span> <span class="val">${(data.duration_ms?.toFixed?.(1) ?? data.duration_ms)} ms</span></div>
-            <div class="row"><span class="key">Memory Peak:</span> <span class="val">${((data.memory_peak || 0) / (1024*1024)).toFixed(2)} MB</span></div>
+            <div class="section-title"><span class="section-title-main">Request Payload</span></div>
+            <div class="section-stack">
+              ${buildSubsection('Headers', buildPropertyTable(data.request_headers, 'Header', 'Value'))}
+              ${buildSubsection('Query Parameters', buildPropertyTable(data.request_query, 'Parameter', 'Value'))}
+              ${buildSubsection('POST Parameters', buildPropertyTable(data.request_params, 'Parameter', 'Value'))}
+              ${buildSubsection('Request Body', buildCodeBlock(data.request_body))}
+              ${buildSubsection('Cookies', buildPropertyTable(data.request_cookies, 'Cookie', 'Value'))}
+              ${buildSubsection('Uploaded Files', buildFilesTable(data.request_files))}
+              ${buildSubsection('Server', buildPropertyTable(data.request_server, 'Variable', 'Value'))}
+            </div>
+            ${!hasEntries(data.request_headers) && !hasEntries(data.request_query) && !hasEntries(data.request_params) && !data.request_body && !hasEntries(data.request_cookies) && !hasEntries(data.request_files) && !hasEntries(data.request_server) ? '<div class="no-data">No detailed request payload captured</div>' : ''}
           </div>
-          ${authSection}
-          ${redirectChainSection}
-          ${sqlSection}
+        `;
+
+        const historySection = `
+          <div class="section history-dashboard">
+            <div class="history-header">
+              <div>
+                <div class="section-title"><span class="section-title-main">Requests</span></div>
+                <p class="section-copy">Time-filtered request history with route-level status and latency trends.</p>
+              </div>
+              <div class="history-range-pills" data-history-ranges></div>
+            </div>
+            <div class="history-shell" data-history-shell>
+              <div class="history-loading">Loading request history...</div>
+            </div>
+          </div>
+        `;
+
+        const perfDurationMs = Number(data.duration_ms || 0);
+        const perfSqlMs = Number(data.sql_total_time_ms || 0);
+        const perfOutboundMs = Number(data.http_requests_total_time_ms || 0);
+        const perfAccountedMs = Math.min(perfDurationMs, perfSqlMs + perfOutboundMs);
+        const perfAppMs = Math.max(0, perfDurationMs - perfAccountedMs);
+        const perfSqlPct = perfDurationMs > 0 ? Math.min(100, (perfSqlMs / perfDurationMs) * 100) : 0;
+        const perfOutboundPct = perfDurationMs > 0 ? Math.min(100, (perfOutboundMs / perfDurationMs) * 100) : 0;
+        const perfAppPct = perfDurationMs > 0 ? Math.max(0, 100 - perfSqlPct - perfOutboundPct) : 0;
+        const perfCacheReads = Number(data.cache_hits || 0) + Number(data.cache_misses || 0);
+        const perfCacheHitRate = perfCacheReads > 0 ? ((Number(data.cache_hits || 0) / perfCacheReads) * 100).toFixed(1) : '0.0';
+        const perfWarnings = [
+          Number(data.sql_slow_count || 0) > 0 ? { label: 'Slow queries detected', value: `${escapeHtml(data.sql_slow_count || 0)} slow` } : null,
+          Number(data.sql_n_plus_one_count || 0) > 0 ? { label: 'Potential N+1 patterns', value: `${escapeHtml(data.sql_n_plus_one_count || 0)} hint${Number(data.sql_n_plus_one_count || 0) === 1 ? '' : 's'}` } : null,
+          Number(data.cache_misses || 0) > 0 ? { label: 'Cache misses in this request', value: `${escapeHtml(data.cache_misses || 0)} miss${Number(data.cache_misses || 0) === 1 ? '' : 'es'}` } : null,
+          Number(data.http_requests_count || 0) > 0 ? { label: 'Outgoing HTTP calls made', value: `${escapeHtml(data.http_requests_count || 0)} request${Number(data.http_requests_count || 0) === 1 ? '' : 's'}` } : null,
+          Number(data.redirect_count || 0) > 0 ? { label: 'Redirect chain followed', value: `${escapeHtml(data.redirect_count || 0)} hop${Number(data.redirect_count || 0) === 1 ? '' : 's'}` } : null,
+          data.exception_class ? { label: 'Exception captured', value: escapeHtml(String(data.exception_class).split(String.fromCharCode(92)).pop() || data.exception_class) } : null,
+        ].filter(Boolean);
+        const performanceSection = `
+          <div class="section">
+            <div class="section-title"><span class="section-title-main">Performance Profile</span></div>
+            <div class="summary-grid">
+              <div class="summary-card">
+                <div class="summary-label">Duration</div>
+                <div class="summary-value">${escapeHtml(data.duration_ms?.toFixed?.(1) ?? data.duration_ms)} ms</div>
+                <div class="summary-note">Total application runtime for this request.</div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-label">Peak Memory</div>
+                <div class="summary-value">${((data.memory_peak || 0) / (1024*1024)).toFixed(2)} MB</div>
+                <div class="summary-note">Maximum memory footprint recorded.</div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-label">Response Size</div>
+                <div class="summary-value">${formatBytes(data.response_body_size || 0)}</div>
+                <div class="summary-note">Body size returned to the client.</div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-label">Outgoing HTTP</div>
+                <div class="summary-value">${escapeHtml(data.http_requests_count || 0)}</div>
+                <div class="summary-note">${escapeHtml(data.http_requests_total_time_ms?.toFixed?.(2) ?? data.http_requests_total_time_ms ?? 0)} ms total across external calls.</div>
+              </div>
+            </div>
+            <div class="ov-dashboard">
+              <div class="ov-two-col">
+                <div>
+                  <div class="ov-section-label">
+                    <span>Timing Mix</span>
+                    <span class="ov-kpi-chip">${escapeHtml(perfDurationMs.toFixed(1))} ms total</span>
+                  </div>
+                  <div class="ov-app-headline">${escapeHtml(perfAppMs.toFixed(2))} ms stayed inside app work</div>
+                  <div class="ov-app-sub">Breakdown of observed request time between SQL, outbound HTTP, and everything else in the app lifecycle.</div>
+                  <div class="perf-bar-list">
+                    <div class="perf-bar-item">
+                      <div class="perf-bar-head">
+                        <span class="perf-bar-label">Database time</span>
+                        <span class="perf-bar-value">${escapeHtml(perfSqlMs.toFixed(2))} ms • ${escapeHtml(perfSqlPct.toFixed(1))}%</span>
+                      </div>
+                      <div class="perf-bar-track"><span class="perf-bar-fill perf-bar-fill-sql" style="width:${perfSqlPct.toFixed(1)}%"></span></div>
+                    </div>
+                    <div class="perf-bar-item">
+                      <div class="perf-bar-head">
+                        <span class="perf-bar-label">Outbound HTTP time</span>
+                        <span class="perf-bar-value">${escapeHtml(perfOutboundMs.toFixed(2))} ms • ${escapeHtml(perfOutboundPct.toFixed(1))}%</span>
+                      </div>
+                      <div class="perf-bar-track"><span class="perf-bar-fill perf-bar-fill-outbound" style="width:${perfOutboundPct.toFixed(1)}%"></span></div>
+                    </div>
+                    <div class="perf-bar-item">
+                      <div class="perf-bar-head">
+                        <span class="perf-bar-label">App / framework time</span>
+                        <span class="perf-bar-value">${escapeHtml(perfAppMs.toFixed(2))} ms • ${escapeHtml(perfAppPct.toFixed(1))}%</span>
+                      </div>
+                      <div class="perf-bar-track"><span class="perf-bar-fill perf-bar-fill-app" style="width:${perfAppPct.toFixed(1)}%"></span></div>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div class="ov-section-label">
+                    <span>Request Signals</span>
+                    <span class="ov-kpi-chip ${perfWarnings.length ? 'ov-kpi-warn' : ''}">${perfWarnings.length ? `${perfWarnings.length} flags` : 'Healthy'}</span>
+                  </div>
+                  <div class="ov-app-headline">${escapeHtml(data.response_status || data.status || 0)} response with ${escapeHtml(data.logs_total_count || 0)} log${Number(data.logs_total_count || 0) === 1 ? '' : 's'}</div>
+                  <div class="ov-app-sub">Fast high-signal checks for issues that matter in a single request: slow SQL, N+1 hints, cache misses, redirects, and exceptions.</div>
+                  ${perfWarnings.length ? `
+                    <div class="perf-flag-list">
+                      ${perfWarnings.map((flag) => `
+                        <div class="perf-flag-item">
+                          <span class="perf-flag-copy">${flag.label}</span>
+                          <span class="ov-kpi-chip ov-kpi-warn">${flag.value}</span>
+                        </div>
+                      `).join('')}
+                    </div>
+                  ` : '<div class="ov-empty">No obvious performance warnings were detected in this request.</div>'}
+                </div>
+              </div>
+              <div class="ov-two-col">
+                <div>
+                  <div class="ov-section-label">
+                    <span>Database Behavior</span>
+                    <span class="ov-kpi-chip">${escapeHtml(data.sql_total_count || 0)} queries</span>
+                  </div>
+                  <div class="ov-stat-grid">
+                    <div class="ov-stat-card">
+                      <div class="ov-stat-label">SQL Time</div>
+                      <div class="ov-stat-value">${escapeHtml(perfSqlMs.toFixed(2))} ms</div>
+                      <div class="ov-stat-note">Combined database execution time.</div>
+                    </div>
+                    <div class="ov-stat-card">
+                      <div class="ov-stat-label">Slow Queries</div>
+                      <div class="ov-stat-value">${escapeHtml(data.sql_slow_count || 0)}</div>
+                      <div class="ov-stat-note">Queries above the Insight slow threshold.</div>
+                    </div>
+                    <div class="ov-stat-card">
+                      <div class="ov-stat-label">Duplicate Groups</div>
+                      <div class="ov-stat-value">${escapeHtml(data.sql_duplicate_group_count || 0)}</div>
+                      <div class="ov-stat-note">Repeated SQL fingerprints in this request.</div>
+                    </div>
+                    <div class="ov-stat-card">
+                      <div class="ov-stat-label">N+1 Hints</div>
+                      <div class="ov-stat-value">${escapeHtml(data.sql_n_plus_one_count || 0)}</div>
+                      <div class="ov-stat-note">Potential repeated select patterns with varying bindings.</div>
+                    </div>
+                    <div class="ov-stat-card">
+                      <div class="ov-stat-label">Slow Threshold</div>
+                      <div class="ov-stat-value">${escapeHtml(data.sql_slow_threshold_ms || 0)} ms</div>
+                      <div class="ov-stat-note">Current threshold used to mark slow queries.</div>
+                    </div>
+                    <div class="ov-stat-card">
+                      <div class="ov-stat-label">Result Pressure</div>
+                      <div class="ov-stat-value">${escapeHtml(data.sql_duplicate_total_count || 0)}</div>
+                      <div class="ov-stat-note">Total repeated statements across duplicate groups.</div>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div class="ov-section-label">
+                    <span>Response + Cache</span>
+                    <span class="ov-kpi-chip">${escapeHtml(data.response_content_type || data.content_type || 'unknown')}</span>
+                  </div>
+                  <div class="ov-stat-grid">
+                    <div class="ov-stat-card">
+                      <div class="ov-stat-label">Cache Hit Rate</div>
+                      <div class="ov-stat-value">${perfCacheHitRate}%</div>
+                      <div class="ov-stat-note">${escapeHtml(data.cache_hits || 0)} hits / ${escapeHtml(data.cache_misses || 0)} misses in current request.</div>
+                    </div>
+                    <div class="ov-stat-card">
+                      <div class="ov-stat-label">Cache Ops</div>
+                      <div class="ov-stat-value">${escapeHtml(data.cache_total || 0)}</div>
+                      <div class="ov-stat-note">${escapeHtml(data.cache_lock_operations || 0)} lock event${Number(data.cache_lock_operations || 0) === 1 ? '' : 's'} included.</div>
+                    </div>
+                    <div class="ov-stat-card">
+                      <div class="ov-stat-label">Outbound Calls</div>
+                      <div class="ov-stat-value">${escapeHtml(data.http_requests_count || 0)}</div>
+                      <div class="ov-stat-note">${escapeHtml(perfOutboundMs.toFixed(2))} ms spent on external IO.</div>
+                    </div>
+                    <div class="ov-stat-card">
+                      <div class="ov-stat-label">Logs</div>
+                      <div class="ov-stat-value">${escapeHtml(data.logs_total_count || 0)}</div>
+                      <div class="ov-stat-note">Runtime log entries emitted during this request.</div>
+                    </div>
+                    <div class="ov-stat-card">
+                      <div class="ov-stat-label">Redirects</div>
+                      <div class="ov-stat-value">${escapeHtml(data.redirect_count || 0)}</div>
+                      <div class="ov-stat-note">${data.redirect_count ? 'Redirect chain was captured for this request.' : 'No redirect chain captured.'}</div>
+                    </div>
+                    <div class="ov-stat-card">
+                      <div class="ov-stat-label">Response Size</div>
+                      <div class="ov-stat-value">${formatBytes(data.response_body_size || 0)}</div>
+                      <div class="ov-stat-note">Useful for spotting oversized HTML or JSON payloads.</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        const responseInfo = {};
+        if (data.response_status !== undefined) responseInfo['Status Code'] = data.response_status;
+        if (data.response_content_type) responseInfo['Content Type'] = data.response_content_type;
+        if (data.response_body_size !== undefined) responseInfo['Body Size'] = formatBytes(data.response_body_size);
+
+        const responseSection = `
+          <div class="section">
+            <div class="section-title"><span class="section-title-main">Response Details</span></div>
+            <div class="section-stack">
+              ${buildSubsection('Response', buildPropertyTable(responseInfo, 'Property', 'Value'))}
+              ${buildSubsection('Headers', buildPropertyTable(data.response_headers, 'Header', 'Value'))}
+              ${(data.is_redirect && data.redirect_url) ? `<div class="row"><span class="key">Redirect to:</span><span class="val">→ ${escapeHtml(data.redirect_url)}</span></div>` : ''}
+            </div>
+            ${!hasEntries(responseInfo) && !hasEntries(data.response_headers) && !(data.is_redirect && data.redirect_url) ? '<div class="no-data">No response details available</div>' : ''}
+          </div>
+        `;
+
+        const cacheOperations = Array.isArray(data.cache_operations) ? data.cache_operations : [];
+        const cacheReads = Number(data.cache_hits || 0) + Number(data.cache_misses || 0);
+        const cacheHitRate = cacheReads > 0 ? ((Number(data.cache_hits || 0) / cacheReads) * 100).toFixed(1) : '0.0';
+        const buildCacheStatusBadge = (operation) => {
+          const type = String(operation.type || '');
+          if(type === 'lock_prepare'){
+            return '<span class="cache-status-badge cache-status-neutral">Ready</span>';
+          }
+          if(type === 'get' || type === 'has' || type === 'get_multiple'){
+            return `<span class="cache-status-badge ${operation.hit ? 'cache-status-hit' : 'cache-status-miss'}">${operation.hit ? 'Hit' : 'Miss'}</span>`;
+          }
+          if(type.startsWith('lock_')){
+            return `<span class="cache-status-badge ${operation.hit ? 'cache-status-pass' : 'cache-status-failed'}">${operation.hit ? 'Success' : 'Failed'}</span>`;
+          }
+          return `<span class="cache-status-badge cache-status-write">Write</span>`;
+        };
+        const buildCacheMetaLines = (operation) => {
+          const bits = [];
+          if(operation.ttl_seconds !== null && operation.ttl_seconds !== undefined){
+            bits.push(`TTL ${escapeHtml(String(operation.ttl_seconds))}s`);
+          }
+          if(operation.expires_at){
+            bits.push(`Expires ${escapeHtml(operation.expires_at)}`);
+          }
+          if(Array.isArray(operation.tags) && operation.tags.length){
+            bits.push(`Tags ${escapeHtml(operation.tags.join(', '))}`);
+          }
+          if(operation.lock_action){
+            bits.push(`Lock ${escapeHtml(operation.lock_action)}`);
+          }
+          if(operation.lock_seconds){
+            bits.push(`Lock TTL ${escapeHtml(String(operation.lock_seconds))}s`);
+          }
+          if(operation.lock_wait_seconds){
+            bits.push(`Wait ${escapeHtml(String(operation.lock_wait_seconds))}s`);
+          }
+          if(operation.delta !== undefined){
+            bits.push(`Delta ${escapeHtml(String(operation.delta))}`);
+          }
+          if(operation.lock_owner){
+            bits.push(`Owner ${escapeHtml(truncateText(operation.lock_owner, 32))}`);
+          }
+
+          return bits.length
+            ? `<div class="cache-detail-meta">${bits.map((bit) => `<div class="cache-meta-text">${bit}</div>`).join('')}</div>`
+            : '<span class="muted-value">No extra metadata</span>';
+        };
+        const buildCacheValueCell = (operation) => {
+          if(operation.value_json){
+            let body = '';
+            try {
+              body = buildJsonViewer(JSON.parse(operation.value_json));
+            } catch (error) {
+              body = buildCodeBlock(operation.value_json);
+            }
+            const preview = operation.value !== null && operation.value !== undefined && operation.value !== ''
+              ? truncateText(String(operation.value), 84)
+              : 'View payload';
+
+            return `
+              <details class="cache-value-details">
+                <summary class="cache-value-summary">${escapeHtml(preview)}</summary>
+                <div class="cache-value-body">${body}</div>
+              </details>
+            `;
+          }
+          if(operation.value !== null && operation.value !== undefined && operation.value !== ''){
+            return `<div class="cache-value-preview">${escapeHtml(truncateText(String(operation.value), 120))}</div>`;
+          }
+
+          return '<span class="muted-value">No payload</span>';
+        };
+        const cacheSection = `
+          <div class="section">
+            <div class="section-title"><span class="section-title-main">Cache Activity</span></div>
+            ${cacheOperations.length ? `
+              <div class="summary-grid">
+                <div class="summary-card"><div class="summary-label">Operations</div><div class="summary-value">${escapeHtml(data.cache_total || cacheOperations.length)}</div><div class="summary-note">Total captured cache events.</div></div>
+                <div class="summary-card"><div class="summary-label">Hit Rate</div><div class="summary-value">${cacheHitRate}%</div><div class="summary-note">${escapeHtml(data.cache_hits || 0)} hits / ${escapeHtml(data.cache_misses || 0)} misses</div></div>
+                <div class="summary-card"><div class="summary-label">Writes</div><div class="summary-value">${escapeHtml(data.cache_writes || 0)}</div><div class="summary-note">Set and forever style writes.</div></div>
+                <div class="summary-card"><div class="summary-label">Deletes</div><div class="summary-value">${escapeHtml(data.cache_deletes || 0)}</div><div class="summary-note">Forget and delete operations.</div></div>
+                <div class="summary-card"><div class="summary-label">Locks</div><div class="summary-value">${escapeHtml(data.cache_lock_operations || 0)}</div><div class="summary-note">Atomic lock lifecycle events.</div></div>
+              </div>
+              <div class="cache-table-shell">
+                <div class="cache-table-head">
+                  <span class="cache-table-count">${escapeHtml(cacheOperations.length)} cache events</span>
+                  <span class="cache-table-note">Current request cache reads, writes, TTLs, misses, and lock activity.</span>
+                </div>
+                <div class="cache-table-scroll">
+                  <table class="cache-detail-table">
+                    <thead>
+                      <tr>
+                        <th class="cache-col-type">Type</th>
+                        <th class="cache-col-key">Key</th>
+                        <th class="cache-col-value">Value</th>
+                        <th class="cache-col-store">Store</th>
+                        <th class="cache-col-status">Status</th>
+                        <th class="cache-col-meta">Details</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${cacheOperations.map((operation) => `
+                        <tr>
+                          <td class="cache-col-type"><span class="cache-type-chip">${escapeHtml(operation.type || 'unknown')}</span></td>
+                          <td class="cache-col-key"><span class="cache-key-cell">${escapeHtml(operation.key || 'N/A')}</span></td>
+                          <td class="cache-col-value">${buildCacheValueCell(operation)}</td>
+                          <td class="cache-col-store">
+                            <div class="cache-store-cell">
+                              <span class="cache-store-name">${escapeHtml(operation.store_name || 'default')}</span>
+                              <span class="cache-store-driver">${escapeHtml(String(operation.store_driver || 'unknown').toUpperCase())}</span>
+                            </div>
+                          </td>
+                          <td class="cache-col-status">${buildCacheStatusBadge(operation)}</td>
+                          <td class="cache-col-meta">${buildCacheMetaLines(operation)}</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ` : '<div class="no-data">No cache operations detected</div>'}
+          </div>
+        `;
+
+        const sessionSection = `
+          <div class="section">
+            <div class="section-title"><span class="section-title-main">Session Snapshot</span></div>
+            ${hasEntries(data.session_data) ? buildCodeBlock(data.session_data) : '<div class="no-data">No session data available</div>'}
+          </div>
+        `;
+
+        const logsList = Array.isArray(data.logs) ? data.logs : [];
+        const logsSection = `
+          <div class="section">
+            <div class="section-title"><span class="section-title-main">Runtime Logs</span></div>
+            ${logsList.length ? `
+              <div class="log-list">
+                ${logsList.map((log) => `
+                  <div class="log-card">
+                    <div class="log-head">
+                      <span class="log-level">${escapeHtml((log.level || 'info').toUpperCase())}</span>
+                      <span class="log-time">${escapeHtml(log.time || '')}</span>
+                    </div>
+                    <div class="log-message">${escapeHtml(log.message || '')}</div>
+                    ${hasEntries(log.context) ? buildCodeBlock(log.context) : ''}
+                  </div>
+                `).join('')}
+              </div>
+            ` : '<div class="no-data">No logs captured during this request</div>'}
+          </div>
+        `;
+
+        const outgoingRequests = Array.isArray(data.http_requests) ? data.http_requests : [];
+        const jsonApiPath = `/_insight/api/${escapeHtml(data.id)}`;
+        const jsonApiSection = `
+          <div class="section">
+            <div class="section-title">
+              <span class="section-title-main">JSON API</span>
+              <a class="api-open-btn" href="${jsonApiPath}" target="_blank" rel="noreferrer">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+                Open in Browser
+              </a>
+            </div>
+            <p class="section-copy">Access the raw profiler payload for this request via the REST endpoint below.</p>
+            <div class="api-shell">
+              <div class="api-operation">
+                <div class="api-eyebrow">Profiler Endpoint</div>
+                <div class="api-line">
+                  <span class="api-method">GET</span>
+                  <span class="api-path">${jsonApiPath}</span>
+                </div>
+                <div class="api-meta">
+                  <span class="api-meta-chip api-chip-success">● 200 OK</span>
+                  <span class="api-meta-chip api-chip-teal">application/json</span>
+                  <span class="api-meta-chip api-chip-mono">${escapeHtml(data.id.slice(0, 12))}…</span>
+                </div>
+              </div>
+              <div class="api-response-shell">
+                <div class="api-response-head">
+                  <span class="api-response-title">Response Payload</span>
+                  <button class="copy-action" type="button" data-action="json-api-copy">
+                    <span class="copy-icon" aria-hidden="true"></span>
+                    Copy JSON
+                  </button>
+                </div>
+                ${buildCodeBlock(data)}
+              </div>
+            </div>
+          </div>
+        `;
+
+        const httpSection = `
+          <div class="section-stack">
+            ${redirectChainSection || '<div class="section"><div class="section-title"><span class="section-title-main">Redirect Chain</span></div><div class="no-data">No redirects were detected for this request chain</div></div>'}
+            <div class="section">
+              <div class="section-title"><span class="section-title-main">Outgoing HTTP Requests</span></div>
+              ${outgoingRequests.length ? `
+                <div class="section-stack">
+                  ${outgoingRequests.map((request, index) => `
+                    <div class="subsection">
+                      <div class="subsection-title">Request #${index + 1}</div>
+                      <div class="pill-row">
+                        <span class="pill">${escapeHtml(request.method || 'GET')}</span>
+                        <span class="pill">${escapeHtml(request.status ?? 'N/A')}</span>
+                        <span class="pill">${escapeHtml(request.duration_ms?.toFixed?.(1) ?? request.duration_ms ?? 0)} ms</span>
+                        ${request.successful === true ? '<span class="pill">Successful</span>' : ''}
+                        ${request.successful === false ? '<span class="pill">Failed</span>' : ''}
+                      </div>
+                      <div class="row"><span class="key">URL:</span><span class="val">${escapeHtml(request.url || 'unknown')}</span></div>
+                      ${request.error ? `<div class="row"><span class="key">Error:</span><span class="val">${escapeHtml(request.error)}</span></div>` : ''}
+                    </div>
+                  `).join('')}
+                </div>
+              ` : '<div class="no-data">No outgoing HTTP requests recorded</div>'}
+            </div>
+          </div>
+        `;
+
+        const sidebarLogo = toolbarLogo
+          ? `<img src="${escapeHtml(toolbarLogo)}" alt="Doppar Logo" width="18" height="18">`
+          : 'D';
+
+        wrap.innerHTML = `
+          <div class="workspace">
+            <aside class="sidebar">
+              <div class="sidebar-brand">
+                <span class="sidebar-mark">${sidebarLogo}</span>
+                <div>
+                  <div class="sidebar-title">Insight</div>
+                </div>
+              </div>
+              <nav class="sidebar-nav">
+                <div class="nav-section-label">Cross-Request Views</div>
+                <div class="nav-section-copy">Overview and History combine this request with recent captured traffic.</div>
+                <button class="nav-button active" type="button" data-view="overview"><span class="nav-main"><span class="nav-icon nav-icon-overview"></span><span class="nav-label">Overview</span></span></button>
+                <button class="nav-button" type="button" data-view="history"><span class="nav-main"><span class="nav-icon nav-icon-history"></span><span class="nav-label">History</span></span></button>
+                <div class="nav-section-divider" aria-hidden="true"></div>
+                <div class="nav-section-label">Current Request</div>
+                <div class="nav-section-copy">Everything below is captured from the request currently open in this panel.</div>
+                <button class="nav-button" type="button" data-view="http"><span class="nav-main"><span class="nav-icon nav-icon-http"></span><span class="nav-label">HTTP</span></span></button>
+                <button class="nav-button" type="button" data-view="database"><span class="nav-main"><span class="nav-icon nav-icon-database"></span><span class="nav-label">Database</span></span></button>
+                <button class="nav-button" type="button" data-view="cache"><span class="nav-main"><span class="nav-icon nav-icon-cache"></span><span class="nav-label">Cache</span></span></button>
+                <button class="nav-button" type="button" data-view="auth"><span class="nav-main"><span class="nav-icon nav-icon-auth"></span><span class="nav-label">Auth</span></span></button>
+                <button class="nav-button" type="button" data-view="request"><span class="nav-main"><span class="nav-icon nav-icon-request"></span><span class="nav-label">Request</span></span></button>
+                <button class="nav-button" type="button" data-view="response"><span class="nav-main"><span class="nav-icon nav-icon-response"></span><span class="nav-label">Response</span></span></button>
+                <button class="nav-button" type="button" data-view="performance"><span class="nav-main"><span class="nav-icon nav-icon-performance"></span><span class="nav-label">Performance</span></span></button>
+                <button class="nav-button" type="button" data-view="session"><span class="nav-main"><span class="nav-icon nav-icon-session"></span><span class="nav-label">Session</span></span></button>
+                <button class="nav-button" type="button" data-view="logs"><span class="nav-main"><span class="nav-icon nav-icon-logs"></span><span class="nav-label">Logs</span></span></button>
+                <button class="nav-button" type="button" data-view="json-api"><span class="nav-main"><span class="nav-icon nav-icon-json"></span><span class="nav-label">JSON API</span></span></button>
+              </nav>
+            </aside>
+            <main class="canvas">
+              <section class="view-section active" data-view-section="overview">
+                <div data-overview-shell>
+                  <div class="history-loading">Loading activity…</div>
+                </div>
+              </section>
+              <section class="view-section" data-view-section="history">
+                ${historySection}
+              </section>
+              <section class="view-section" data-view-section="http">
+                ${httpSection}
+              </section>
+              <section class="view-section" data-view-section="request">
+                ${requestDetailsSection}
+              </section>
+              <section class="view-section" data-view-section="response">
+                ${responseSection}
+              </section>
+              <section class="view-section" data-view-section="performance">
+                ${performanceSection}
+              </section>
+              <section class="view-section" data-view-section="database">
+                ${sqlSection}
+              </section>
+              <section class="view-section" data-view-section="cache">
+                ${cacheSection}
+              </section>
+              <section class="view-section" data-view-section="auth">
+                ${authSection}
+              </section>
+              <section class="view-section" data-view-section="session">
+                ${sessionSection}
+              </section>
+              <section class="view-section" data-view-section="logs">
+                ${logsSection}
+              </section>
+              <section class="view-section" data-view-section="json-api">
+                ${jsonApiSection}
+              </section>
+            </main>
+          </div>
         `;
         root.appendChild(style);
         root.appendChild(wrap);
+        const navButtons = wrap.querySelectorAll('[data-view]');
+        const viewSections = wrap.querySelectorAll('[data-view-section]');
+        navButtons.forEach((button) => {
+          button.addEventListener('click', () => {
+            const target = button.getAttribute('data-view');
+            navButtons.forEach((item) => item.classList.toggle('active', item === button));
+            viewSections.forEach((section) => {
+              section.classList.toggle('active', section.getAttribute('data-view-section') === target);
+            });
+          });
+        });
+        const overviewShell = wrap.querySelector('[data-overview-shell]');
+        const historyShell = wrap.querySelector('[data-history-shell]');
+        const historyRanges = wrap.querySelector('[data-history-ranges]');
+        if(historyShell && historyRanges){
+          const rangeOptions = [
+            { key: '1h', label: '1H', ms: 60 * 60 * 1000 },
+            { key: '24h', label: '24H', ms: 24 * 60 * 60 * 1000 },
+            { key: '7d', label: '7D', ms: 7 * 24 * 60 * 60 * 1000 },
+            { key: '14d', label: '14D', ms: 14 * 24 * 60 * 60 * 1000 },
+            { key: '30d', label: '30D', ms: 30 * 24 * 60 * 60 * 1000 }
+          ];
+          let activeRange = '24h';
+          let activeMode = 'all';
+          let searchTerm = '';
+          let historyDataset = [];
+
+          const formatCapturedAt = (value) => {
+            if(!value){
+              return 'Unknown';
+            }
+            const timestamp = new Date(value);
+            if(Number.isNaN(timestamp.getTime())){
+              return 'Unknown';
+            }
+            return timestamp.toLocaleString();
+          };
+          const formatCompactNumber = (value) => {
+            const number = Number(value || 0);
+            if(number >= 1000000){
+              return `${(number / 1000000).toFixed(1)}M`;
+            }
+            if(number >= 1000){
+              return `${(number / 1000).toFixed(1)}K`;
+            }
+            return String(Math.round(number));
+          };
+          const formatDuration = (value) => {
+            const duration = Number(value || 0);
+            if(duration >= 1000){
+              return `${(duration / 1000).toFixed(2)}s`;
+            }
+            return `${duration.toFixed(0)}ms`;
+          };
+          const formatRangeAxisLabel = (timestamp, rangeMs) => {
+            const date = new Date(timestamp);
+            if(Number.isNaN(date.getTime())){
+              return '—';
+            }
+            if(rangeMs <= 60 * 60 * 1000){
+              return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+            }
+            if(rangeMs <= 24 * 60 * 60 * 1000){
+              return date.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+            }
+            return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+          };
+          const formatExceptionLabel = (value) => {
+            if(!value){
+              return 'Unhandled exception';
+            }
+            const label = String(value);
+            const namespaceSeparator = String.fromCharCode(92);
+            const lastSeparatorIndex = label.lastIndexOf(namespaceSeparator);
+            return (lastSeparatorIndex >= 0 ? label.slice(lastSeparatorIndex + 1) : label) || 'Unhandled exception';
+          };
+          const renderMethodLabel = (method) => {
+            const normalizedMethod = String(method || 'GET').toUpperCase();
+            return `<span class="history-method-chip" data-method="${escapeHtml(normalizedMethod)}">${escapeHtml(normalizedMethod)}</span>`;
+          };
+          const renderStatusCountCell = (value) => {
+            const numericValue = Number(value || 0);
+            const displayValue = escapeHtml(formatCompactNumber(numericValue));
+            if(numericValue > 0){
+              return `<span class="history-count-badge history-count-badge-alert">${displayValue}</span>`;
+            }
+            return `<span class="history-cell-number">${displayValue}</span>`;
+          };
+          const historyBadgeClass = (status) => {
+            const code = Number(status || 0);
+            if(code >= 500 || code >= 400){
+              return 'badge-error';
+            }
+            if(code >= 300){
+              return 'badge-warning';
+            }
+            if(code >= 200){
+              return 'badge-success';
+            }
+            return 'badge-info';
+          };
+          const resolveTimestamp = (item) => {
+            if(item?.captured_at){
+              const date = new Date(item.captured_at);
+              if(!Number.isNaN(date.getTime())){
+                return date.getTime();
+              }
+            }
+            if(item?.captured_at_unix){
+              return Number(item.captured_at_unix) * 1000;
+            }
+            if(item?.time_start){
+              return Number(item.time_start) * 1000;
+            }
+            return Date.now();
+          };
+          const buildCombinedHistory = (history) => {
+            const currentTimestamp = data.time_start ? Number(data.time_start) * 1000 : Date.now();
+            const currentItem = {
+              id: data.id,
+              method: data.method,
+              route: data.route,
+              status: data.status,
+              duration_ms: data.total_duration_ms ?? data.duration_ms ?? 0,
+              exception_class: data.exception_class || null,
+              exception_message: data.exception_message || null,
+              captured_at: new Date(currentTimestamp).toISOString(),
+              captured_at_unix: Math.floor(currentTimestamp / 1000),
+            };
+            const items = [currentItem].concat(Array.isArray(history) ? history : []);
+            const unique = new Map();
+            items.forEach((item) => {
+              const normalized = {
+                id: String(item?.id || ''),
+                method: String(item?.method || 'GET').toUpperCase(),
+                route: String(item?.route || '/'),
+                status: Number(item?.status || 0),
+                duration_ms: Number(item?.duration_ms || 0),
+                exception_class: item?.exception_class || null,
+                exception_message: item?.exception_message || null,
+                captured_at: item?.captured_at || null,
+                captured_at_unix: Number(item?.captured_at_unix || 0),
+                timestamp: resolveTimestamp(item),
+              };
+              if(!normalized.id){
+                return;
+              }
+              unique.set(normalized.id, normalized);
+            });
+            return Array.from(unique.values()).sort((left, right) => left.timestamp - right.timestamp);
+          };
+          const buildBuckets = (items, rangeMs, bucketCount = 24) => {
+            const latest = items.length ? items[items.length - 1].timestamp : Date.now();
+            const earliest = latest - rangeMs;
+            const bucketSize = Math.max(1, rangeMs / bucketCount);
+            const buckets = Array.from({ length: bucketCount }, (_, index) => ({
+              start: earliest + (index * bucketSize),
+              total: 0,
+              status4xx: 0,
+              status5xx: 0,
+              durations: [],
+            }));
+            items.forEach((item) => {
+              if(item.timestamp < earliest || item.timestamp > latest){
+                return;
+              }
+              const bucketIndex = Math.min(bucketCount - 1, Math.max(0, Math.floor((item.timestamp - earliest) / bucketSize)));
+              const bucket = buckets[bucketIndex];
+              bucket.total += 1;
+              if(item.status >= 500){
+                bucket.status5xx += 1;
+              } else if(item.status >= 400){
+                bucket.status4xx += 1;
+              }
+              bucket.durations.push(item.duration_ms);
+            });
+            return buckets.map((bucket) => {
+              const max = bucket.durations.length ? Math.max(...bucket.durations) : 0;
+              const avg = bucket.durations.length ? bucket.durations.reduce((sum, value) => sum + value, 0) / bucket.durations.length : 0;
+              const tone = bucket.status5xx > 0 ? 'error' : (bucket.status4xx > 0 ? 'warning' : (bucket.total > 0 ? 'success' : 'muted'));
+              return { ...bucket, avg, max, tone };
+            });
+          };
+          const buildBarChart = (buckets) => {
+            const width = 560;
+            const height = 140;
+            const maxValue = Math.max(1, ...buckets.map((bucket) => bucket.total));
+            const barWidth = width / Math.max(1, buckets.length);
+            const grid = [0.25, 0.5, 0.75].map((step) => `<line class="history-grid-line" x1="0" y1="${height * step}" x2="${width}" y2="${height * step}"></line>`).join('');
+            const bars = buckets.map((bucket, index) => {
+              const columnHeight = bucket.total > 0 ? Math.max(6, (bucket.total / maxValue) * (height - 8)) : 4;
+              const x = index * barWidth + 2;
+              const y = height - columnHeight;
+              return `<rect class="history-bar-${bucket.tone}" x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${Math.max(6, barWidth - 5).toFixed(2)}" height="${columnHeight.toFixed(2)}" rx="2"></rect>`;
+            }).join('');
+            return `<svg class="history-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">${grid}${bars}</svg>`;
+          };
+          const buildLineChart = (buckets) => {
+            const width = 560;
+            const height = 140;
+            const maxDuration = Math.max(1, ...buckets.map((bucket) => Math.max(bucket.avg, bucket.max)));
+            const pathFor = (values) => values.map((value, index) => {
+              const x = buckets.length === 1 ? width / 2 : (index / (buckets.length - 1)) * width;
+              const y = height - ((value / maxDuration) * (height - 12)) - 6;
+              return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
+            }).join(' ');
+            const avgPath = pathFor(buckets.map((bucket) => bucket.avg));
+            const maxPath = pathFor(buckets.map((bucket) => bucket.max));
+            const grid = [0.25, 0.5, 0.75].map((step) => `<line class="history-grid-line" x1="0" y1="${height * step}" x2="${width}" y2="${height * step}"></line>`).join('');
+            return `<svg class="history-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">${grid}<path class="history-line-avg" d="${avgPath}"></path><path class="history-line-max" d="${maxPath}"></path></svg>`;
+          };
+          const buildExceptionChart = (buckets) => {
+            const width = 560;
+            const height = 140;
+            const maxValue = Math.max(1, ...buckets.map((bucket) => bucket.status4xx + bucket.status5xx));
+            const barWidth = width / Math.max(1, buckets.length);
+            const grid = [0.25, 0.5, 0.75].map((step) => `<line class="history-grid-line" x1="0" y1="${height * step}" x2="${width}" y2="${height * step}"></line>`).join('');
+            const bars = buckets.map((bucket, index) => {
+              const x = index * barWidth + 2;
+              const widthValue = Math.max(6, barWidth - 5);
+              const total4xxHeight = bucket.status4xx > 0 ? Math.max(6, (bucket.status4xx / maxValue) * (height - 8)) : 0;
+              const total5xxHeight = bucket.status5xx > 0 ? Math.max(6, (bucket.status5xx / maxValue) * (height - 8)) : 0;
+              const baseY = height;
+              const warningRect = total4xxHeight > 0
+                ? `<rect class="history-bar-warning" x="${x.toFixed(2)}" y="${(baseY - total4xxHeight).toFixed(2)}" width="${widthValue.toFixed(2)}" height="${total4xxHeight.toFixed(2)}" rx="2"></rect>`
+                : '';
+              const errorRect = total5xxHeight > 0
+                ? `<rect class="history-bar-error" x="${x.toFixed(2)}" y="${(baseY - total4xxHeight - total5xxHeight).toFixed(2)}" width="${widthValue.toFixed(2)}" height="${total5xxHeight.toFixed(2)}" rx="2"></rect>`
+                : '';
+              const emptyTick = (bucket.status4xx + bucket.status5xx) === 0
+                ? `<rect class="history-bar-muted" x="${x.toFixed(2)}" y="${(height - 4).toFixed(2)}" width="${widthValue.toFixed(2)}" height="3" rx="2"></rect>`
+                : '';
+              return `${emptyTick}${warningRect}${errorRect}`;
+            }).join('');
+            return `<svg class="history-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">${grid}${bars}</svg>`;
+          };
+          const aggregateRoutes = (items) => {
+            const routes = new Map();
+            items.forEach((item) => {
+              const key = `${item.method} ${item.route}`;
+              if(!routes.has(key)){
+                routes.set(key, {
+                  method: item.method,
+                  route: item.route,
+                  requests: 0,
+                  status3xx: 0,
+                  status4xx: 0,
+                  status5xx: 0,
+                  errorRequests: 0,
+                  totalDuration: 0,
+                  maxDuration: 0,
+                  lastSeen: item.timestamp,
+                  latestStatus: item.status,
+                  latestExceptionClass: item.exception_class,
+                  latestExceptionMessage: item.exception_message,
+                });
+              }
+              const route = routes.get(key);
+              route.requests += 1;
+              route.totalDuration += item.duration_ms;
+              route.maxDuration = Math.max(route.maxDuration, item.duration_ms);
+              if(item.timestamp >= route.lastSeen){
+                route.lastSeen = item.timestamp;
+                route.latestStatus = item.status;
+                route.latestExceptionClass = item.exception_class;
+                route.latestExceptionMessage = item.exception_message;
+              }
+              if(item.status >= 500){
+                route.status5xx += 1;
+                route.errorRequests += 1;
+              } else if(item.status >= 400){
+                route.status4xx += 1;
+                route.errorRequests += 1;
+              } else if(item.status >= 300){
+                route.status3xx += 1;
+              }
+            });
+            return Array.from(routes.values()).map((route) => ({
+              ...route,
+              avgDuration: route.requests > 0 ? route.totalDuration / route.requests : 0,
+            }));
+          };
+          const renderRangeButtons = () => {
+            historyRanges.innerHTML = rangeOptions.map((range) => `
+              <button class="history-range-pill ${range.key === activeRange ? 'active' : ''}" type="button" data-history-range="${range.key}">
+                ${range.label}
+              </button>
+            `).join('');
+            historyRanges.querySelectorAll('[data-history-range]').forEach((button) => {
+              button.addEventListener('click', () => {
+                activeRange = button.getAttribute('data-history-range') || '24h';
+                renderRangeButtons();
+                renderHistoryDashboard();
+              });
+            });
+          };
+          const renderHistoryDashboard = (preserveSearchFocus = false) => {
+            const selectedRange = rangeOptions.find((range) => range.key === activeRange) || rangeOptions[1];
+            const latestTimestamp = historyDataset.length ? historyDataset[historyDataset.length - 1].timestamp : Date.now();
+            const cutoff = latestTimestamp - selectedRange.ms;
+            const axisStart = formatRangeAxisLabel(cutoff, selectedRange.ms);
+            const axisEnd = formatRangeAxisLabel(latestTimestamp, selectedRange.ms);
+            const filtered = historyDataset.filter((item) => item.timestamp >= cutoff);
+            const matched = aggregateRoutes(filtered).filter((route) => {
+              const query = searchTerm.trim().toLowerCase();
+              if(query && !`${route.method} ${route.route}`.toLowerCase().includes(query)){
+                return false;
+              }
+              if(activeMode === 'errors'){
+                return route.status4xx > 0 || route.status5xx > 0;
+              }
+              if(activeMode === 'slow'){
+                return route.maxDuration >= 1000 || route.avgDuration >= 500;
+              }
+              return true;
+            }).sort((left, right) => {
+              if(activeMode === 'slow'){
+                return right.maxDuration - left.maxDuration || right.requests - left.requests;
+              }
+              const leftErrors = left.status5xx + left.status4xx;
+              const rightErrors = right.status5xx + right.status4xx;
+              return right.requests - left.requests || rightErrors - leftErrors || right.maxDuration - left.maxDuration;
+            });
+            const totalRequests = filtered.length;
+            const status3xx = filtered.filter((item) => item.status >= 300 && item.status < 400).length;
+            const status4xx = filtered.filter((item) => item.status >= 400 && item.status < 500).length;
+            const status5xx = filtered.filter((item) => item.status >= 500).length;
+            const durations = filtered.map((item) => item.duration_ms);
+            const avgDuration = durations.length ? durations.reduce((sum, value) => sum + value, 0) / durations.length : 0;
+            const maxDuration = durations.length ? Math.max(...durations) : 0;
+            const minDuration = durations.length ? Math.min(...durations) : 0;
+            const buckets = buildBuckets(filtered, selectedRange.ms, 24);
+            const recentErrors = filtered
+              .filter((item) => item.status >= 400)
+              .sort((left, right) => right.timestamp - left.timestamp)
+              .slice(0, 6);
+            const topErrorRoutes = aggregateRoutes(filtered)
+              .filter((route) => route.status4xx > 0 || route.status5xx > 0)
+              .sort((left, right) => (right.status5xx + right.status4xx) - (left.status5xx + left.status4xx) || right.requests - left.requests)
+              .slice(0, 3);
+            const errorRoutes = new Set(filtered.filter((item) => item.status >= 400).map((item) => item.route));
+            const errorTypes = new Set(filtered.filter((item) => item.status >= 400).map((item) => formatExceptionLabel(item.exception_class)));
+            const latestErrorTime = recentErrors.length ? formatCapturedAt(recentErrors[0].captured_at) : '—';
+            const hottestErrorRoute = topErrorRoutes.length ? `${topErrorRoutes[0].method} ${topErrorRoutes[0].route}` : '—';
+            const routeRows = matched.slice(0, 18).map((route) => `
+              <tr>
+                <td class="history-col-method">${renderMethodLabel(route.method)}</td>
+                <td class="history-col-path"><span class="history-path-cell">${escapeHtml(route.route)}</span></td>
+                <td class="history-col-requests"><span class="history-cell-number">${escapeHtml(formatCompactNumber(route.requests))}</span></td>
+                <td class="history-col-3xx">${renderStatusCountCell(route.status3xx)}</td>
+                <td class="history-col-4xx">${renderStatusCountCell(route.status4xx)}</td>
+                <td class="history-col-5xx">${renderStatusCountCell(route.status5xx)}</td>
+                <td class="history-col-avg"><span class="history-cell-number">${escapeHtml(formatDuration(route.avgDuration))}</span></td>
+                <td class="history-col-max"><span class="history-cell-number">${escapeHtml(formatDuration(route.maxDuration))}</span></td>
+              </tr>
+            `).join('');
+            const recentErrorMarkup = recentErrors.length ? `
+              <div class="ov-chart-wrap">
+                ${buildExceptionChart(buckets)}
+                <div class="history-chart-axis"><span>${escapeHtml(axisStart)}</span><span>${escapeHtml(axisEnd)}</span></div>
+              </div>
+              <div class="ov-stat-grid">
+                <div class="ov-stat-card">
+                  <div class="ov-stat-label">Error Routes</div>
+                  <div class="ov-stat-value">${escapeHtml(String(errorRoutes.size))}</div>
+                  <div class="ov-stat-note">Routes with at least one 4XX or 5XX in ${escapeHtml(selectedRange.label)}.</div>
+                </div>
+                <div class="ov-stat-card">
+                  <div class="ov-stat-label">Exception Types</div>
+                  <div class="ov-stat-value">${escapeHtml(String(errorTypes.size))}</div>
+                  <div class="ov-stat-note">Distinct error families captured in this window.</div>
+                </div>
+                <div class="ov-stat-card">
+                  <div class="ov-stat-label">Latest Error</div>
+                  <div class="ov-stat-value">${escapeHtml(latestErrorTime)}</div>
+                  <div class="ov-stat-note">${escapeHtml(hottestErrorRoute)}</div>
+                </div>
+              </div>
+              <div class="ov-chip-row">
+                ${topErrorRoutes.map((route) => `
+                  <span class="ov-chip">
+                    ${renderMethodLabel(route.method)}
+                    <span class="ov-chip-value">${escapeHtml(route.route)} • ${escapeHtml(formatCompactNumber(route.status4xx + route.status5xx))}</span>
+                  </span>
+                `).join('')}
+              </div>
+            ` : `<div class="history-empty-state history-error-empty">No 4XX or 5XX requests in this range.</div>`;
+
+            historyShell.innerHTML = `
+              <div class="history-overview-grid">
+                <div class="history-card">
+                  <div class="history-card-header">
+                    <div>
+                      <div class="history-card-title">Requests</div>
+                      <div class="history-card-value">${escapeHtml(formatCompactNumber(totalRequests))}</div>
+                    </div>
+                    <div class="history-card-meta">
+                      <span class="badge badge-info">3XX ${escapeHtml(formatCompactNumber(status3xx))}</span>
+                      <span class="badge badge-warning">4XX ${escapeHtml(formatCompactNumber(status4xx))}</span>
+                      <span class="badge badge-error">5XX ${escapeHtml(formatCompactNumber(status5xx))}</span>
+                    </div>
+                  </div>
+                  <div class="history-kpis">
+                    <div class="history-kpi">
+                      <div class="history-kpi-label">Routes</div>
+                      <div class="history-kpi-value">${escapeHtml(formatCompactNumber(aggregateRoutes(filtered).length))}</div>
+                    </div>
+                    <div class="history-kpi">
+                      <div class="history-kpi-label">Current</div>
+                      <div class="history-kpi-value">${escapeHtml(selectedRange.label)}</div>
+                    </div>
+                    <div class="history-kpi">
+                      <div class="history-kpi-label">Latest</div>
+                      <div class="history-kpi-value">${escapeHtml(formatCapturedAt(filtered.length ? filtered[filtered.length - 1].captured_at : null))}</div>
+                    </div>
+                  </div>
+                  <div class="history-chart-wrap">
+                    ${buildBarChart(buckets)}
+                    <div class="history-chart-axis">
+                      <span>${escapeHtml(selectedRange.label)} request volume</span>
+                      <span>Newest at right</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="history-card">
+                  <div class="history-card-header">
+                    <div>
+                      <div class="history-card-title">Duration</div>
+                      <div class="history-card-value">${escapeHtml(formatDuration(minDuration))} - ${escapeHtml(formatDuration(maxDuration))}</div>
+                    </div>
+                    <div class="history-card-meta">
+                      <span class="history-card-note">AVG ${escapeHtml(formatDuration(avgDuration))}</span>
+                      <span class="history-card-note">MAX ${escapeHtml(formatDuration(maxDuration))}</span>
+                    </div>
+                  </div>
+                  <div class="history-kpis">
+                    <div class="history-kpi">
+                      <div class="history-kpi-label">Healthy</div>
+                      <div class="history-kpi-value">${escapeHtml(formatCompactNumber(totalRequests - status4xx - status5xx))}</div>
+                    </div>
+                    <div class="history-kpi">
+                      <div class="history-kpi-label">Errors</div>
+                      <div class="history-kpi-value">${escapeHtml(formatCompactNumber(status4xx + status5xx))}</div>
+                    </div>
+                    <div class="history-kpi">
+                      <div class="history-kpi-label">Peaks</div>
+                      <div class="history-kpi-value">${escapeHtml(formatCompactNumber(buckets.filter((bucket) => bucket.max >= 1000).length))}</div>
+                    </div>
+                  </div>
+                  <div class="history-chart-wrap">
+                    ${buildLineChart(buckets)}
+                    <div class="history-chart-axis">
+                      <span>Average latency</span>
+                      <span>Peak latency</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="history-card history-card-wide">
+                  <div class="history-card-header">
+                    <div>
+                      <div class="history-card-title">Recent Errors</div>
+                      <div class="history-card-value">${escapeHtml(formatCompactNumber(status4xx + status5xx))}</div>
+                    </div>
+                    <div class="history-card-meta">
+                      <span class="badge badge-warning">4XX ${escapeHtml(formatCompactNumber(status4xx))}</span>
+                      <span class="badge badge-error">5XX ${escapeHtml(formatCompactNumber(status5xx))}</span>
+                    </div>
+                  </div>
+                  ${recentErrorMarkup}
+                </div>
+              </div>
+              <div class="history-card history-table-shell">
+                <div class="history-table-head">
+                  <div class="history-route-count">${escapeHtml(formatCompactNumber(matched.length))} routes</div>
+                  <div class="history-search-wrap">
+                    <input class="history-search" type="search" value="${escapeHtml(searchTerm)}" placeholder="Search method or route" data-history-search>
+                    <div class="history-toggle-group">
+                      <button class="history-toggle ${activeMode === 'all' ? 'active' : ''}" type="button" data-history-mode="all">View all</button>
+                      <button class="history-toggle ${activeMode === 'errors' ? 'active' : ''}" type="button" data-history-mode="errors">Errors only</button>
+                      <button class="history-toggle ${activeMode === 'slow' ? 'active' : ''}" type="button" data-history-mode="slow">Slow routes</button>
+                    </div>
+                  </div>
+                </div>
+                ${matched.length ? `
+                  <div class="history-table-scroll">
+                    <table class="history-route-table">
+                      <thead>
+                        <tr>
+                          <th class="history-col-method">Method</th>
+                          <th class="history-col-path">Path</th>
+                          <th class="history-col-requests">Requests</th>
+                          <th class="history-col-3xx">3XX</th>
+                          <th class="history-col-4xx">4XX</th>
+                          <th class="history-col-5xx">5XX</th>
+                          <th class="history-col-avg">Avg</th>
+                          <th class="history-col-max">Max</th>
+                        </tr>
+                      </thead>
+                      <tbody>${routeRows}</tbody>
+                    </table>
+                  </div>
+                ` : `<div class="history-empty-state">No routes matched this history filter.</div>`}
+              </div>
+            `;
+
+            const searchInput = historyShell.querySelector('[data-history-search]');
+            if(searchInput){
+              searchInput.addEventListener('input', (event) => {
+                const nextValue = event.target.value || '';
+                if(nextValue === searchTerm){
+                  return;
+                }
+                searchTerm = nextValue;
+                renderHistoryDashboard(true);
+              });
+              if(preserveSearchFocus){
+                searchInput.focus();
+                searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+              }
+            }
+            historyShell.querySelectorAll('[data-history-mode]').forEach((button) => {
+              button.addEventListener('click', () => {
+                activeMode = button.getAttribute('data-history-mode') || 'all';
+                renderHistoryDashboard();
+              });
+            });
+          };
+
+          const renderOverviewDashboard = () => {
+            if(!overviewShell) return;
+            const rangeMs = 24 * 60 * 60 * 1000;
+            const latestTs = historyDataset.length ? historyDataset[historyDataset.length - 1].timestamp : Date.now();
+            const cutoff = latestTs - rangeMs;
+            const filtered = historyDataset.filter((item) => item.timestamp >= cutoff);
+            const totalRequests = filtered.length;
+            const status123xx = filtered.filter((item) => item.status >= 100 && item.status < 400).length;
+            const status4xx = filtered.filter((item) => item.status >= 400 && item.status < 500).length;
+            const status5xx = filtered.filter((item) => item.status >= 500).length;
+            const durations = filtered.map((item) => item.duration_ms);
+            const avgDuration = durations.length ? durations.reduce((s, v) => s + v, 0) / durations.length : 0;
+            const minDuration = durations.length ? Math.min(...durations) : 0;
+            const maxDuration = durations.length ? Math.max(...durations) : 0;
+            const calcP95 = (vals) => {
+              if(!vals.length) return 0;
+              const sorted = [...vals].sort((a, b) => a - b);
+              return sorted[Math.floor(sorted.length * 0.95)] ?? sorted[sorted.length - 1] ?? 0;
+            };
+            const p95 = calcP95(durations);
+            const buckets = buildBuckets(filtered, rangeMs, 24);
+            const axisStart = formatRangeAxisLabel(cutoff, rangeMs);
+            const axisEnd = formatRangeAxisLabel(latestTs, rangeMs);
+            const durationRange = maxDuration > 0
+              ? (minDuration > 0 ? `${formatDuration(minDuration)} – ${formatDuration(maxDuration)}` : formatDuration(maxDuration))
+              : '—';
+            const recentErrors = filtered
+              .filter((item) => item.status >= 400)
+              .sort((a, b) => b.timestamp - a.timestamp)
+              .slice(0, 6);
+            const errorCount = filtered.filter((item) => item.status >= 400).length;
+            const errorRoutes = new Set(filtered.filter((item) => item.status >= 400).map((item) => item.route));
+            const errorTypes = new Set(filtered.filter((item) => item.status >= 400).map((item) => formatExceptionLabel(item.exception_class)));
+            const topErrorRoutes = aggregateRoutes(filtered)
+              .filter((route) => route.status4xx > 0 || route.status5xx > 0)
+              .sort((left, right) => (right.status5xx + right.status4xx) - (left.status5xx + left.status4xx) || right.requests - left.requests)
+              .slice(0, 3);
+            const hottestErrorRoute = recentErrors.length ? `${recentErrors[0].method} ${recentErrors[0].route}` : '—';
+            const latestErrorTime = recentErrors.length ? formatCapturedAt(recentErrors[0].captured_at) : '—';
+            const slowThreshold = 1000;
+            const slowRoutes = aggregateRoutes(filtered)
+              .filter((route) => route.maxDuration >= slowThreshold)
+              .sort((a, b) => b.maxDuration - a.maxDuration)
+              .slice(0, 5);
+            overviewShell.innerHTML = `
+              <div class="ov-dashboard">
+                <div class="ov-section-label">Activity <span>24h</span></div>
+                <div class="ov-two-col">
+                  <div class="history-card">
+                    <div class="history-card-header">
+                      <div class="history-card-title">Requests</div>
+                      <div class="history-card-meta">
+                        <span class="badge badge-success">${escapeHtml(formatCompactNumber(status123xx))} 1/2/3XX</span>
+                        <span class="badge badge-warning">${escapeHtml(formatCompactNumber(status4xx))} 4XX</span>
+                        <span class="badge badge-error">${escapeHtml(formatCompactNumber(status5xx))} 5XX</span>
+                      </div>
+                    </div>
+                    <div class="history-card-value">${escapeHtml(formatCompactNumber(totalRequests))}</div>
+                    <div class="history-chart-wrap">
+                      ${buildBarChart(buckets)}
+                      <div class="history-chart-axis"><span>${escapeHtml(axisStart)}</span><span>${escapeHtml(axisEnd)}</span></div>
+                    </div>
+                  </div>
+                  <div class="history-card">
+                    <div class="history-card-header">
+                      <div class="history-card-title">Duration</div>
+                      <div class="history-card-meta">
+                        <span class="ov-kpi-chip">AVG ${escapeHtml(formatDuration(avgDuration))}</span>
+                        <span class="ov-kpi-chip ov-kpi-warn">P95 ${escapeHtml(formatDuration(p95))}</span>
+                      </div>
+                    </div>
+                    <div class="history-card-value">${escapeHtml(durationRange)}</div>
+                    <div class="history-chart-wrap">
+                      ${buildLineChart(buckets)}
+                      <div class="history-chart-axis"><span>${escapeHtml(axisStart)}</span><span>${escapeHtml(axisEnd)}</span></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="ov-section-label">Application</div>
+                <div class="ov-two-col">
+                  <div class="history-card">
+                    <div class="history-card-header">
+                      <div class="history-card-title">Exceptions</div>
+                      <div class="history-card-meta">
+                        <span class="badge badge-warning">${escapeHtml(formatCompactNumber(status4xx))} 4XX</span>
+                        <span class="badge badge-error">${escapeHtml(formatCompactNumber(status5xx))} 5XX</span>
+                      </div>
+                    </div>
+                    ${errorCount > 0 ? `
+                      <div class="ov-app-headline">${escapeHtml(formatCompactNumber(errorCount))} exception${errorCount !== 1 ? 's' : ''} in 24h</div>
+                      <div class="ov-app-sub">Errors across ${escapeHtml(String(errorRoutes.size))} unique route${errorRoutes.size !== 1 ? 's' : ''}</div>
+                      <div class="ov-chart-wrap">
+                        ${buildExceptionChart(buckets)}
+                        <div class="history-chart-axis"><span>${escapeHtml(axisStart)}</span><span>${escapeHtml(axisEnd)}</span></div>
+                      </div>
+                      <div class="ov-stat-grid">
+                        <div class="ov-stat-card">
+                          <div class="ov-stat-label">Error Routes</div>
+                          <div class="ov-stat-value">${escapeHtml(String(errorRoutes.size))}</div>
+                          <div class="ov-stat-note">Unique endpoints returning 4XX or 5XX.</div>
+                        </div>
+                        <div class="ov-stat-card">
+                          <div class="ov-stat-label">Exception Types</div>
+                          <div class="ov-stat-value">${escapeHtml(String(errorTypes.size))}</div>
+                          <div class="ov-stat-note">Distinct exception families seen in 24h.</div>
+                        </div>
+                        <div class="ov-stat-card">
+                          <div class="ov-stat-label">Latest Error</div>
+                          <div class="ov-stat-value">${escapeHtml(latestErrorTime)}</div>
+                          <div class="ov-stat-note">${escapeHtml(hottestErrorRoute)}</div>
+                        </div>
+                      </div>
+                      <div class="ov-chip-row">
+                        ${topErrorRoutes.map((route) => `
+                          <span class="ov-chip">
+                            ${renderMethodLabel(route.method)}
+                            <span class="ov-chip-value">${escapeHtml(route.route)} • ${escapeHtml(formatCompactNumber(route.status4xx + route.status5xx))}</span>
+                          </span>
+                        `).join('')}
+                      </div>
+                    ` : '<div class="ov-empty">No exceptions recorded in 24h.</div>'}
+                  </div>
+                  <div class="history-card">
+                    <div class="history-card-title">Slow Routes</div>
+                    ${slowRoutes.length > 0 ? `
+                      <div class="ov-app-headline">${slowRoutes.length} route${slowRoutes.length !== 1 ? 's' : ''} slower than 1s</div>
+                      <div class="ov-app-sub">Sorted by worst observed response time</div>
+                      <div class="ov-route-list">
+                        ${slowRoutes.map((route) => `
+                          <div class="ov-route-item">
+                            ${renderMethodLabel(route.method)}
+                            <span class="ov-route-path">${escapeHtml(route.route)}</span>
+                            <span class="ov-p95-chip">P95 ${escapeHtml(formatDuration(route.maxDuration))}</span>
+                          </div>
+                        `).join('')}
+                      </div>
+                    ` : '<div class="ov-empty">No slow routes detected in 24h.</div>'}
+                  </div>
+                </div>
+              </div>
+            `;
+          };
+
+          renderRangeButtons();
+          fetch('/_insight/api/history?limit=500&_=' + Date.now(), { cache: 'no-store' }).then((response) => response.json()).then((history) => {
+            if(!Array.isArray(history)){
+              historyShell.innerHTML = '<div class="no-data">Unable to load request history right now.</div>';
+              if(overviewShell) overviewShell.innerHTML = '<div class="no-data">Unable to load activity data.</div>';
+              return;
+            }
+            historyDataset = buildCombinedHistory(history);
+            renderOverviewDashboard();
+            renderHistoryDashboard();
+          }).catch(() => {
+            historyShell.innerHTML = '<div class="no-data">Unable to load request history right now.</div>';
+            if(overviewShell) overviewShell.innerHTML = '<div class="no-data">Unable to load activity data.</div>';
+          });
+        }
+        wrap.querySelectorAll('[data-action="json-api-copy"]').forEach((button) => {
+          button.addEventListener('click', async () => {
+            const payload = JSON.stringify(data, null, 2);
+            try {
+              await this.copyText(payload);
+              this.setCopyButtonState(button, 'success');
+            } catch (error) {
+              this.setCopyButtonState(button, 'error');
+            }
+            window.setTimeout(() => {
+              this.setCopyButtonState(button, 'idle');
+            }, 1600);
+          });
+        });
+        wrap.querySelectorAll('[data-action="copy-request-url"]').forEach((button) => {
+          button.addEventListener('click', async () => {
+            button.classList.remove('is-success', 'is-error');
+            try {
+              await this.copyText(String(requestUrl));
+              button.classList.add('is-success');
+            } catch (error) {
+              button.classList.add('is-error');
+            }
+            window.setTimeout(() => {
+              button.classList.remove('is-success', 'is-error');
+            }, 1600);
+          });
+        });
+        wrap.querySelectorAll('[data-action="toggle-theme"]').forEach((button) => {
+          button.addEventListener('click', () => {
+            const current = wrap.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+            this.setQuickViewTheme(wrap, current === 'dark' ? 'light' : 'dark');
+          });
+        });
+        this.setQuickViewTheme(wrap, this.getQuickViewTheme());
+        this.syncPanelPosition();
+        this.animatePanelOpen(wrap);
       }).catch(()=>{});
     } else {
-      root.innerHTML = '';
+      this.closePanel(root);
     }
+  },
+  bindLayoutSync(){
+    if(this.layoutSyncBound){
+      return;
+    }
+    this.layoutSyncBound = true;
+    const sync = () => {
+      if(this.open){
+        this.syncPanelPosition();
+      }
+    };
+    window.addEventListener('resize', sync);
+    window.addEventListener('scroll', sync, { passive: true });
   }
 };
+
+window.DopparProfiler.bindLayoutSync();

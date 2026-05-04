@@ -16,6 +16,7 @@ class LogsComponent extends InsightComponent {
     
     buildLogItem(log, index) {
         const level = log.level || 'info';
+        const levelKey = String(level).toLowerCase();
         const message = log.message || '';
         const time = log.time || '';
         const context = log.context && Object.keys(log.context).length > 0 
@@ -34,12 +35,12 @@ class LogsComponent extends InsightComponent {
             emergency: { color: '#7f1d1d', label: 'EMERGENCY' }
         };
         
-        const config = levelConfig[level.toLowerCase()] || levelConfig.info;
+        const config = levelConfig[levelKey] || levelConfig.info;
         
         return `
-            <div class="log-item">
+            <div class="log-item log-${levelKey}">
                 <div class="log-header">
-                    <div class="log-level-badge log-${level}">
+                    <div class="log-level-badge log-${levelKey}">
                         <span class="log-level-text">${config.label}</span>
                     </div>
                     <span class="log-time">${this.escapeHtml(time)}</span>

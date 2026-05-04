@@ -16,4 +16,11 @@ interface StorageInterface
      * @return array<string,mixed>|null
      */
     public function get(string $id): ?array;
+
+    /**
+     * Retrieve recent profile summaries ordered newest first.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function recent(int $limit = 50): array;
 }

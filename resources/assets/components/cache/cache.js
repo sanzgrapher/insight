@@ -80,10 +80,10 @@ class CacheComponent extends InsightComponent {
             // Prefer rich JSON rendering like session viewer
             try {
                 const parsed = JSON.parse(valueJson);
-                valueHtml = `<div class="cache-value"><div style="margin-bottom:6px;color:#9ca3af;font-size:12px;">Value (JSON)</div>${jsonViewer(parsed, false)}</div>`;
+                valueHtml = `<div class="cache-value"><div class="data-caption">Value (JSON)</div>${jsonViewer(parsed, false)}</div>`;
             } catch (e) {
                 // Fallback: show preformatted JSON string
-                valueHtml = `<div class="cache-value"><div style="margin-bottom:6px;color:#9ca3af;font-size:12px;">Value (JSON)</div><pre style="white-space:pre-wrap;word-break:break-word;">${this.escapeHtml(String(valueJson))}</pre></div>`;
+                valueHtml = `<div class="cache-value"><div class="data-caption">Value (JSON)</div><pre class="code-inline-block">${this.escapeHtml(String(valueJson))}</pre></div>`;
             }
         } else if (value !== '') {
             valueHtml = `<div class="cache-value">Value: ${this.escapeHtml(String(value))}</div>`;
@@ -115,7 +115,7 @@ class CacheComponent extends InsightComponent {
         const hitRate = total > 0 ? ((hits / (hits + misses)) * 100).toFixed(1) : 0;
         
         return `
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
+            <div class="triple-metrics" style="margin-bottom: 16px;">
                 <div class="cache-stat-card">
                     <div class="cache-stat-value">${total}</div>
                     <div class="cache-stat-label">Operations</div>
@@ -129,7 +129,7 @@ class CacheComponent extends InsightComponent {
                     <div class="cache-stat-label">Hit Rate</div>
                 </div>
             </div>
-            <div style="color: #101010; font-size: 13px;">
+            <div class="inline-note">
                 See Cache tab for detailed operations.
             </div>
         `;

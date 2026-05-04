@@ -53,9 +53,13 @@ class ToolbarRenderer
             '{{METHOD}}' => $this->escape($data['method'] ?? ''),
             '{{PATH}}' => $this->escape($data['route'] ?? ''),
             '{{DURATION}}' => $this->formatDuration($data),
+            '{{MEMORY_PEAK}}' => $this->formatMemoryPeak($data),
             '{{SQL_COUNT}}' => (string)($data['sql_total_count'] ?? 0),
             '{{SQL_TIME}}' => number_format($data['sql_total_time_ms'] ?? 0, 1),
+            '{{CACHE_SUMMARY}}' => $this->formatCacheSummary($data),
             '{{LOGS_COUNT}}' => (string)($data['logs_total_count'] ?? 0),
+            '{{SESSION_COUNT}}' => (string)count((array)($data['session_data'] ?? [])),
+            '{{RESPONSE_SIZE}}' => $this->formatResponseSize($data),
             '{{FRAMEWORK_VERSION}}' => $this->escape($data['framework_version'] ?? 'unknown'),
             '{{PHP_VERSION}}' => $this->escape($data['php_version'] ?? PHP_VERSION),
             '{{IS_REDIRECT}}' => ($data['is_redirect'] ?? false) ? 'true' : 'false',
@@ -77,6 +81,58 @@ class ToolbarRenderer
         $duration = $data['total_duration_ms'] ?? $data['duration_ms'] ?? 0;
 
         return number_format($duration, 1);
+    }
+
+    /**
+     * Format peak memory from profiler data
+     *
+     * @param array<string, mixed> $data
+     */
+    protected function formatMemoryPeak(array $data): string
+    {
+        $bytes = (float) ($data['memory_peak'] ?? 0);
+
+        if ($bytes >= 1048576) {
+            return number_format($bytes / 1048576, 2) . ' MB';
+        }
+
+        if ($bytes >= 1024) {
+            return number_format($bytes / 1024, 1) . ' KB';
+        }
+
+        return (int) $bytes . ' B';
+    }
+
+    /**
+     * Format response body size from profiler data
+     *
+     * @param array<string, mixed> $data
+     */
+    protected function formatResponseSize(array $data): string
+    {
+        $bytes = (int) ($data['response_body_size'] ?? 0);
+
+        if ($bytes >= 1048576) {
+            return number_format($bytes / 1048576, 2) . ' MB';
+        }
+
+        if ($bytes >= 1024) {
+            return number_format($bytes / 1024, 1) . ' KB';
+        }
+
+        return $bytes . ' B';
+    }
+
+    /**
+     * Format cache activity summary from profiler data
+     *
+     * @param array<string, mixed> $data
+     */
+    protected function formatCacheSummary(array $data): string
+    {
+        $total = (int) ($data['cache_total'] ?? 0);
+
+        return $total . ' cache ' . ($total === 1 ? 'op' : 'ops');
     }
 
     /**

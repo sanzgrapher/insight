@@ -55,7 +55,10 @@ class ProfilerController
         $status = (int)($data['status'] ?? 0);
         // Use total duration if there are redirects, otherwise use current duration
         $duration = number_format($data['total_duration_ms'] ?? $data['duration_ms'] ?? 0, 2);
-        $memoryPeak = number_format(($data['memory_peak'] ?? 0) / (1024 * 1024), 2);
+        $memoryBytes = (float) ($data['memory_peak'] ?? 0);
+        $memoryPeak = $memoryBytes >= 1048576
+            ? number_format($memoryBytes / 1048576, 2) . ' MB'
+            : ($memoryBytes >= 1024 ? number_format($memoryBytes / 1024, 1) . ' KB' : (int) $memoryBytes . ' B');
         $frameworkVersion = htmlspecialchars($data['framework_version'] ?? 'unknown', ENT_QUOTES, 'UTF-8');
         $phpVersion = htmlspecialchars($data['php_version'] ?? PHP_VERSION, ENT_QUOTES, 'UTF-8');
 

@@ -6,6 +6,21 @@ use Doppar\Insight\Controllers\ProfilerController;
 
 $router = app('route');
 
+// API endpoint for recent request summaries
+$router->get('/_insight/api/history', function (Request $request) {
+    /** @var Profiler $profiler */
+    $profiler = app(Profiler::class);
+
+    if (! $profiler->isEnabledFor($request)) {
+        return response()->json(['error' => 'Forbidden'], 403);
+    }
+
+    $limit = (int) $request->query('limit', 300);
+    $limit = max(1, min($limit, 1000));
+
+    return response()->json($profiler->getRecentRequests($limit), 200);
+});
+
 // API endpoint for JSON data (used by toolbar panel)
 $router->get('/_insight/api/{id}', function (Request $request) {
     /** @var Profiler $profiler */
@@ -13,19 +28,18 @@ $router->get('/_insight/api/{id}', function (Request $request) {
 
     // Extra guard: only serve when globally enabled and IP allowed
     if (! $profiler->isEnabledFor($request)) {
-        return ['error' => 'Forbidden']; // Will become JSON 200; keep it simple for now
+        return response()->json(['error' => 'Forbidden'], 403);
     }
 
     $params = $request->getRouteParams();
     $id = $params['id'] ?? null;
     $data = $id ? $profiler->getData($id) : null;
 
-    if (!$data) {
-        // Router will turn array into JSON and set 200; to enforce 404 we can use response()->json
-        return ['error' => 'Not found'];
+    if (! $data) {
+        return response()->json(['error' => 'Not found'], 404);
     }
 
-    return $data;
+    return response()->json($data, 200);
 });
 
 // Full details page with tabs

@@ -146,7 +146,7 @@ class HttpComponent extends InsightComponent {
                         <span class="badge badge-info">${count} request${count > 1 ? 's' : ''}</span>
                         <span class="badge badge-success">Total: ${totalTime.toFixed(1)} ms</span>
                     </div>
-                    <div style="margin-top: 12px;">
+                    <div class="http-requests-list">
                         ${requestItems}
                     </div>
                 </div>

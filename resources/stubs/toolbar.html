@@ -3,20 +3,29 @@
   <template id="dp-template">
     <style>{{CSS}}</style>
     <div class="dp-root">
-      <div class="dp-left">
-        <span class="dp-badge">{{STATUS}}</span>
-        <span class="dp-badge dp-badge-warning dp-redirect" style="display:none">Redirect</span>
-        <span class="dp-item">{{METHOD}} {{PATH}}</span>
-      </div>
-      <div class="dp-right">
-        <span class="dp-item dp-auth" style="display:none"><span class="dp-auth-name"></span></span>
-        <span class="dp-item dp-version"> PHP {{PHP_VERSION}}</span>
-        <span class="dp-item dp-version"><img src="{{LOGO}}" alt="Doppar Logo" width="16" height="16"> v{{FRAMEWORK_VERSION}}</span>
-        <span class="dp-item">{{DURATION}} ms</span>
-        <span class="dp-item dp-sql">🗄️ {{SQL_COUNT}} queries ({{SQL_TIME}} ms)</span>
-        <span class="dp-item dp-logs" style="display:none">{{LOGS_COUNT}} logs</span>
-        <button class="dp-btn" onclick="DopparProfiler.openDetailsPage()">Details</button>
-        <button class="dp-btn" onclick="DopparProfiler.toggle()">Quick View</button>
+      <button class="dp-launcher" type="button" aria-label="Toggle Doppar Insight">
+        <span class="dp-launcher-mark">
+          <img src="{{LOGO}}" alt="Doppar Logo" width="18" height="18">
+        </span>
+      </button>
+
+      <div class="dp-main">
+        <div class="dp-left">
+          <span class="dp-badge">{{STATUS}}</span>
+          <span class="dp-badge dp-badge-warning dp-redirect" style="display:none" title="Redirect response">Redirect</span>
+          <span class="dp-item dp-meta">{{METHOD}}</span>
+          <span class="dp-item dp-route" title="{{PATH}}">{{PATH}}</span>
+          <span class="dp-item dp-session-chip"><span class="dp-chip-icon dp-chip-icon-session" aria-hidden="true"></span>{{SESSION_COUNT}} session</span>
+          <span class="dp-item dp-logs-chip"><span class="dp-chip-icon dp-chip-icon-logs" aria-hidden="true"></span>{{LOGS_COUNT}} logs</span>
+          <span class="dp-item dp-resp-size"><span class="dp-chip-icon dp-chip-icon-resp-size" aria-hidden="true"></span>{{RESPONSE_SIZE}}</span>
+        </div>
+        <div class="dp-right">
+          <span class="dp-item dp-memory">Peak {{MEMORY_PEAK}}</span>
+          <span class="dp-item">{{DURATION}} ms</span>
+          <span class="dp-item dp-sql">🗄️ {{SQL_COUNT}} queries ({{SQL_TIME}} ms)</span>
+          <span class="dp-item dp-cache"><span class="dp-chip-icon dp-chip-icon-cache" aria-hidden="true"></span>{{CACHE_SUMMARY}}</span>
+          <button class="dp-btn" onclick="window.DopparProfiler && window.DopparProfiler.toggle()"><span class="dp-btn-icon dp-btn-icon-overview" aria-hidden="true"></span>Overview</button>
+        </div>
       </div>
     </div>
   </template>
@@ -39,21 +48,35 @@
         var redirectEl=root.querySelector('.dp-redirect');
         if(redirectEl){redirectEl.style.display='inline-block';}
       }
-      // Show auth info if user is authenticated
-      if(host.dataset.authAuthenticated==='true'){
-        var authEl=root.querySelector('.dp-auth');
-        var authNameEl=root.querySelector('.dp-auth-name');
-        if(authEl && authNameEl){
-          authNameEl.textContent=host.dataset.authUserName || 'User';
-          authEl.style.display='inline-block';
-        }
-      }
       // Show logs count if there are logs
       var logsCount=parseInt(host.dataset.logsCount||'0',10);
       if(logsCount>0){
         var logsEl=root.querySelector('.dp-logs');
         if(logsEl){logsEl.style.display='inline-block';}
       }
+      var storageKey='doppar.insight.toolbar.collapsed';
+      var rootEl=root.querySelector('.dp-root');
+      var launcherEl=root.querySelector('.dp-launcher');
+      var setCollapsed=function(collapsed){
+        if(!rootEl){return}
+        rootEl.classList.toggle('dp-root-collapsed', !!collapsed);
+        if(launcherEl){
+          launcherEl.setAttribute('aria-label', collapsed ? 'Expand Doppar Insight' : 'Collapse Doppar Insight');
+        }
+        try{
+          window.localStorage.setItem(storageKey, collapsed ? '1' : '0');
+        }catch(e){}
+      };
+      if(launcherEl){
+        launcherEl.addEventListener('click', function(){
+          setCollapsed(!rootEl.classList.contains('dp-root-collapsed'));
+        });
+      }
+      try{
+        if(window.localStorage.getItem(storageKey)==='1'){
+          setCollapsed(true);
+        }
+      }catch(e){}
     }catch(e){}
   })();</script>
 </div>

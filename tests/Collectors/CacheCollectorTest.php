@@ -77,11 +77,18 @@ class CacheCollectorTest extends TestCase
 
     public function testRegisterSetOperation(): void
     {
-        $this->collector->registerOperation('set', 'config:app', 'value', false);
+        $this->collector->registerOperation('set', 'config:app', 'value', false, [
+            'store_name' => 'file',
+            'store_driver' => 'file',
+            'ttl_seconds' => 60,
+        ]);
         
         $data = $this->collector->toArray();
         
         $this->assertEquals('set', $data['cache_operations'][0]['type']);
+        $this->assertEquals('file', $data['cache_operations'][0]['store_name']);
+        $this->assertEquals('file', $data['cache_operations'][0]['store_driver']);
+        $this->assertEquals(60, $data['cache_operations'][0]['ttl_seconds']);
         $this->assertEquals(1, $data['cache_writes']);
     }
 
@@ -119,16 +126,29 @@ class CacheCollectorTest extends TestCase
     {
         $this->collector->registerOperation('get', 'key1', 'value1', true);  // hit
         $this->collector->registerOperation('get', 'key2', null, false);     // miss
+        $this->collector->registerOperation('get_multiple', 'key2', null, false); // multi miss
+        $this->collector->registerOperation('get_multiple', 'key3', 'value3', true); // multi hit
         $this->collector->registerOperation('set', 'key3', 'value3', false); // write
         $this->collector->registerOperation('delete', 'key4', null, false);  // delete
         
         $data = $this->collector->toArray();
         
-        $this->assertEquals(1, $data['cache_hits']);
-        $this->assertEquals(1, $data['cache_misses']);
+        $this->assertEquals(2, $data['cache_hits']);
+        $this->assertEquals(2, $data['cache_misses']);
         $this->assertEquals(1, $data['cache_writes']);
         $this->assertEquals(1, $data['cache_deletes']);
-        $this->assertEquals(4, $data['cache_total']);
+        $this->assertEquals(6, $data['cache_total']);
+    }
+
+    public function testCountsLockOperationsSeparately(): void
+    {
+        $this->collector->registerOperation('lock_prepare', 'report:sync', null, false);
+        $this->collector->registerOperation('lock_get', 'report:sync', null, true);
+        $this->collector->registerOperation('lock_release', 'report:sync', null, true);
+
+        $data = $this->collector->toArray();
+
+        $this->assertSame(3, $data['cache_lock_operations']);
     }
 
     public function testCalculatesHitRatio(): void
@@ -156,6 +176,11 @@ class CacheCollectorTest extends TestCase
         $data = $this->collector->toArray();
         
         $this->assertArrayHasKey('time', $data['cache_operations'][0]);
+        $this->assertArrayHasKey('store_name', $data['cache_operations'][0]);
+        $this->assertArrayHasKey('store_driver', $data['cache_operations'][0]);
+        $this->assertArrayHasKey('ttl_seconds', $data['cache_operations'][0]);
+        $this->assertArrayHasKey('expires_at', $data['cache_operations'][0]);
+        $this->assertArrayHasKey('tags', $data['cache_operations'][0]);
         $this->assertGreaterThanOrEqual($before, $data['cache_operations'][0]['time']);
         $this->assertLessThanOrEqual($after, $data['cache_operations'][0]['time']);
     }
@@ -206,6 +231,7 @@ class CacheCollectorTest extends TestCase
         $this->assertArrayHasKey('cache_misses', $data);
         $this->assertArrayHasKey('cache_writes', $data);
         $this->assertArrayHasKey('cache_deletes', $data);
+        $this->assertArrayHasKey('cache_lock_operations', $data);
         $this->assertArrayHasKey('cache_total', $data);
         
         $this->assertIsArray($data['cache_operations']);
@@ -213,6 +239,7 @@ class CacheCollectorTest extends TestCase
         $this->assertIsInt($data['cache_misses']);
         $this->assertIsInt($data['cache_writes']);
         $this->assertIsInt($data['cache_deletes']);
+        $this->assertIsInt($data['cache_lock_operations']);
         $this->assertIsInt($data['cache_total']);
     }
 

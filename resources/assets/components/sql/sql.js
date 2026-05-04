@@ -62,7 +62,7 @@ class SqlComponent extends InsightComponent {
             '</div>';
         
         if (data.sql.length > 3) {
-            html += `<div style="margin-top: 12px; color: #101010; font-size: 13px;">
+            html += `<div class="inline-note">
                 ... and ${data.sql.length - 3} more queries. See Database tab for full list.
             </div>`;
         }

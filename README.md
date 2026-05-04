@@ -11,39 +11,72 @@
 </p>
 
 ## About Doppar Insight
-Doppar Insight Profiler is an advanced debugging and performance monitoring tool designed to give developers deep visibility into their application's inner workings. It provides detailed insights into every request, including HTTP methods, routes, response times, memory usage, and framework versions — all within a clean, intuitive dashboard.
+Doppar Insight is a request profiler for debugging, performance analysis, and traffic inspection. It gives you a clean in-browser toolbar for the current request, and it also keeps a recent request history so you can compare status codes, response times, errors, and route activity across multiple requests.
+
+Insight is useful when you want to inspect SQL queries, cache usage, authentication state, request and response payloads, session data, logs, or performance timing without leaving the page you are working on. It is designed for day-to-day development, but it is especially helpful when you need to trace slow endpoints or understand why a route is returning `4xx` or `5xx` responses.
 
 ## Screenshots
 
 <table>
   <tr>
     <td width="50%">
-      <h3 align="center">Queries</h3>
-      <img src="resources/1.png" alt="SQL Queries Profiling" width="100%">
+      <h3 align="center">Overview Dashboard</h3>
+      <img src="resources/overview.png" alt="Insight overview dashboard" width="100%">
     </td>
     <td width="50%">
-      <h3 align="center">Session</h3>
-      <img src="resources/2.png" alt="Session Information" width="100%">
+      <h3 align="center">History Dashboard</h3>
+      <img src="resources/history.png" alt="Insight history dashboard" width="100%">
     </td>
   </tr>
   <tr>
-    <td colspan="2">
-      <h3 align="center">Main Toolbar</h3>
-      <img src="resources/3.png" alt="Doppar Insight Toolbar" width="100%">
+    <td width="50%">
+      <h3 align="center">Toolbar</h3>
+      <img src="resources/toolbar.png" alt="Insight toolbar" width="100%">
+    </td>
+    <td width="50%">
+      <h3 align="center">Database Queries</h3>
+      <img src="resources/database.png" alt="Insight database query view" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <h3 align="center">Cache Activity</h3>
+      <img src="resources/cache.png" alt="Insight cache activity view" width="100%">
+    </td>
+    <td width="50%">
+      <h3 align="center">JSON API</h3>
+      <img src="resources/json-api.png" alt="Insight JSON API view" width="100%">
     </td>
   </tr>
 </table>
 
-### Production Notice
-Do not use this package in production environments. This package is intended for development and testing purposes only. It provides diagnostic and analytical tools that may expose internal system details, which makes it unsuitable for production environments.
+## Production Usage
+Doppar Insight is primarily a development and diagnostics tool. It can capture sensitive request data, exception details, session state, logs, query information, and recent traffic history, so it should not be left enabled for normal public production traffic.
+
+If you need to use Insight on a live server, treat it as a temporary internal debugging tool:
+
+- keep it disabled by default
+- enable it only for short troubleshooting windows
+- restrict access to trusted internal or VPN IP addresses only
+- avoid exposing the toolbar and history endpoints to public users
+
+A safer production-style configuration looks like this:
+
+```php
+return [
+    'enabled' => false,
+    'allow_ips' => ['127.0.0.1', '::1'],
+    'retention_days' => 1,
+];
+```
 
 ## Contributing
 
-Thank you for considering contributing to the Doppar framework! The contribution guide can be found in the [Doppar documentation](https://doppar.com/versions/3.x/contributions.html).
+Thank you for considering contributing to the Doppar framework! The contribution guide can be found in the [Doppar documentation](https://doppar.com/versions/3.x/contributions).
 
 ## Code of Conduct
 
-In order to ensure that the Doppar community is welcoming to all, please review and abide by the [Code of Conduct](https://doppar.com/versions/3.x/contributions.html#code-of-conduct).
+In order to ensure that the Doppar community is welcoming to all, please review and abide by the [Code of Conduct](https://doppar.com/versions/3.x/contributions#code-of-conduct).
 
 ## Security Vulnerabilities
 
@@ -52,5 +85,3 @@ Please review [our security policy](https://github.com/doppar/framework/security
 ## License
 
 The Doppar framework is open-sourced software licensed under the [MIT license](LICENSE.md).
-
-
