@@ -70,11 +70,61 @@
     color: #ffffff;
 }
 
+.response-highlight-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    overflow: hidden;
+    border-radius: 0;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #1a1a1f;
+    margin-bottom: 18px;
+}
+
+.response-highlight-table th,
+.response-highlight-table td {
+    padding: 14px 16px;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.response-highlight-table th {
+    background: #232329;
+    color: #8ea0bd;
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    font-weight: 800;
+}
+
+.response-highlight-table td {
+    color: #f3f6fb;
+    font-size: 13px;
+    font-weight: 700;
+    word-break: break-word;
+    background: #1a1a1f;
+}
+
+.response-highlight-table tr:last-child td {
+    border-bottom: 0;
+}
+
 .response-preview-shell {
     border-radius: 16px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     overflow: hidden;
     margin-bottom: 18px;
+}
+
+.response-preview-scroll {
+    max-height: 460px;
+    overflow: auto;
+}
+
+.response-preview-scroll > .code-block {
+    border-radius: 0;
+    margin: 0;
 }
 
 .response-preview-head {

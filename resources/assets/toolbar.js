@@ -186,7 +186,7 @@ window.DopparProfiler = {
           }
           return escapeHtml(String(value));
         };
-        const buildPropertyTable = (dataset, keyHeader = 'Property', valueHeader = 'Value') => {
+        const buildPropertyTable = (dataset, keyHeader = 'Property', valueHeader = 'Value', tableClass = 'property-table') => {
           if(!hasEntries(dataset)){
             return '';
           }
@@ -197,7 +197,7 @@ window.DopparProfiler = {
             </tr>
           `).join('');
           return `
-            <table class="property-table">
+            <table class="${escapeHtml(tableClass)}">
               <thead>
                 <tr>
                   <th>${escapeHtml(keyHeader)}</th>
@@ -1859,6 +1859,40 @@ window.DopparProfiler = {
           .property-table tr:last-child td {
             border-bottom: 0;
           }
+          .response-highlight-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            overflow: hidden;
+            border-radius: 0;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: #1a1a1f;
+          }
+          .response-highlight-table th,
+          .response-highlight-table td {
+            padding: 14px 16px;
+            text-align: left;
+            vertical-align: top;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+          }
+          .response-highlight-table th {
+            background: #232329;
+            color: #8ea0bd;
+            font-size: 11px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            font-weight: 800;
+          }
+          .response-highlight-table td {
+            color: #f3f6fb;
+            font-size: 13px;
+            font-weight: 700;
+            word-break: break-word;
+            background: #1a1a1f;
+          }
+          .response-highlight-table tr:last-child td {
+            border-bottom: 0;
+          }
           .code-block {
             margin: 0;
             padding: 16px 18px;
@@ -1872,6 +1906,13 @@ window.DopparProfiler = {
             overflow-x: auto;
           }
           .api-response-shell > .code-block:last-child {
+            border-radius: 0 0 15px 15px;
+          }
+          .response-preview-scroll {
+            max-height: 460px;
+            overflow: auto;
+          }
+          .response-preview-scroll > .code-block {
             border-radius: 0 0 15px 15px;
           }
           .code-block-compact {
@@ -3080,7 +3121,10 @@ window.DopparProfiler = {
         if (responseHeaderCount > 0) responseInfo['Header Count'] = responseHeaderCount;
 
         const responseHighlightSection = hasEntries(data.response_header_highlights)
-          ? buildSubsection('Header Highlights', buildPropertyTable(data.response_header_highlights, 'Header', 'Value'))
+          ? buildSubsection('Header Highlights', buildPropertyTable(data.response_header_highlights, 'Header', 'Value', 'response-highlight-table'))
+          : '';
+        const responseAllHeadersSection = hasEntries(data.response_headers)
+          ? buildSubsection('All Headers', buildPropertyTable(data.response_headers, 'Header', 'Value', 'response-highlight-table'))
           : '';
 
         const responseRedirectSummary = (data.is_redirect && data.redirect_url) || responseRedirectCount > 0
@@ -3103,7 +3147,7 @@ window.DopparProfiler = {
                     ${data.response_preview_truncated ? `<span class="api-meta-chip api-chip-mono">Truncated</span>` : ''}
                   </span>
                 </div>
-                ${buildCodeBlock(data.response_preview)}
+                <div class="response-preview-scroll">${buildCodeBlock(data.response_preview)}</div>
               </div>
             </div>
           `
@@ -3137,11 +3181,11 @@ window.DopparProfiler = {
               </div>
               ${buildSubsection('Response', buildPropertyTable(responseInfo, 'Property', 'Value'))}
               ${responseHighlightSection}
+              ${responseAllHeadersSection}
               ${responseRedirectSummary}
               ${responsePreviewSection}
-              ${buildSubsection('Headers', buildPropertyTable(data.response_headers, 'Header', 'Value'))}
             </div>
-            ${!hasEntries(responseInfo) && !hasEntries(data.response_headers) && !hasEntries(data.response_header_highlights) && !(data.is_redirect && data.redirect_url) && !data.response_preview ? '<div class="no-data">No response details available</div>' : ''}
+            ${!hasEntries(responseInfo) && !hasEntries(data.response_header_highlights) && !hasEntries(data.response_headers) && !(data.is_redirect && data.redirect_url) && !data.response_preview ? '<div class="no-data">No response details available</div>' : ''}
           </div>
         `;
 

@@ -21,11 +21,12 @@ class ResponseComponent extends InsightComponent {
         html += this.buildSection('Response', this.buildTable(info, ['Property', 'Value']));
 
         if (data.response_header_highlights && Object.keys(data.response_header_highlights).length > 0) {
-            html += this.buildSection('Header Highlights', this.buildTable(data.response_header_highlights, ['Header', 'Value']));
+            html += this.buildSection('Header Highlights', this.buildTable(data.response_header_highlights, ['Header', 'Value'], 'response-highlight-table'));
         }
-        
-        // Headers
-        html += this.buildSection('Headers', this.buildTable(data.response_headers));
+
+        if (data.response_headers && Object.keys(data.response_headers).length > 0) {
+            html += this.buildSection('All Headers', this.buildTable(data.response_headers, ['Header', 'Value'], 'response-highlight-table'));
+        }
         
         // Redirect info
         html += this.buildRedirectInfo(data, redirectCount);
@@ -115,7 +116,7 @@ class ResponseComponent extends InsightComponent {
                     <div class="response-preview-title">${this.escapeHtml(previewFormat)} preview</div>
                     <div class="response-preview-chips">${previewChips}</div>
                 </div>
-                ${this.buildCodeBlock(data.response_preview)}
+                <div class="response-preview-scroll">${this.buildCodeBlock(data.response_preview)}</div>
             </div>
         `;
     }

@@ -31,10 +31,10 @@ class InsightComponent {
         return div.innerHTML;
     }
     
-    buildTable(data, headers = ['Key', 'Value']) {
+    buildTable(data, headers = ['Key', 'Value'], tableClass = 'data-table') {
         if (!data || Object.keys(data).length === 0) return '';
         
-        let html = '<table class="data-table"><thead><tr>';
+        let html = `<table class="${this.escapeHtml(tableClass)}"><thead><tr>`;
         headers.forEach(header => {
             html += `<th>${header}</th>`;
         });

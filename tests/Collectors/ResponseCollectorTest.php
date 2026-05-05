@@ -222,6 +222,21 @@ class ResponseCollectorTest extends TestCase
         $this->assertFalse($data['response_preview_truncated']);
     }
 
+    public function testDoesNotTruncateLargePreview(): void
+    {
+        $request = $this->createRequest();
+        $body = str_repeat('A', 5000);
+        $response = $this->createResponse(200, 'text/plain', $body);
+
+        $this->collector->start($request);
+        $this->collector->stop($request, $response);
+
+        $data = $this->collector->toArray();
+
+        $this->assertSame($body, $data['response_preview']);
+        $this->assertFalse($data['response_preview_truncated']);
+    }
+
     public function testSkipsPreviewForFileDownloadResponses(): void
     {
         $request = $this->createRequest();

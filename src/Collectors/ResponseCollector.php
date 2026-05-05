@@ -8,8 +8,6 @@ use Phaseolies\Http\Response;
 
 class ResponseCollector implements CollectorInterface
 {
-    protected const int RESPONSE_PREVIEW_LIMIT = 4096;
-
     /** @var array<string, mixed> */
     protected array $data = [];
 
@@ -185,10 +183,7 @@ class ResponseCollector implements CollectorInterface
             return [null, null, false];
         }
 
-        $truncated = strlen($preview) > self::RESPONSE_PREVIEW_LIMIT;
-        $preview = substr($preview, 0, self::RESPONSE_PREVIEW_LIMIT);
-
-        return [$preview, $this->detectPreviewFormat($contentType), $truncated];
+        return [$preview, $this->detectPreviewFormat($contentType), false];
     }
 
     protected function shouldCapturePreview(Response $response, string $contentType): bool
