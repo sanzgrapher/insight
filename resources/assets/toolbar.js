@@ -3374,7 +3374,7 @@ window.DopparProfiler = {
                     Copy JSON
                   </button>
                 </div>
-                ${buildCodeBlock(data)}
+                <div class="response-preview-scroll">${buildCodeBlock(data)}</div>
               </div>
             </div>
           </div>
