@@ -149,8 +149,15 @@ class ResponseCollectorTest extends TestCase
         
         $this->assertArrayHasKey('response_headers', $data);
         $this->assertArrayHasKey('response_status', $data);
+        $this->assertArrayHasKey('response_status_text', $data);
         $this->assertArrayHasKey('response_content_type', $data);
         $this->assertArrayHasKey('response_body_size', $data);
+        $this->assertArrayHasKey('response_header_count', $data);
+        $this->assertArrayHasKey('response_header_highlights', $data);
+        $this->assertArrayHasKey('response_classification', $data);
+        $this->assertArrayHasKey('response_preview', $data);
+        $this->assertArrayHasKey('response_preview_format', $data);
+        $this->assertArrayHasKey('response_preview_truncated', $data);
         $this->assertArrayHasKey('is_redirect', $data);
         $this->assertArrayHasKey('redirect_url', $data);
     }
@@ -180,5 +187,54 @@ class ResponseCollectorTest extends TestCase
         $data = $this->collector->toArray();
         
         $this->assertEquals(0, $data['response_body_size']);
+    }
+
+    public function testBuildsHeaderHighlightsAndClassification(): void
+    {
+        $request = $this->createRequest();
+        $response = $this->createResponse(200, 'application/json', '{"ok":true}');
+        $response->headers->set('Cache-Control', 'no-cache');
+        $response->headers->set('ETag', '"abc123"');
+
+        $this->collector->start($request);
+        $this->collector->stop($request, $response);
+
+        $data = $this->collector->toArray();
+
+        $this->assertSame('JSON API', $data['response_classification']);
+        $this->assertSame('application/json', $data['response_header_highlights']['Content-Type']);
+        $this->assertStringContainsString('no-cache', $data['response_header_highlights']['Cache-Control']);
+        $this->assertSame('"abc123"', $data['response_header_highlights']['ETag']);
+    }
+
+    public function testBuildsJsonPreview(): void
+    {
+        $request = $this->createRequest();
+        $response = $this->createResponse(200, 'application/json', '{"ok":true,"items":[1,2]}');
+
+        $this->collector->start($request);
+        $this->collector->stop($request, $response);
+
+        $data = $this->collector->toArray();
+
+        $this->assertSame('json', $data['response_preview_format']);
+        $this->assertStringContainsString("\"ok\": true", (string) $data['response_preview']);
+        $this->assertFalse($data['response_preview_truncated']);
+    }
+
+    public function testSkipsPreviewForFileDownloadResponses(): void
+    {
+        $request = $this->createRequest();
+        $response = $this->createResponse(200, 'application/pdf', '%PDF-1.7');
+        $response->headers->set('Content-Disposition', 'attachment; filename="report.pdf"');
+
+        $this->collector->start($request);
+        $this->collector->stop($request, $response);
+
+        $data = $this->collector->toArray();
+
+        $this->assertSame('File Download', $data['response_classification']);
+        $this->assertNull($data['response_preview']);
+        $this->assertNull($data['response_preview_format']);
     }
 }

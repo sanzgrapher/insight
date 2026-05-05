@@ -1088,6 +1088,33 @@ window.DopparProfiler = {
             font-size: 12px;
             color: #63738b;
           }
+          .response-status-chip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 12px;
+            border-radius: 2px;
+            font-size: 13px;
+            line-height: 1;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            font-weight: 900;
+            border: 0;
+            font-family: "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
+            box-shadow: none;
+          }
+          .response-status-chip-success {
+            background: #16a34a;
+            color: #ffffff;
+          }
+          .response-status-chip-warning {
+            background: #f59e0b;
+            color: #ffffff;
+          }
+          .response-status-chip-error {
+            background: #dc2626;
+            color: #ffffff;
+          }
           .history-shell {
             display: grid;
             gap: 12px;
@@ -3034,20 +3061,87 @@ window.DopparProfiler = {
           </div>
         `;
 
+        const responseStatusCode = Number(data.response_status ?? data.status ?? 0);
+        const responseStatusText = data.response_status_text || '';
+        const responseStatusLabel = responseStatusCode ? (responseStatusText ? `${responseStatusCode} - ${responseStatusText}` : String(responseStatusCode)) : 'Unknown';
+        const responseStatusChipClass = responseStatusCode >= 500
+          ? 'response-status-chip response-status-chip-error'
+          : responseStatusCode >= 300
+            ? 'response-status-chip response-status-chip-warning'
+            : 'response-status-chip response-status-chip-success';
+        const responseHeaderCount = Number(data.response_header_count || (hasEntries(data.response_headers) ? Object.keys(data.response_headers).length : 0));
+        const responseRedirectChain = Array.isArray(data.redirect_chain) ? data.redirect_chain : [];
+        const responseRedirectCount = responseRedirectChain.length + (data.is_redirect ? 1 : 0);
         const responseInfo = {};
-        if (data.response_status !== undefined) responseInfo['Status Code'] = data.response_status;
+        if (responseStatusCode) responseInfo['Status Code'] = responseStatusText ? `${responseStatusCode} ${responseStatusText}` : responseStatusCode;
+        if (data.response_classification) responseInfo['Classification'] = data.response_classification;
         if (data.response_content_type) responseInfo['Content Type'] = data.response_content_type;
         if (data.response_body_size !== undefined) responseInfo['Body Size'] = formatBytes(data.response_body_size);
+        if (responseHeaderCount > 0) responseInfo['Header Count'] = responseHeaderCount;
+
+        const responseHighlightSection = hasEntries(data.response_header_highlights)
+          ? buildSubsection('Header Highlights', buildPropertyTable(data.response_header_highlights, 'Header', 'Value'))
+          : '';
+
+        const responseRedirectSummary = (data.is_redirect && data.redirect_url) || responseRedirectCount > 0
+          ? buildSubsection('Redirect Summary', buildPropertyTable({
+              Redirected: data.is_redirect ? 'Yes' : 'No',
+              'Redirect Count': responseRedirectCount,
+              ...(data.redirect_url ? { Location: data.redirect_url } : {}),
+            }, 'Property', 'Value'))
+          : '';
+
+        const responsePreviewSection = data.response_preview
+          ? `
+            <div class="subsection">
+              <div class="subsection-title">Body Preview</div>
+              <div class="api-response-shell">
+                <div class="api-response-head">
+                  <span class="api-response-title">${escapeHtml(data.response_preview_format || 'text')} preview</span>
+                  <span class="api-meta">
+                    ${data.response_classification ? `<span class="api-meta-chip api-chip-teal">${escapeHtml(data.response_classification)}</span>` : ''}
+                    ${data.response_preview_truncated ? `<span class="api-meta-chip api-chip-mono">Truncated</span>` : ''}
+                  </span>
+                </div>
+                ${buildCodeBlock(data.response_preview)}
+              </div>
+            </div>
+          `
+          : buildSubsection('Body Preview', `<div class="no-data">${data.response_classification === 'File Download' || data.response_classification === 'File Response' ? 'Preview skipped for file or binary response' : 'No response body preview captured'}</div>`);
 
         const responseSection = `
           <div class="section">
             <div class="section-title"><span class="section-title-main">Response Details</span></div>
             <div class="section-stack">
+              <div class="summary-grid">
+                <div class="summary-card">
+                  <div class="summary-label">Status</div>
+                  <div class="summary-value"><span class="${responseStatusChipClass}">${escapeHtml(responseStatusLabel)}</span></div>
+                  <div class="summary-note">Resolved from the final response code.</div>
+                </div>
+                <div class="summary-card">
+                  <div class="summary-label">Classification</div>
+                  <div class="summary-value">${escapeHtml(data.response_classification || 'HTTP Response')}</div>
+                  <div class="summary-note">Quick response type classification for fast triage.</div>
+                </div>
+                <div class="summary-card">
+                  <div class="summary-label">Body Size</div>
+                  <div class="summary-value">${formatBytes(data.response_body_size || 0)}</div>
+                  <div class="summary-note">Captured response body size before toolbar injection.</div>
+                </div>
+                <div class="summary-card">
+                  <div class="summary-label">Headers</div>
+                  <div class="summary-value">${escapeHtml(responseHeaderCount || 0)}</div>
+                  <div class="summary-note">${escapeHtml(responseRedirectCount)} redirect hop${responseRedirectCount === 1 ? '' : 's'} observed for this request.</div>
+                </div>
+              </div>
               ${buildSubsection('Response', buildPropertyTable(responseInfo, 'Property', 'Value'))}
+              ${responseHighlightSection}
+              ${responseRedirectSummary}
+              ${responsePreviewSection}
               ${buildSubsection('Headers', buildPropertyTable(data.response_headers, 'Header', 'Value'))}
-              ${(data.is_redirect && data.redirect_url) ? `<div class="row"><span class="key">Redirect to:</span><span class="val">→ ${escapeHtml(data.redirect_url)}</span></div>` : ''}
             </div>
-            ${!hasEntries(responseInfo) && !hasEntries(data.response_headers) && !(data.is_redirect && data.redirect_url) ? '<div class="no-data">No response details available</div>' : ''}
+            ${!hasEntries(responseInfo) && !hasEntries(data.response_headers) && !hasEntries(data.response_header_highlights) && !(data.is_redirect && data.redirect_url) && !data.response_preview ? '<div class="no-data">No response details available</div>' : ''}
           </div>
         `;
 
