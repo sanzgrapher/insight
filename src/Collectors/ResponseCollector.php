@@ -244,7 +244,7 @@ class ResponseCollector implements CollectorInterface
     {
         $normalizedType = strtolower($contentType);
 
-        if (!str_contains($normalizedType, 'application/json') && !str_contains($normalizedType, '+json')) {
+        if (! str_contains($normalizedType, 'application/json') && ! str_contains($normalizedType, '+json')) {
             return $body;
         }
 
