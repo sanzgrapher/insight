@@ -52,6 +52,7 @@ class ToolbarRenderer
             '{{STATUS}}' => (string)($data['status'] ?? 0),
             '{{METHOD}}' => $this->escape($data['method'] ?? ''),
             '{{PATH}}' => $this->escape($data['route'] ?? ''),
+            '{{PATH_DISPLAY}}' => $this->escape($this->formatPathDisplay((string) ($data['route'] ?? ''))),
             '{{DURATION}}' => $this->formatDuration($data),
             '{{MEMORY_PEAK}}' => $this->formatMemoryPeak($data),
             '{{SQL_COUNT}}' => (string)($data['sql_total_count'] ?? 0),
@@ -133,6 +134,24 @@ class ToolbarRenderer
         $total = (int) ($data['cache_total'] ?? 0);
 
         return $total . ' cache ' . ($total === 1 ? 'op' : 'ops');
+    }
+
+    protected function formatPathDisplay(string $path, int $maxLength = 54): string
+    {
+        $path = trim($path);
+
+        if ($path === '') {
+            return '/';
+        }
+
+        if (mb_strlen($path) <= $maxLength) {
+            return $path;
+        }
+
+        $head = 28;
+        $tail = 18;
+
+        return mb_substr($path, 0, $head) . '...' . mb_substr($path, -$tail);
     }
 
     /**

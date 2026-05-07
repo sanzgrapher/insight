@@ -1509,6 +1509,10 @@ window.DopparProfiler = {
             font-weight: 800;
             background: rgba(255,255,255,0.04);
             white-space: nowrap;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: #1f2024;
           }
           .history-route-table td {
             color: #ebebf0;
@@ -1524,8 +1528,8 @@ window.DopparProfiler = {
           .history-table-scroll {
             width: 100%;
             max-width: 100%;
-            overflow-x: auto;
-            overflow-y: hidden;
+            max-height: 380px;
+            overflow: auto;
             border-radius: 14px;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: thin;
@@ -1554,8 +1558,8 @@ window.DopparProfiler = {
           .history-method-chip[data-method="OPTIONS"] { color: #60a5fa; }
           .history-method-chip[data-method="HEAD"] { color: #a78bfa; }
           .history-path-cell {
-            min-width: 120px;
-            max-width: 260px;
+            min-width: 80px;
+            max-width: 200px;
             display: block;
             white-space: nowrap;
             overflow: hidden;
@@ -1563,6 +1567,7 @@ window.DopparProfiler = {
             color: #ebebf0;
             font-family: "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
             font-size: 12px;
+            cursor: default;
           }
           .history-cell-number {
             white-space: nowrap;
@@ -2501,6 +2506,10 @@ window.DopparProfiler = {
             grid-template-columns: 1fr 1fr;
             gap: 10px;
           }
+          .ov-app-stack {
+            display: grid;
+            gap: 14px;
+          }
           .ov-kpi-chip {
             font-size: 11px;
             font-weight: 800;
@@ -2590,7 +2599,10 @@ window.DopparProfiler = {
           }
           .ov-chip-value {
             color: #ebebf0;
-            overflow-wrap: anywhere;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
           }
           .perf-bar-list {
             display: grid;
@@ -2662,30 +2674,67 @@ window.DopparProfiler = {
             font-weight: 700;
             min-width: 0;
           }
-          .ov-route-list {
-            display: grid;
-            gap: 7px;
-            margin-top: 10px;
-          }
-          .ov-route-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            min-width: 0;
-            padding: 8px 10px;
-            border-radius: 10px;
-            background: rgba(255,255,255,0.03);
+          .ov-slow-table-scroll {
+            margin-top: 12px;
+            max-height: 320px;
+            overflow: auto;
+            border-radius: 14px;
             border: 1px solid rgba(255,255,255,0.06);
+            background: rgba(255,255,255,0.02);
+            -webkit-overflow-scrolling: touch;
           }
-          .ov-route-path {
-            flex: 1 1 auto;
-            min-width: 0;
-            font-family: "Berkeley Mono","SFMono-Regular",Consolas,monospace;
-            font-size: 12px;
-            color: #ebebf0;
+          .ov-slow-table {
+            width: 100%;
+            min-width: 560px;
+            border-collapse: separate;
+            border-spacing: 0;
+          }
+          .ov-slow-table th,
+          .ov-slow-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            text-align: left;
+            vertical-align: middle;
+          }
+          .ov-slow-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: #1f2024;
+            color: #7f89a6;
+            font-size: 10px;
+            font-weight: 900;
+            letter-spacing: .14em;
+            text-transform: uppercase;
             white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+          }
+          .ov-slow-table tbody td {
+            color: #ebebf0;
+            font-size: 13px;
+            font-weight: 700;
+          }
+          .ov-slow-table tbody tr:hover td {
+            background: rgba(56,189,248,0.04);
+          }
+          .ov-slow-table tbody tr:last-child td {
+            border-bottom: 0;
+          }
+          .ov-slow-col-min,
+          .ov-slow-col-avg,
+          .ov-slow-col-peak {
+            white-space: nowrap;
+          }
+          .ov-slow-col-route {
+            max-width: 240px;
+          }
+          .ov-slow-route-cell {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 0;
+          }
+          .ov-slow-col-route .history-path-cell {
+            max-width: 160px;
           }
           .ov-p95-chip {
             flex: 0 0 auto;
@@ -2740,6 +2789,9 @@ window.DopparProfiler = {
             }
             .history-search {
               min-width: 100%;
+            }
+            .ov-slow-table {
+              min-width: 0;
             }
             .ov-stat-grid {
               grid-template-columns: 1fr;
@@ -3611,6 +3663,11 @@ window.DopparProfiler = {
             const normalizedMethod = String(method || 'GET').toUpperCase();
             return `<span class="history-method-chip" data-method="${escapeHtml(normalizedMethod)}">${escapeHtml(normalizedMethod)}</span>`;
           };
+          const renderPathLabel = (path) => {
+            const fullPath = String(path || '/');
+            const shortPath = fullPath.length > 10 ? fullPath.slice(0, 10) + '…' : fullPath;
+            return `<span class="history-path-cell" title="${escapeHtml(fullPath)}">${escapeHtml(shortPath)}</span>`;
+          };
           const renderStatusCountCell = (value) => {
             const numericValue = Number(value || 0);
             const displayValue = escapeHtml(formatCompactNumber(numericValue));
@@ -3785,6 +3842,7 @@ window.DopparProfiler = {
                   errorRequests: 0,
                   totalDuration: 0,
                   maxDuration: 0,
+                  minDuration: Infinity,
                   lastSeen: item.timestamp,
                   latestStatus: item.status,
                   latestExceptionClass: item.exception_class,
@@ -3795,6 +3853,7 @@ window.DopparProfiler = {
               route.requests += 1;
               route.totalDuration += item.duration_ms;
               route.maxDuration = Math.max(route.maxDuration, item.duration_ms);
+              route.minDuration = Math.min(route.minDuration, item.duration_ms);
               if(item.timestamp >= route.lastSeen){
                 route.lastSeen = item.timestamp;
                 route.latestStatus = item.status;
@@ -3814,6 +3873,7 @@ window.DopparProfiler = {
             return Array.from(routes.values()).map((route) => ({
               ...route,
               avgDuration: route.requests > 0 ? route.totalDuration / route.requests : 0,
+              minDuration: route.minDuration === Infinity ? 0 : route.minDuration,
             }));
           };
           const renderRangeButtons = () => {
@@ -3878,10 +3938,10 @@ window.DopparProfiler = {
             const errorTypes = new Set(filtered.filter((item) => item.status >= 400).map((item) => formatExceptionLabel(item.exception_class)));
             const latestErrorTime = recentErrors.length ? formatCapturedAt(recentErrors[0].captured_at) : '—';
             const hottestErrorRoute = topErrorRoutes.length ? `${topErrorRoutes[0].method} ${topErrorRoutes[0].route}` : '—';
-            const routeRows = matched.slice(0, 18).map((route) => `
+            const routeRows = matched.map((route) => `
               <tr>
                 <td class="history-col-method">${renderMethodLabel(route.method)}</td>
-                <td class="history-col-path"><span class="history-path-cell">${escapeHtml(route.route)}</span></td>
+                <td class="history-col-path">${renderPathLabel(route.route)}</td>
                 <td class="history-col-requests"><span class="history-cell-number">${escapeHtml(formatCompactNumber(route.requests))}</span></td>
                 <td class="history-col-3xx">${renderStatusCountCell(route.status3xx)}</td>
                 <td class="history-col-4xx">${renderStatusCountCell(route.status4xx)}</td>
@@ -3916,7 +3976,7 @@ window.DopparProfiler = {
                 ${topErrorRoutes.map((route) => `
                   <span class="ov-chip">
                     ${renderMethodLabel(route.method)}
-                    <span class="ov-chip-value">${escapeHtml(route.route)} • ${escapeHtml(formatCompactNumber(route.status4xx + route.status5xx))}</span>
+                    <span class="ov-chip-value" title="${escapeHtml(route.route)}">${escapeHtml(route.route)} • ${escapeHtml(formatCompactNumber(route.status4xx + route.status5xx))}</span>
                   </span>
                 `).join('')}
               </div>
@@ -4104,8 +4164,7 @@ window.DopparProfiler = {
             const slowThreshold = 1000;
             const slowRoutes = aggregateRoutes(filtered)
               .filter((route) => route.maxDuration >= slowThreshold)
-              .sort((a, b) => b.maxDuration - a.maxDuration)
-              .slice(0, 5);
+              .sort((a, b) => b.maxDuration - a.maxDuration);
             overviewShell.innerHTML = `
               <div class="ov-dashboard">
                 <div class="ov-section-label">Activity <span>24h</span></div>
@@ -4141,7 +4200,7 @@ window.DopparProfiler = {
                   </div>
                 </div>
                 <div class="ov-section-label">Application</div>
-                <div class="ov-two-col">
+                <div class="ov-app-stack">
                   <div class="history-card">
                     <div class="history-card-header">
                       <div class="history-card-title">Exceptions</div>
@@ -4178,7 +4237,7 @@ window.DopparProfiler = {
                         ${topErrorRoutes.map((route) => `
                           <span class="ov-chip">
                             ${renderMethodLabel(route.method)}
-                            <span class="ov-chip-value">${escapeHtml(route.route)} • ${escapeHtml(formatCompactNumber(route.status4xx + route.status5xx))}</span>
+                            <span class="ov-chip-value" title="${escapeHtml(route.route)}">${escapeHtml(route.route)} • ${escapeHtml(formatCompactNumber(route.status4xx + route.status5xx))}</span>
                           </span>
                         `).join('')}
                       </div>
@@ -4188,15 +4247,32 @@ window.DopparProfiler = {
                     <div class="history-card-title">Slow Routes</div>
                     ${slowRoutes.length > 0 ? `
                       <div class="ov-app-headline">${slowRoutes.length} route${slowRoutes.length !== 1 ? 's' : ''} slower than 1s</div>
-                      <div class="ov-app-sub">Sorted by worst observed response time</div>
-                      <div class="ov-route-list">
-                        ${slowRoutes.map((route) => `
-                          <div class="ov-route-item">
-                            ${renderMethodLabel(route.method)}
-                            <span class="ov-route-path">${escapeHtml(route.route)}</span>
-                            <span class="ov-p95-chip">P95 ${escapeHtml(formatDuration(route.maxDuration))}</span>
-                          </div>
-                        `).join('')}
+                      <div class="ov-app-sub">Sorted by worst observed response time. The table stays capped and scrollable when many slow routes are captured.</div>
+                      <div class="ov-slow-table-scroll">
+                        <table class="ov-slow-table">
+                          <thead>
+                            <tr>
+                              <th class="ov-slow-col-route">Route</th>
+                              <th class="ov-slow-col-min">Min</th>
+                              <th class="ov-slow-col-avg">Avg</th>
+                              <th class="ov-slow-col-peak">Peak</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            ${slowRoutes.map((route) => `
+                              <tr>
+                                <td class="ov-slow-col-route">
+                                  <span class="ov-slow-route-cell">
+                                    ${renderMethodLabel(route.method)}${renderPathLabel(route.route)}
+                                  </span>
+                                </td>
+                                <td class="ov-slow-col-min"><span class="history-cell-number">${escapeHtml(formatDuration(route.minDuration))}</span></td>
+                                <td class="ov-slow-col-avg">${escapeHtml(formatDuration(route.avgDuration))}</td>
+                                <td class="ov-slow-col-peak"><span class="ov-p95-chip">MAX ${escapeHtml(formatDuration(route.maxDuration))}</span></td>
+                              </tr>
+                            `).join('')}
+                          </tbody>
+                        </table>
                       </div>
                     ` : '<div class="ov-empty">No slow routes detected in 24h.</div>'}
                   </div>
