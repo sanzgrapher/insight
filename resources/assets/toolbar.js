@@ -1343,6 +1343,31 @@ window.DopparProfiler = {
             display: grid;
             gap: 6px;
           }
+          .history-chart-shell {
+            display: grid;
+            grid-template-columns: 52px minmax(0, 1fr);
+            gap: 10px;
+            align-items: stretch;
+          }
+          .history-chart-y-axis {
+            display: grid;
+            grid-template-rows: repeat(5, 1fr);
+            height: 154px;
+            color: #66687e;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            text-align: right;
+          }
+          .history-chart-y-axis span {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+          }
+          .history-chart-canvas {
+            min-width: 0;
+          }
           .history-chart {
             width: 100%;
             height: 154px;
@@ -2527,7 +2552,6 @@ window.DopparProfiler = {
             margin-bottom: 6px;
           }
           .ov-stat-value {
-            font-size: 15px;
             line-height: 1.2;
             color: #ebebf0;
             font-weight: 900;
@@ -3538,6 +3562,29 @@ window.DopparProfiler = {
             }
             return `${duration.toFixed(0)}ms`;
           };
+          const buildScaleLabels = (maxValue, formatter) => {
+            const safeMax = Math.max(1, Number(maxValue || 0));
+            const steps = [1, 0.75, 0.5, 0.25, 0];
+            return steps.map((step) => ({
+              value: safeMax * step,
+              label: formatter(safeMax * step),
+            }));
+          };
+          const buildGridLines = (width, height) => {
+            return [0, 0.25, 0.5, 0.75, 1].map((step) => `<line class="history-grid-line" x1="0" y1="${height * step}" x2="${width}" y2="${height * step}"></line>`).join('');
+          };
+          const buildChartShell = (svg, labels) => {
+            return `
+              <div class="history-chart-shell">
+                <div class="history-chart-y-axis">
+                  ${labels.map((label) => `<span>${escapeHtml(label.label)}</span>`).join('')}
+                </div>
+                <div class="history-chart-canvas">
+                  ${svg}
+                </div>
+              </div>
+            `;
+          };
           const formatRangeAxisLabel = (timestamp, rangeMs) => {
             const date = new Date(timestamp);
             if(Number.isNaN(date.getTime())){
@@ -3672,14 +3719,15 @@ window.DopparProfiler = {
             const height = 140;
             const maxValue = Math.max(1, ...buckets.map((bucket) => bucket.total));
             const barWidth = width / Math.max(1, buckets.length);
-            const grid = [0.25, 0.5, 0.75].map((step) => `<line class="history-grid-line" x1="0" y1="${height * step}" x2="${width}" y2="${height * step}"></line>`).join('');
+            const grid = buildGridLines(width, height);
             const bars = buckets.map((bucket, index) => {
               const columnHeight = bucket.total > 0 ? Math.max(6, (bucket.total / maxValue) * (height - 8)) : 4;
               const x = index * barWidth + 2;
               const y = height - columnHeight;
               return `<rect class="history-bar-${bucket.tone}" x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${Math.max(6, barWidth - 5).toFixed(2)}" height="${columnHeight.toFixed(2)}" rx="2"></rect>`;
             }).join('');
-            return `<svg class="history-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">${grid}${bars}</svg>`;
+            const svg = `<svg class="history-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">${grid}${bars}</svg>`;
+            return buildChartShell(svg, buildScaleLabels(maxValue, formatCompactNumber));
           };
           const buildLineChart = (buckets) => {
             const width = 560;
@@ -3692,15 +3740,16 @@ window.DopparProfiler = {
             }).join(' ');
             const avgPath = pathFor(buckets.map((bucket) => bucket.avg));
             const maxPath = pathFor(buckets.map((bucket) => bucket.max));
-            const grid = [0.25, 0.5, 0.75].map((step) => `<line class="history-grid-line" x1="0" y1="${height * step}" x2="${width}" y2="${height * step}"></line>`).join('');
-            return `<svg class="history-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">${grid}<path class="history-line-avg" d="${avgPath}"></path><path class="history-line-max" d="${maxPath}"></path></svg>`;
+            const grid = buildGridLines(width, height);
+            const svg = `<svg class="history-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">${grid}<path class="history-line-avg" d="${avgPath}"></path><path class="history-line-max" d="${maxPath}"></path></svg>`;
+            return buildChartShell(svg, buildScaleLabels(maxDuration, formatDuration));
           };
           const buildExceptionChart = (buckets) => {
             const width = 560;
             const height = 140;
             const maxValue = Math.max(1, ...buckets.map((bucket) => bucket.status4xx + bucket.status5xx));
             const barWidth = width / Math.max(1, buckets.length);
-            const grid = [0.25, 0.5, 0.75].map((step) => `<line class="history-grid-line" x1="0" y1="${height * step}" x2="${width}" y2="${height * step}"></line>`).join('');
+            const grid = buildGridLines(width, height);
             const bars = buckets.map((bucket, index) => {
               const x = index * barWidth + 2;
               const widthValue = Math.max(6, barWidth - 5);
@@ -3718,7 +3767,8 @@ window.DopparProfiler = {
                 : '';
               return `${emptyTick}${warningRect}${errorRect}`;
             }).join('');
-            return `<svg class="history-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">${grid}${bars}</svg>`;
+            const svg = `<svg class="history-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">${grid}${bars}</svg>`;
+            return buildChartShell(svg, buildScaleLabels(maxValue, formatCompactNumber));
           };
           const aggregateRoutes = (items) => {
             const routes = new Map();
