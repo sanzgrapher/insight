@@ -191,13 +191,14 @@
   justify-content: flex-start;
   min-width: 0;
   flex: 1;
-  max-width: min(40vw, 420px);
+  max-width: min(13ch,28vw);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: #ebebf0;
   font-family: "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
   background: rgba(255, 255, 255, 0.04);
+  cursor: default;
 }
 
 .dp-memory {
@@ -377,7 +378,7 @@
 
   .dp-route {
     min-width: 0;
-    max-width: min(56vw, 320px);
+    max-width: min(13ch,44vw);
   }
 }
 
@@ -416,6 +417,6 @@
   }
 
   .dp-route {
-    max-width: min(58vw, 220px);
+    max-width: min(13ch,50vw);
   }
 }

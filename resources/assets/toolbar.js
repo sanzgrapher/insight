@@ -1352,11 +1352,11 @@ window.DopparProfiler = {
           .history-chart-y-axis {
             display: grid;
             grid-template-rows: repeat(5, 1fr);
-            height: 154px;
-            color: #66687e;
+            height: 160px;
+            color: #4a4d62;
             font-size: 10px;
-            font-weight: 800;
-            letter-spacing: .08em;
+            font-weight: 700;
+            letter-spacing: .06em;
             text-transform: uppercase;
             text-align: right;
           }
@@ -1370,7 +1370,7 @@ window.DopparProfiler = {
           }
           .history-chart {
             width: 100%;
-            height: 154px;
+            height: 160px;
             display: block;
           }
           .history-chart-axis {
@@ -1378,35 +1378,40 @@ window.DopparProfiler = {
             align-items: center;
             justify-content: space-between;
             gap: 10px;
-            color: #55566a;
+            color: #4a4d62;
             font-size: 11px;
             font-weight: 700;
           }
           .history-grid-line {
-            stroke: rgba(255,255,255,0.06);
+            stroke: rgba(255,255,255,0.045);
             stroke-width: 1;
+            stroke-dasharray: 3 7;
           }
           .history-bar-muted {
-            fill: rgba(255,255,255,0.10);
+            fill: rgba(255,255,255,0.07);
           }
           .history-bar-success {
-            fill: rgba(42,180,182,0.55);
+            fill: #2ab4b6;
           }
           .history-bar-warning {
-            fill: rgba(245,158,11,0.72);
+            fill: #f59e0b;
           }
           .history-bar-error {
-            fill: rgba(239,68,68,0.72);
+            fill: #ef4444;
           }
           .history-line-avg {
             fill: none;
-            stroke: rgba(255,255,255,0.16);
-            stroke-width: 2;
+            stroke: rgba(255,255,255,0.38);
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
           }
           .history-line-max {
             fill: none;
-            stroke: rgba(245,158,11,0.85);
-            stroke-width: 2.2;
+            stroke: #fbbf24;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
           }
           .history-table-shell {
             display: grid;
@@ -1509,6 +1514,10 @@ window.DopparProfiler = {
             font-weight: 800;
             background: rgba(255,255,255,0.04);
             white-space: nowrap;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: #1f2024;
           }
           .history-route-table td {
             color: #ebebf0;
@@ -1524,8 +1533,8 @@ window.DopparProfiler = {
           .history-table-scroll {
             width: 100%;
             max-width: 100%;
-            overflow-x: auto;
-            overflow-y: hidden;
+            max-height: 380px;
+            overflow: auto;
             border-radius: 14px;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: thin;
@@ -1554,8 +1563,8 @@ window.DopparProfiler = {
           .history-method-chip[data-method="OPTIONS"] { color: #60a5fa; }
           .history-method-chip[data-method="HEAD"] { color: #a78bfa; }
           .history-path-cell {
-            min-width: 120px;
-            max-width: 260px;
+            min-width: 80px;
+            max-width: 200px;
             display: block;
             white-space: nowrap;
             overflow: hidden;
@@ -1563,6 +1572,7 @@ window.DopparProfiler = {
             color: #ebebf0;
             font-family: "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
             font-size: 12px;
+            cursor: default;
           }
           .history-cell-number {
             white-space: nowrap;
@@ -2501,6 +2511,10 @@ window.DopparProfiler = {
             grid-template-columns: 1fr 1fr;
             gap: 10px;
           }
+          .ov-app-stack {
+            display: grid;
+            gap: 14px;
+          }
           .ov-kpi-chip {
             font-size: 11px;
             font-weight: 800;
@@ -2590,7 +2604,10 @@ window.DopparProfiler = {
           }
           .ov-chip-value {
             color: #ebebf0;
-            overflow-wrap: anywhere;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
           }
           .perf-bar-list {
             display: grid;
@@ -2662,30 +2679,68 @@ window.DopparProfiler = {
             font-weight: 700;
             min-width: 0;
           }
-          .ov-route-list {
-            display: grid;
-            gap: 7px;
-            margin-top: 10px;
-          }
-          .ov-route-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            min-width: 0;
-            padding: 8px 10px;
-            border-radius: 10px;
-            background: rgba(255,255,255,0.03);
+          .ov-slow-table-scroll {
+            margin-top: 12px;
+            max-height: 320px;
+            overflow: auto;
+            border-radius: 14px;
             border: 1px solid rgba(255,255,255,0.06);
+            background: rgba(255,255,255,0.02);
+            -webkit-overflow-scrolling: touch;
           }
-          .ov-route-path {
-            flex: 1 1 auto;
-            min-width: 0;
-            font-family: "Berkeley Mono","SFMono-Regular",Consolas,monospace;
-            font-size: 12px;
-            color: #ebebf0;
+          .ov-slow-table {
+            width: 100%;
+            min-width: 560px;
+            border-collapse: separate;
+            border-spacing: 0;
+          }
+          .ov-slow-table th,
+          .ov-slow-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            text-align: left;
+            vertical-align: middle;
+          }
+          .ov-slow-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: #1f2024;
+            color: #7f89a6;
+            font-size: 10px;
+            font-weight: 900;
+            letter-spacing: .14em;
+            text-transform: uppercase;
             white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+          }
+          .ov-slow-table tbody td {
+            color: #ebebf0;
+            font-size: 13px;
+            font-weight: 700;
+          }
+          .ov-slow-table tbody tr:hover td {
+            background: rgba(56,189,248,0.04);
+          }
+          .ov-slow-table tbody tr:last-child td {
+            border-bottom: 0;
+          }
+          .ov-slow-col-requests,
+          .ov-slow-col-min,
+          .ov-slow-col-avg,
+          .ov-slow-col-peak {
+            white-space: nowrap;
+          }
+          .ov-slow-col-route {
+            max-width: 240px;
+          }
+          .ov-slow-route-cell {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 0;
+          }
+          .ov-slow-col-route .history-path-cell {
+            max-width: 160px;
           }
           .ov-p95-chip {
             flex: 0 0 auto;
@@ -2740,6 +2795,9 @@ window.DopparProfiler = {
             }
             .history-search {
               min-width: 100%;
+            }
+            .ov-slow-table {
+              min-width: 0;
             }
             .ov-stat-grid {
               grid-template-columns: 1fr;
@@ -3570,6 +3628,7 @@ window.DopparProfiler = {
               label: formatter(safeMax * step),
             }));
           };
+          let _cid = 0;
           const buildGridLines = (width, height) => {
             return [0, 0.25, 0.5, 0.75, 1].map((step) => `<line class="history-grid-line" x1="0" y1="${height * step}" x2="${width}" y2="${height * step}"></line>`).join('');
           };
@@ -3610,6 +3669,11 @@ window.DopparProfiler = {
           const renderMethodLabel = (method) => {
             const normalizedMethod = String(method || 'GET').toUpperCase();
             return `<span class="history-method-chip" data-method="${escapeHtml(normalizedMethod)}">${escapeHtml(normalizedMethod)}</span>`;
+          };
+          const renderPathLabel = (path) => {
+            const fullPath = String(path || '/');
+            const shortPath = fullPath.length > 10 ? fullPath.slice(0, 10) + '…' : fullPath;
+            return `<span class="history-path-cell" title="${escapeHtml(fullPath)}">${escapeHtml(shortPath)}</span>`;
           };
           const renderStatusCountCell = (value) => {
             const numericValue = Number(value || 0);
@@ -3715,40 +3779,69 @@ window.DopparProfiler = {
             });
           };
           const buildBarChart = (buckets) => {
+            const id = ++_cid;
             const width = 560;
             const height = 140;
             const maxValue = Math.max(1, ...buckets.map((bucket) => bucket.total));
             const barWidth = width / Math.max(1, buckets.length);
             const grid = buildGridLines(width, height);
+            const colorMap = {
+              success: { top: '#2ab4b6', bot: '#1a7e80', id: `bs${id}` },
+              warning: { top: '#f59e0b', bot: '#b97308', id: `bw${id}` },
+              error:   { top: '#ef4444', bot: '#b91c1c', id: `be${id}` },
+              muted:   { top: 'rgba(255,255,255,0.12)', bot: 'rgba(255,255,255,0.04)', id: `bm${id}` },
+            };
+            const defs = Object.values(colorMap).map((c) =>
+              `<linearGradient id="${c.id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${c.top}"/><stop offset="100%" stop-color="${c.bot}" stop-opacity="0.7"/></linearGradient>`
+            ).join('');
             const bars = buckets.map((bucket, index) => {
               const columnHeight = bucket.total > 0 ? Math.max(6, (bucket.total / maxValue) * (height - 8)) : 4;
               const x = index * barWidth + 2;
               const y = height - columnHeight;
-              return `<rect class="history-bar-${bucket.tone}" x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${Math.max(6, barWidth - 5).toFixed(2)}" height="${columnHeight.toFixed(2)}" rx="2"></rect>`;
+              const c = colorMap[bucket.tone] || colorMap.muted;
+              return `<rect fill="url(#${c.id})" x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${Math.max(6, barWidth - 5).toFixed(2)}" height="${columnHeight.toFixed(2)}" rx="2"></rect>`;
             }).join('');
-            const svg = `<svg class="history-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">${grid}${bars}</svg>`;
+            const svg = `<svg class="history-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none"><defs>${defs}</defs>${grid}${bars}</svg>`;
             return buildChartShell(svg, buildScaleLabels(maxValue, formatCompactNumber));
           };
           const buildLineChart = (buckets) => {
+            const id = ++_cid;
             const width = 560;
             const height = 140;
             const maxDuration = Math.max(1, ...buckets.map((bucket) => Math.max(bucket.avg, bucket.max)));
-            const pathFor = (values) => values.map((value, index) => {
+            const ptFor = (value, index) => {
               const x = buckets.length === 1 ? width / 2 : (index / (buckets.length - 1)) * width;
               const y = height - ((value / maxDuration) * (height - 12)) - 6;
-              return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
-            }).join(' ');
-            const avgPath = pathFor(buckets.map((bucket) => bucket.avg));
-            const maxPath = pathFor(buckets.map((bucket) => bucket.max));
+              return { x, y };
+            };
+            const linePath = (values) => values.map((v, i) => { const p = ptFor(v, i); return `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`; }).join(' ');
+            const areaPath = (values) => {
+              const pts = values.map((v, i) => ptFor(v, i));
+              const move = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ');
+              const lastX = pts[pts.length - 1].x;
+              const firstX = pts[0].x;
+              return `${move} L ${lastX.toFixed(2)} ${height} L ${firstX.toFixed(2)} ${height} Z`;
+            };
+            const avgValues = buckets.map((b) => b.avg);
+            const maxValues = buckets.map((b) => b.max);
+            const defs = `
+              <linearGradient id="la${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(255,255,255,0.13)"/><stop offset="100%" stop-color="rgba(255,255,255,0.01)"/></linearGradient>
+              <linearGradient id="lm${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(251,191,36,0.22)"/><stop offset="100%" stop-color="rgba(251,191,36,0.01)"/></linearGradient>
+            `;
             const grid = buildGridLines(width, height);
-            const svg = `<svg class="history-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">${grid}<path class="history-line-avg" d="${avgPath}"></path><path class="history-line-max" d="${maxPath}"></path></svg>`;
+            const svg = `<svg class="history-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none"><defs>${defs}</defs>${grid}<path fill="url(#lm${id})" stroke="none" d="${areaPath(maxValues)}"></path><path fill="url(#la${id})" stroke="none" d="${areaPath(avgValues)}"></path><path class="history-line-max" fill="none" d="${linePath(maxValues)}"></path><path class="history-line-avg" fill="none" d="${linePath(avgValues)}"></path></svg>`;
             return buildChartShell(svg, buildScaleLabels(maxDuration, formatDuration));
           };
           const buildExceptionChart = (buckets) => {
+            const id = ++_cid;
             const width = 560;
             const height = 140;
             const maxValue = Math.max(1, ...buckets.map((bucket) => bucket.status4xx + bucket.status5xx));
             const barWidth = width / Math.max(1, buckets.length);
+            const defs = `
+              <linearGradient id="ew${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#b97308" stop-opacity="0.7"/></linearGradient>
+              <linearGradient id="ee${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ef4444"/><stop offset="100%" stop-color="#b91c1c" stop-opacity="0.7"/></linearGradient>
+            `;
             const grid = buildGridLines(width, height);
             const bars = buckets.map((bucket, index) => {
               const x = index * barWidth + 2;
@@ -3757,17 +3850,17 @@ window.DopparProfiler = {
               const total5xxHeight = bucket.status5xx > 0 ? Math.max(6, (bucket.status5xx / maxValue) * (height - 8)) : 0;
               const baseY = height;
               const warningRect = total4xxHeight > 0
-                ? `<rect class="history-bar-warning" x="${x.toFixed(2)}" y="${(baseY - total4xxHeight).toFixed(2)}" width="${widthValue.toFixed(2)}" height="${total4xxHeight.toFixed(2)}" rx="2"></rect>`
+                ? `<rect fill="url(#ew${id})" x="${x.toFixed(2)}" y="${(baseY - total4xxHeight).toFixed(2)}" width="${widthValue.toFixed(2)}" height="${total4xxHeight.toFixed(2)}" rx="2"></rect>`
                 : '';
               const errorRect = total5xxHeight > 0
-                ? `<rect class="history-bar-error" x="${x.toFixed(2)}" y="${(baseY - total4xxHeight - total5xxHeight).toFixed(2)}" width="${widthValue.toFixed(2)}" height="${total5xxHeight.toFixed(2)}" rx="2"></rect>`
+                ? `<rect fill="url(#ee${id})" x="${x.toFixed(2)}" y="${(baseY - total4xxHeight - total5xxHeight).toFixed(2)}" width="${widthValue.toFixed(2)}" height="${total5xxHeight.toFixed(2)}" rx="2"></rect>`
                 : '';
               const emptyTick = (bucket.status4xx + bucket.status5xx) === 0
                 ? `<rect class="history-bar-muted" x="${x.toFixed(2)}" y="${(height - 4).toFixed(2)}" width="${widthValue.toFixed(2)}" height="3" rx="2"></rect>`
                 : '';
               return `${emptyTick}${warningRect}${errorRect}`;
             }).join('');
-            const svg = `<svg class="history-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">${grid}${bars}</svg>`;
+            const svg = `<svg class="history-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none"><defs>${defs}</defs>${grid}${bars}</svg>`;
             return buildChartShell(svg, buildScaleLabels(maxValue, formatCompactNumber));
           };
           const aggregateRoutes = (items) => {
@@ -3785,6 +3878,7 @@ window.DopparProfiler = {
                   errorRequests: 0,
                   totalDuration: 0,
                   maxDuration: 0,
+                  minDuration: Infinity,
                   lastSeen: item.timestamp,
                   latestStatus: item.status,
                   latestExceptionClass: item.exception_class,
@@ -3795,6 +3889,7 @@ window.DopparProfiler = {
               route.requests += 1;
               route.totalDuration += item.duration_ms;
               route.maxDuration = Math.max(route.maxDuration, item.duration_ms);
+              route.minDuration = Math.min(route.minDuration, item.duration_ms);
               if(item.timestamp >= route.lastSeen){
                 route.lastSeen = item.timestamp;
                 route.latestStatus = item.status;
@@ -3814,6 +3909,7 @@ window.DopparProfiler = {
             return Array.from(routes.values()).map((route) => ({
               ...route,
               avgDuration: route.requests > 0 ? route.totalDuration / route.requests : 0,
+              minDuration: route.minDuration === Infinity ? 0 : route.minDuration,
             }));
           };
           const renderRangeButtons = () => {
@@ -3878,10 +3974,10 @@ window.DopparProfiler = {
             const errorTypes = new Set(filtered.filter((item) => item.status >= 400).map((item) => formatExceptionLabel(item.exception_class)));
             const latestErrorTime = recentErrors.length ? formatCapturedAt(recentErrors[0].captured_at) : '—';
             const hottestErrorRoute = topErrorRoutes.length ? `${topErrorRoutes[0].method} ${topErrorRoutes[0].route}` : '—';
-            const routeRows = matched.slice(0, 18).map((route) => `
+            const routeRows = matched.map((route) => `
               <tr>
                 <td class="history-col-method">${renderMethodLabel(route.method)}</td>
-                <td class="history-col-path"><span class="history-path-cell">${escapeHtml(route.route)}</span></td>
+                <td class="history-col-path">${renderPathLabel(route.route)}</td>
                 <td class="history-col-requests"><span class="history-cell-number">${escapeHtml(formatCompactNumber(route.requests))}</span></td>
                 <td class="history-col-3xx">${renderStatusCountCell(route.status3xx)}</td>
                 <td class="history-col-4xx">${renderStatusCountCell(route.status4xx)}</td>
@@ -3916,7 +4012,7 @@ window.DopparProfiler = {
                 ${topErrorRoutes.map((route) => `
                   <span class="ov-chip">
                     ${renderMethodLabel(route.method)}
-                    <span class="ov-chip-value">${escapeHtml(route.route)} • ${escapeHtml(formatCompactNumber(route.status4xx + route.status5xx))}</span>
+                    <span class="ov-chip-value" title="${escapeHtml(route.route)}">${escapeHtml(route.route)} • ${escapeHtml(formatCompactNumber(route.status4xx + route.status5xx))}</span>
                   </span>
                 `).join('')}
               </div>
@@ -4104,8 +4200,7 @@ window.DopparProfiler = {
             const slowThreshold = 1000;
             const slowRoutes = aggregateRoutes(filtered)
               .filter((route) => route.maxDuration >= slowThreshold)
-              .sort((a, b) => b.maxDuration - a.maxDuration)
-              .slice(0, 5);
+              .sort((a, b) => b.maxDuration - a.maxDuration);
             overviewShell.innerHTML = `
               <div class="ov-dashboard">
                 <div class="ov-section-label">Activity <span>24h</span></div>
@@ -4141,7 +4236,7 @@ window.DopparProfiler = {
                   </div>
                 </div>
                 <div class="ov-section-label">Application</div>
-                <div class="ov-two-col">
+                <div class="ov-app-stack">
                   <div class="history-card">
                     <div class="history-card-header">
                       <div class="history-card-title">Exceptions</div>
@@ -4178,7 +4273,7 @@ window.DopparProfiler = {
                         ${topErrorRoutes.map((route) => `
                           <span class="ov-chip">
                             ${renderMethodLabel(route.method)}
-                            <span class="ov-chip-value">${escapeHtml(route.route)} • ${escapeHtml(formatCompactNumber(route.status4xx + route.status5xx))}</span>
+                            <span class="ov-chip-value" title="${escapeHtml(route.route)}">${escapeHtml(route.route)} • ${escapeHtml(formatCompactNumber(route.status4xx + route.status5xx))}</span>
                           </span>
                         `).join('')}
                       </div>
@@ -4188,15 +4283,34 @@ window.DopparProfiler = {
                     <div class="history-card-title">Slow Routes</div>
                     ${slowRoutes.length > 0 ? `
                       <div class="ov-app-headline">${slowRoutes.length} route${slowRoutes.length !== 1 ? 's' : ''} slower than 1s</div>
-                      <div class="ov-app-sub">Sorted by worst observed response time</div>
-                      <div class="ov-route-list">
-                        ${slowRoutes.map((route) => `
-                          <div class="ov-route-item">
-                            ${renderMethodLabel(route.method)}
-                            <span class="ov-route-path">${escapeHtml(route.route)}</span>
-                            <span class="ov-p95-chip">P95 ${escapeHtml(formatDuration(route.maxDuration))}</span>
-                          </div>
-                        `).join('')}
+                      <div class="ov-app-sub">Sorted by worst observed response time. The table stays capped and scrollable when many slow routes are captured.</div>
+                      <div class="ov-slow-table-scroll">
+                        <table class="ov-slow-table">
+                          <thead>
+                            <tr>
+                              <th class="ov-slow-col-route">Route</th>
+                              <th class="ov-slow-col-requests">Hits</th>
+                              <th class="ov-slow-col-min">Min</th>
+                              <th class="ov-slow-col-avg">Avg</th>
+                              <th class="ov-slow-col-peak">Peak</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            ${slowRoutes.map((route) => `
+                              <tr>
+                                <td class="ov-slow-col-route">
+                                  <span class="ov-slow-route-cell">
+                                    ${renderMethodLabel(route.method)}${renderPathLabel(route.route)}
+                                  </span>
+                                </td>
+                                <td class="ov-slow-col-requests"><span class="history-cell-number">${escapeHtml(formatCompactNumber(route.requests))}</span></td>
+                                <td class="ov-slow-col-min"><span class="history-cell-number">${escapeHtml(formatDuration(route.minDuration))}</span></td>
+                                <td class="ov-slow-col-avg">${escapeHtml(formatDuration(route.avgDuration))}</td>
+                                <td class="ov-slow-col-peak"><span class="ov-p95-chip">MAX ${escapeHtml(formatDuration(route.maxDuration))}</span></td>
+                              </tr>
+                            `).join('')}
+                          </tbody>
+                        </table>
                       </div>
                     ` : '<div class="ov-empty">No slow routes detected in 24h.</div>'}
                   </div>
