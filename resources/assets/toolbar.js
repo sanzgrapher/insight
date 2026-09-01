@@ -138,6 +138,8 @@ window.DopparProfiler = {
     host.style.transform = '';
     host.style.boxSizing = 'border-box';
     host.style.overflow = 'hidden';
+    host.style.background = 'transparent';
+    host.style.borderRadius = '12px';
     host.style.setProperty('--dp-panel-height', panelHeight + 'px');
   },
   ensurePanelRoot(){
@@ -149,6 +151,9 @@ window.DopparProfiler = {
       host.style.all = 'initial';
       host.style.position = 'fixed';
       host.style.zIndex = '2147483647';
+      host.style.background = 'transparent';
+      host.style.borderRadius = '12px';
+      host.style.overflow = 'hidden';
       document.body.appendChild(host);
     }
     this.syncPanelPosition();
@@ -238,7 +243,7 @@ window.DopparProfiler = {
             </tr>
           `).join('');
           return `
-            <table class="property-table">
+            <table class="request-table">
               <thead>
                 <tr>
                   <th>Field</th>
@@ -249,6 +254,28 @@ window.DopparProfiler = {
               </thead>
               <tbody>${rows}</tbody>
             </table>
+          `;
+        };
+        const buildResponseBlock = (title, content) => {
+          if(!content){
+            return '';
+          }
+          return `
+            <div class="response-block">
+              <div class="subsection-title">${escapeHtml(title)}</div>
+              ${content}
+            </div>
+          `;
+        };
+        const buildRequestBlock = (title, content) => {
+          if(!content){
+            return '';
+          }
+          return `
+            <div class="request-block">
+              <div class="subsection-title">${escapeHtml(title)}</div>
+              ${content}
+            </div>
           `;
         };
         const buildSubsection = (title, content) => {
@@ -334,11 +361,9 @@ window.DopparProfiler = {
             padding-right: 0;
             color: #ebebf0;
             font: 13px/1.55 "Aptos", "Segoe UI Variable", "Segoe UI", sans-serif;
-            background: rgba(20, 20, 24, 0.98);
+            background: #141418;
             border: 1px solid rgba(255, 255, 255, 0.08);
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-            backdrop-filter: blur(18px);
-            -webkit-backdrop-filter: blur(18px);
             position: relative;
             scrollbar-width: thin;
             scrollbar-color: var(--dp-scrollbar-thumb) var(--dp-scrollbar-track);
@@ -834,25 +859,39 @@ window.DopparProfiler = {
             margin-bottom: 12px;
             font-size: 12px;
           }
-          .api-shell {
+          .json-api-shell {
             display: grid;
             gap: 12px;
           }
-          .api-eyebrow {
-            font-size: 10px;
-            letter-spacing: .18em;
-            text-transform: uppercase;
-            font-weight: 800;
-            color: #55566a;
-            margin-bottom: 12px;
-          }
-          .api-operation {
+          .api-group-card {
             display: grid;
             gap: 12px;
             padding: 14px;
             border-radius: 8px;
             background: rgba(255,255,255,0.03);
             border: 1px solid rgba(255,255,255,0.08);
+            min-width: 0;
+          }
+          .api-payload-card {
+            gap: 0;
+            padding: 0;
+            overflow: hidden;
+          }
+          .api-payload-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 14px;
+          }
+          .api-payload-card .response-preview-scroll {
+            max-height: 460px;
+            overflow: auto;
+          }
+          .api-payload-card .code-block {
+            border-top: 1px solid rgba(255,255,255,0.08);
+            border-radius: 0 0 8px 8px;
           }
           .api-line {
             display: flex;
@@ -866,7 +905,7 @@ window.DopparProfiler = {
             justify-content: center;
             min-width: 52px;
             padding: 6px 10px;
-            border-radius: 2px;
+            border-radius: 6px;
             background: rgba(34, 197, 94, 0.14);
             color: #22c55e;
             border: 1px solid rgba(34, 197, 94, 0.22);
@@ -898,7 +937,7 @@ window.DopparProfiler = {
             align-items: center;
             gap: 5px;
             padding: 6px 10px;
-            border-radius: 2px;
+            border-radius: 6px;
             background: transparent;
             border: 1px solid rgba(255,255,255,0.1);
             color: #888899;
@@ -929,7 +968,7 @@ window.DopparProfiler = {
             align-items: center;
             gap: 6px;
             padding: 4px 8px;
-            border-radius: 2px;
+            border-radius: 6px;
             background: transparent;
             border: 1px solid rgba(255,255,255,0.1);
             color: #888899;
@@ -952,37 +991,12 @@ window.DopparProfiler = {
             color: #a78bfa;
             font-family: "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
           }
-          .api-response-shell {
-            display: grid;
-            gap: 0;
-            border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.08);
-            background: rgba(255,255,255,0.03);
-            overflow: hidden;
-          }
-          .api-response-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            flex-wrap: wrap;
-            padding: 12px 16px;
-            background: rgba(255,255,255,0.04);
-            border-bottom: 1px solid rgba(255,255,255,0.07);
-          }
-          .api-response-title {
-            font-size: 12px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: .12em;
-            color: #55566a;
-          }
           .copy-action {
             display: inline-flex;
             align-items: center;
             gap: 7px;
             padding: 6px 10px;
-            border-radius: 2px;
+            border-radius: 6px;
             background: transparent;
             border: 1px solid rgba(255,255,255,0.1);
             color: #ebebf0;
@@ -1042,7 +1056,7 @@ window.DopparProfiler = {
             align-items: center;
             gap: 6px;
             padding: 4px 8px;
-            border-radius: 2px;
+            border-radius: 6px;
             font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
@@ -1123,7 +1137,7 @@ window.DopparProfiler = {
             align-items: center;
             justify-content: center;
             padding: 8px 12px;
-            border-radius: 2px;
+            border-radius: 6px;
             font-size: 13px;
             line-height: 1;
             letter-spacing: .06em;
@@ -1277,7 +1291,7 @@ window.DopparProfiler = {
             background: transparent;
             color: #888899;
             padding: 5px 9px;
-            border-radius: 2px;
+            border-radius: 6px;
             font-size: 11px;
             font-weight: 700;
             letter-spacing: .06em;
@@ -1630,7 +1644,7 @@ window.DopparProfiler = {
             justify-content: center;
             min-width: 28px;
             padding: 3px 8px;
-            border-radius: 2px;
+            border-radius: 6px;
             font-size: 12px;
             font-weight: 800;
             line-height: 1;
@@ -1661,28 +1675,217 @@ window.DopparProfiler = {
             font-weight: 600;
             text-align: left;
           }
-          .cache-table-shell {
+          .cache-shell {
             display: grid;
             gap: 12px;
-            min-width: 0;
-            margin-top: 14px;
           }
-          .cache-table-head {
+          .auth-shell {
+            display: grid;
+            gap: 12px;
+          }
+          .request-shell {
+            display: grid;
+            gap: 12px;
+          }
+          .response-shell {
+            display: grid;
+            gap: 12px;
+          }
+          .perf-shell {
+            display: grid;
+            gap: 12px;
+          }
+          .perf-group-card {
+            display: grid;
+            gap: 14px;
+            padding: 14px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            min-width: 0;
+          }
+          .perf-group-head {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 10px;
             flex-wrap: wrap;
           }
-          .cache-table-count {
-            color: #ebebf0;
-            font-size: 14px;
-            font-weight: 800;
-          }
-          .cache-table-note {
-            color: #888899;
-            font-size: 12px;
+          .perf-group-title {
+            font-size: 13px;
             font-weight: 700;
+            color: #ffffff;
+            letter-spacing: -.01em;
+          }
+          .perf-group-card .cache-kpis {
+            padding-bottom: 0;
+            border-bottom: 0;
+          }
+          .perf-section {
+            display: grid;
+            gap: 10px;
+          }
+          .perf-section-label {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: #888899;
+          }
+          .perf-group-card .perf-metrics {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+          .perf-group-card .perf-metric {
+            padding: 0 14px;
+            border-left: 1px solid rgba(255,255,255,0.08);
+          }
+          .perf-group-card .perf-metric:nth-child(2n+1) {
+            padding-left: 0;
+            border-left: 0;
+          }
+          .request-stack,
+          .response-stack,
+          .perf-stack {
+            display: grid;
+            gap: 16px;
+          }
+          .perf-two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+          }
+          .perf-block {
+            display: grid;
+            gap: 10px;
+            min-width: 0;
+          }
+          .perf-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px 0;
+          }
+          .perf-metric {
+            min-width: 0;
+            padding: 0 18px;
+            border-left: 1px solid rgba(255,255,255,0.08);
+          }
+          .perf-metric:nth-child(3n+1) {
+            padding-left: 0;
+            border-left: 0;
+          }
+          .response-preview-head {
+            margin-bottom: 8px;
+          }
+          .auth-identity {
+            display: flex;
+            align-items: stretch;
+            flex-wrap: wrap;
+            padding-bottom: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+          }
+          .auth-identity-item {
+            flex: 1 1 140px;
+            min-width: 0;
+            padding: 0 18px;
+            border-left: 1px solid rgba(255,255,255,0.08);
+          }
+          .auth-identity-item:first-child {
+            padding-left: 0;
+            border-left: 0;
+          }
+          .auth-identity-label {
+            color: #55566a;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+          }
+          .auth-identity-value {
+            color: #ebebf0;
+            font-size: 15px;
+            font-weight: 700;
+            line-height: 1.35;
+            word-break: break-word;
+          }
+          .auth-block,
+          .request-block,
+          .response-block {
+            display: grid;
+            gap: 10px;
+          }
+          .auth-table,
+          .request-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            overflow: hidden;
+            border-radius: 0;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: transparent;
+          }
+          .auth-table th,
+          .auth-table td,
+          .request-table th,
+          .request-table td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            vertical-align: top;
+          }
+          .auth-table th,
+          .request-table th {
+            background: transparent;
+            color: #888899;
+            font-size: 11px;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            font-weight: 700;
+          }
+          .auth-table td,
+          .request-table td {
+            color: #ebebf0;
+            font-size: 13px;
+            font-weight: 600;
+            word-break: break-word;
+          }
+          .auth-table tr:last-child td,
+          .request-table tr:last-child td {
+            border-bottom: 0;
+          }
+          .cache-kpis {
+            display: flex;
+            align-items: stretch;
+            padding-bottom: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+          }
+          .cache-kpi {
+            flex: 1 1 0;
+            min-width: 0;
+            padding: 0 18px;
+            border-left: 1px solid rgba(255,255,255,0.08);
+          }
+          .cache-kpi:first-child {
+            padding-left: 0;
+            border-left: 0;
+          }
+          .cache-kpi:last-child {
+            padding-right: 0;
+          }
+          .cache-kpi-label {
+            color: #55566a;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+          }
+          .cache-kpi-value {
+            color: #ebebf0;
+            font-size: 20px;
+            font-weight: 900;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
           }
           .cache-table-scroll {
             width: 100%;
@@ -1773,7 +1976,7 @@ window.DopparProfiler = {
             justify-content: center;
             min-width: 58px;
             padding: 4px 8px;
-            border-radius: 2px;
+            border-radius: 6px;
             font-size: 10px;
             font-weight: 900;
             letter-spacing: .10em;
@@ -1821,30 +2024,45 @@ window.DopparProfiler = {
             word-break: break-word;
           }
           .cache-value-details {
-            display: grid;
-            gap: 8px;
+            min-width: 0;
           }
           .cache-value-summary {
+            display: flex;
+            align-items: center;
+            gap: 6px;
             cursor: pointer;
-            color: #cbd5e1;
-            font-size: 12px;
-            font-weight: 700;
             list-style: none;
+            min-width: 0;
           }
           .cache-value-summary::-webkit-details-marker {
             display: none;
           }
           .cache-value-summary::before {
             content: "▸";
-            display: inline-block;
-            margin-right: 6px;
+            flex: 0 0 auto;
+            color: #888899;
+            font-size: 12px;
+            line-height: 1;
             transition: transform .18s ease;
+          }
+          .cache-value-summary-text {
+          max-width: 300px;
+            flex: 1 1 auto;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #ebebf0;
+            font-size: 12px;
+            font-family: "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
+            font-weight: 400;
+            line-height: 1.4;
           }
           .cache-value-details[open] .cache-value-summary::before {
             transform: rotate(90deg);
           }
           .cache-value-body {
-            margin-top: 2px;
+            margin-top: 8px;
           }
           .cache-col-type { width: 86px; }
           .cache-col-key { width: 180px; }
@@ -1982,9 +2200,6 @@ window.DopparProfiler = {
             word-break: break-word;
             overflow-x: auto;
           }
-          .api-response-shell > .code-block:last-child {
-            border-radius: 0;
-          }
           .response-preview-scroll {
             max-height: 460px;
             overflow: auto;
@@ -2097,11 +2312,23 @@ window.DopparProfiler = {
             display: grid;
             gap: 10px;
           }
+          .logs-shell {
+            display: grid;
+            gap: 12px;
+          }
           .log-card {
+            display: grid;
+            gap: 8px;
             padding: 14px;
             border-radius: 8px;
             border: 1px solid rgba(255,255,255,0.08);
             background: rgba(255,255,255,0.03);
+          }
+          .log-card .code-block {
+            margin: 0 -14px -14px;
+            padding: 12px 14px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            border-radius: 0 0 8px 8px;
           }
           .log-head {
             display: flex;
@@ -2109,13 +2336,12 @@ window.DopparProfiler = {
             justify-content: space-between;
             gap: 10px;
             flex-wrap: wrap;
-            margin-bottom: 8px;
           }
           .log-level {
             display: inline-flex;
             align-items: center;
             padding: 3px 8px;
-            border-radius: 2px;
+            border-radius: 6px;
             font-size: 10px;
             letter-spacing: .1em;
             text-transform: uppercase;
@@ -2132,7 +2358,6 @@ window.DopparProfiler = {
           .log-message {
             color: #ebebf0;
             font-weight: 600;
-            margin-bottom: 8px;
             word-break: break-word;
           }
           .pill-row {
@@ -2146,7 +2371,7 @@ window.DopparProfiler = {
             align-items: center;
             gap: 6px;
             padding: 4px 8px;
-            border-radius: 2px;
+            border-radius: 6px;
             background: transparent;
             border: 1px solid rgba(255,255,255,0.1);
             color: #888899;
@@ -2186,7 +2411,7 @@ window.DopparProfiler = {
             line-height: 1;
             font-size: 11px;
             font-weight: 700;
-            border-radius: 2px;
+            border-radius: 6px;
             vertical-align: middle;
           }
           .sql-header > div > .badge {
@@ -2200,7 +2425,7 @@ window.DopparProfiler = {
             font-weight: 700;
             font-size: 12px;
             padding: 3px 8px;
-            border-radius: 2px;
+            border-radius: 6px;
             background: rgba(34, 197, 94, 0.1);
             border: 1px solid rgba(34, 197, 94, 0.18);
           }
@@ -2209,7 +2434,7 @@ window.DopparProfiler = {
           .redirect-chain-status {
             font-size: 11px;
             font-weight: 700;
-            border-radius: 2px;
+            border-radius: 6px;
             padding: 3px 8px;
             background: transparent;
             border: 1px solid rgba(255,255,255,0.1);
@@ -2257,7 +2482,7 @@ window.DopparProfiler = {
 
           .panel[data-theme="dark"] {
             color: #ebebf0;
-            background: rgba(20, 20, 24, 0.98);
+            background: #141418;
             border-color: rgba(255, 255, 255, 0.08);
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
           }
@@ -2271,6 +2496,8 @@ window.DopparProfiler = {
           .panel[data-theme="dark"] .redirect-chain-item,
           .panel[data-theme="dark"] .log-card,
           .panel[data-theme="dark"] .history-card,
+          .panel[data-theme="dark"] .perf-group-card,
+          .panel[data-theme="dark"] .api-group-card,
           .panel[data-theme="dark"] .history-item {
             background: rgba(255,255,255,0.03);
             border-color: rgba(255,255,255,0.08);
@@ -2278,6 +2505,9 @@ window.DopparProfiler = {
           }
           .panel[data-theme="dark"] .metric,
           .panel[data-theme="dark"] .cache-op-card,
+          .panel[data-theme="dark"] .cache-kpi,
+          .panel[data-theme="dark"] .auth-identity-item,
+          .panel[data-theme="dark"] .perf-metric,
           .panel[data-theme="dark"] .row,
           .panel[data-theme="dark"] .history-kpi {
             background: transparent;
@@ -2334,7 +2564,6 @@ window.DopparProfiler = {
           .panel[data-theme="dark"] .log-message,
           .panel[data-theme="dark"] .sql-query,
           .panel[data-theme="dark"] .redirect-chain-path,
-          .panel[data-theme="dark"] .api-response-title,
           .panel[data-theme="dark"] .api-path,
           .panel[data-theme="dark"] .property-table td,
           .panel[data-theme="dark"] .json,
@@ -2364,9 +2593,12 @@ window.DopparProfiler = {
           .panel[data-theme="dark"] .history-item,
           .panel[data-theme="dark"] .history-card,
           .panel[data-theme="dark"] .history-kpi,
+          .panel[data-theme="dark"] .cache-kpi,
           .panel[data-theme="dark"] .nav-group-divider,
           .panel[data-theme="dark"] .history-route-table,
           .panel[data-theme="dark"] .cache-detail-table,
+          .panel[data-theme="dark"] .auth-table,
+          .panel[data-theme="dark"] .request-table,
           .panel[data-theme="dark"] .history-error-item,
           .panel[data-theme="dark"] .history-search,
           .panel[data-theme="dark"] .history-toggle,
@@ -2386,6 +2618,8 @@ window.DopparProfiler = {
           .panel[data-theme="dark"] .history-kpi,
           .panel[data-theme="dark"] .history-route-table,
           .panel[data-theme="dark"] .cache-detail-table,
+          .panel[data-theme="dark"] .auth-table,
+          .panel[data-theme="dark"] .request-table,
           .panel[data-theme="dark"] .history-error-item,
           .panel[data-theme="dark"] .history-search,
           .panel[data-theme="dark"] .history-toggle,
@@ -2441,8 +2675,14 @@ window.DopparProfiler = {
           .panel[data-theme="dark"] .cache-detail-table th {
             background: rgba(255,255,255,0.04);
           }
+          .panel[data-theme="dark"] .auth-table th,
+          .panel[data-theme="dark"] .request-table th {
+            background: rgba(255,255,255,0.04);
+          }
           .panel[data-theme="dark"] .history-route-table td,
           .panel[data-theme="dark"] .cache-detail-table td,
+          .panel[data-theme="dark"] .auth-table td,
+          .panel[data-theme="dark"] .request-table td,
           .panel[data-theme="dark"] .history-search,
           .panel[data-theme="dark"] .history-toggle,
           .panel[data-theme="dark"] .history-range-pill {
@@ -2539,9 +2779,7 @@ window.DopparProfiler = {
           }
           .panel[data-theme="dark"] .section-copy,
           .panel[data-theme="dark"] .metric-label,
-          .panel[data-theme="dark"] .summary-label,
-          .panel[data-theme="dark"] .api-response-title,
-          .panel[data-theme="dark"] .api-eyebrow {
+          .panel[data-theme="dark"] .summary-label {
             color: #55566a;
           }
           .panel[data-theme="dark"] .hero-request-copy-icon {
@@ -2709,7 +2947,7 @@ window.DopparProfiler = {
             min-width: 0;
             max-width: 100%;
             padding: 4px 8px;
-            border-radius: 2px;
+            border-radius: 6px;
             border: 1px solid rgba(255,255,255,0.1);
             background: transparent;
             color: #888899;
@@ -2908,8 +3146,46 @@ window.DopparProfiler = {
             }
             .history-overview-grid,
             .history-kpis,
+            .cache-kpis,
             .ov-two-col,
+            .perf-two-col,
             .stats-grid { grid-template-columns: 1fr; }
+            .perf-metrics {
+              grid-template-columns: 1fr;
+            }
+            .perf-metric {
+              padding: 10px 0;
+              border-left: 0;
+              border-bottom: 1px solid rgba(255,255,255,0.08);
+            }
+            .perf-metric:last-child {
+              border-bottom: 0;
+              padding-bottom: 0;
+            }
+            .cache-kpis {
+              flex-direction: column;
+            }
+            .cache-kpi {
+              padding: 10px 0;
+              border-left: 0;
+              border-bottom: 1px solid rgba(255,255,255,0.08);
+            }
+            .cache-kpi:last-child {
+              border-bottom: 0;
+              padding-bottom: 0;
+            }
+            .auth-identity {
+              flex-direction: column;
+            }
+            .auth-identity-item {
+              padding: 10px 0;
+              border-left: 0;
+              border-bottom: 1px solid rgba(255,255,255,0.08);
+            }
+            .auth-identity-item:last-child {
+              border-bottom: 0;
+              padding-bottom: 0;
+            }
             .history-table-head,
             .history-search-wrap {
               align-items: stretch;
@@ -3075,39 +3351,53 @@ window.DopparProfiler = {
         }
         
         // Build auth section
-        let authSection = '<div class="section"><div class="section-title"><span class="section-title-main">Authentication</span></div><div class="no-data">No authenticated user context captured for this request</div></div>';
+        let authSection = `
+          <div class="auth-shell">
+            <div class="section-title"><span class="section-title-main">Authentication</span></div>
+            <div class="no-data">No authenticated user context captured for this request</div>
+          </div>
+        `;
         if (data.auth_authenticated) {
           const userName = escapeHtml(data.auth_user_name || 'User');
           const userEmail = escapeHtml(data.auth_user_email || '');
           const authMeta = {};
           if (data.auth_user_id !== null && data.auth_user_id !== undefined) authMeta['User ID'] = data.auth_user_id;
           if (data.auth_guard) authMeta['Guard'] = data.auth_guard;
+          const authIdentityItems = [
+            `<div class="auth-identity-item"><div class="auth-identity-label">User</div><div class="auth-identity-value">${userName}</div></div>`,
+            userEmail ? `<div class="auth-identity-item"><div class="auth-identity-label">Email</div><div class="auth-identity-value">${userEmail}</div></div>` : '',
+            authMeta['User ID'] !== undefined ? `<div class="auth-identity-item"><div class="auth-identity-label">User ID</div><div class="auth-identity-value">${escapeHtml(String(authMeta['User ID']))}</div></div>` : '',
+            authMeta['Guard'] ? `<div class="auth-identity-item"><div class="auth-identity-label">Guard</div><div class="auth-identity-value">${escapeHtml(String(authMeta['Guard']))}</div></div>` : '',
+          ].filter(Boolean).join('');
           authSection = `
-            <div class="section">
+            <div class="auth-shell">
               <div class="section-title">
                 <span class="section-title-main">Authentication</span>
                 <span class="badge badge-success">Authenticated</span>
               </div>
-              <div class="row"><span class="key">User:</span> <span class="val">${userName}</span></div>
-              ${userEmail ? `<div class="row"><span class="key">Email:</span> <span class="val">${userEmail}</span></div>` : ''}
-              ${hasEntries(authMeta) ? buildSubsection('Metadata', buildPropertyTable(authMeta, 'Property', 'Value')) : ''}
-              ${hasEntries(data.auth_user) ? buildSubsection('User Payload', buildPropertyTable(data.auth_user, 'Property', 'Value')) : ''}
+              <div class="auth-identity">${authIdentityItems}</div>
+              ${hasEntries(data.auth_user) ? `
+                <div class="auth-block">
+                  <div class="subsection-title">User Payload</div>
+                  ${buildPropertyTable(data.auth_user, 'Property', 'Value', 'auth-table')}
+                </div>
+              ` : ''}
             </div>
           `;
         }
 
 
         const requestDetailsSection = `
-          <div class="section">
+          <div class="request-shell">
             <div class="section-title"><span class="section-title-main">Request Payload</span></div>
-            <div class="section-stack">
-              ${buildSubsection('Headers', buildPropertyTable(data.request_headers, 'Header', 'Value'))}
-              ${buildSubsection('Query Parameters', buildPropertyTable(data.request_query, 'Parameter', 'Value'))}
-              ${buildSubsection('POST Parameters', buildPropertyTable(data.request_params, 'Parameter', 'Value'))}
-              ${buildSubsection('Request Body', buildCodeBlock(data.request_body))}
-              ${buildSubsection('Cookies', buildPropertyTable(data.request_cookies, 'Cookie', 'Value'))}
-              ${buildSubsection('Uploaded Files', buildFilesTable(data.request_files))}
-              ${buildSubsection('Server', buildPropertyTable(data.request_server, 'Variable', 'Value'))}
+            <div class="request-stack">
+              ${buildRequestBlock('Headers', buildPropertyTable(data.request_headers, 'Header', 'Value', 'request-table'))}
+              ${buildRequestBlock('Query Parameters', buildPropertyTable(data.request_query, 'Parameter', 'Value', 'request-table'))}
+              ${buildRequestBlock('POST Parameters', buildPropertyTable(data.request_params, 'Parameter', 'Value', 'request-table'))}
+              ${buildRequestBlock('Request Body', buildCodeBlock(data.request_body))}
+              ${buildRequestBlock('Cookies', buildPropertyTable(data.request_cookies, 'Cookie', 'Value', 'request-table'))}
+              ${buildRequestBlock('Uploaded Files', buildFilesTable(data.request_files))}
+              ${buildRequestBlock('Server', buildPropertyTable(data.request_server, 'Variable', 'Value', 'request-table'))}
             </div>
             ${!hasEntries(data.request_headers) && !hasEntries(data.request_query) && !hasEntries(data.request_params) && !data.request_body && !hasEntries(data.request_cookies) && !hasEntries(data.request_files) && !hasEntries(data.request_server) ? '<div class="no-data">No detailed request payload captured</div>' : ''}
           </div>
@@ -3146,37 +3436,54 @@ window.DopparProfiler = {
           Number(data.redirect_count || 0) > 0 ? { label: 'Redirect chain followed', value: `${escapeHtml(data.redirect_count || 0)} hop${Number(data.redirect_count || 0) === 1 ? '' : 's'}` } : null,
           data.exception_class ? { label: 'Exception captured', value: escapeHtml(String(data.exception_class).split(String.fromCharCode(92)).pop() || data.exception_class) } : null,
         ].filter(Boolean);
+        const buildPerfMetricGrid = (metrics) => `
+          <div class="perf-metrics">
+            ${metrics.map((metric) => `
+              <div class="perf-metric">
+                <div class="cache-kpi-label">${escapeHtml(metric.label)}</div>
+                <div class="cache-kpi-value">${metric.value}</div>
+              </div>
+            `).join('')}
+          </div>
+        `;
         const performanceSection = `
-          <div class="section">
-            <div class="section-title"><span class="section-title-main">Performance Profile</span></div>
-            <div class="summary-grid">
-              <div class="summary-card">
-                <div class="summary-label">Duration</div>
-                <div class="summary-value">${escapeHtml(data.duration_ms?.toFixed?.(1) ?? data.duration_ms)} ms</div>
-                <div class="summary-note">Total application runtime for this request.</div>
+          <div class="perf-shell">
+            <div class="section-title">
+              <span class="section-title-main">Performance Profile</span>
+              <span>
+                <span class="badge badge-info">${escapeHtml(perfDurationMs.toFixed(1))} ms</span>
+                <span class="badge ${perfWarnings.length ? 'badge-warning' : 'badge-success'}">${perfWarnings.length ? `${perfWarnings.length} flags` : 'Healthy'}</span>
+              </span>
+            </div>
+            <div class="perf-group-card">
+              <div class="perf-group-head">
+                <div class="perf-group-title">Overview</div>
               </div>
-              <div class="summary-card">
-                <div class="summary-label">Peak Memory</div>
-                <div class="summary-value">${((data.memory_peak || 0) / (1024*1024)).toFixed(2)} MB</div>
-                <div class="summary-note">Maximum memory footprint recorded.</div>
-              </div>
-              <div class="summary-card">
-                <div class="summary-label">Response Size</div>
-                <div class="summary-value">${formatBytes(data.response_body_size || 0)}</div>
-                <div class="summary-note">Body size returned to the client.</div>
-              </div>
-              <div class="summary-card">
-                <div class="summary-label">Outgoing HTTP</div>
-                <div class="summary-value">${escapeHtml(data.http_requests_count || 0)}</div>
-                <div class="summary-note">${escapeHtml(data.http_requests_total_time_ms?.toFixed?.(2) ?? data.http_requests_total_time_ms ?? 0)} ms total across external calls.</div>
+              <div class="cache-kpis">
+                <div class="cache-kpi">
+                  <div class="cache-kpi-label">Duration</div>
+                  <div class="cache-kpi-value">${escapeHtml(data.duration_ms?.toFixed?.(1) ?? data.duration_ms)} ms</div>
+                </div>
+                <div class="cache-kpi">
+                  <div class="cache-kpi-label">Peak Memory</div>
+                  <div class="cache-kpi-value">${((data.memory_peak || 0) / (1024*1024)).toFixed(2)} MB</div>
+                </div>
+                <div class="cache-kpi">
+                  <div class="cache-kpi-label">Response Size</div>
+                  <div class="cache-kpi-value">${formatBytes(data.response_body_size || 0)}</div>
+                </div>
+                <div class="cache-kpi">
+                  <div class="cache-kpi-label">Outgoing HTTP</div>
+                  <div class="cache-kpi-value">${escapeHtml(data.http_requests_count || 0)}</div>
+                </div>
               </div>
             </div>
-            <div class="ov-dashboard">
-              <div class="ov-two-col">
-                <div>
-                  <div class="ov-section-label">
-                    <span>Timing Mix</span>
-                    <span class="ov-kpi-chip">${escapeHtml(perfDurationMs.toFixed(1))} ms total</span>
+            <div class="perf-section">
+              <div class="perf-section-label">Timing & Request Signals</div>
+              <div class="perf-two-col">
+                <div class="perf-group-card">
+                  <div class="perf-group-head">
+                    <div class="perf-group-title">Timing Mix</div>
                   </div>
                   <div class="ov-app-headline">${escapeHtml(perfAppMs.toFixed(2))} ms stayed inside app work</div>
                   <div class="ov-app-sub">Breakdown of observed request time between SQL, outbound HTTP, and everything else in the app lifecycle.</div>
@@ -3204,10 +3511,9 @@ window.DopparProfiler = {
                     </div>
                   </div>
                 </div>
-                <div>
-                  <div class="ov-section-label">
-                    <span>Request Signals</span>
-                    <span class="ov-kpi-chip ${perfWarnings.length ? 'ov-kpi-warn' : ''}">${perfWarnings.length ? `${perfWarnings.length} flags` : 'Healthy'}</span>
+                <div class="perf-group-card">
+                  <div class="perf-group-head">
+                    <div class="perf-group-title">Request Signals</div>
                   </div>
                   <div class="ov-app-headline">${escapeHtml(data.response_status || data.status || 0)} response with ${escapeHtml(data.logs_total_count || 0)} log${Number(data.logs_total_count || 0) === 1 ? '' : 's'}</div>
                   <div class="ov-app-sub">Fast high-signal checks for issues that matter in a single request: slow SQL, N+1 hints, cache misses, redirects, and exceptions.</div>
@@ -3223,82 +3529,35 @@ window.DopparProfiler = {
                   ` : '<div class="ov-empty">No obvious performance warnings were detected in this request.</div>'}
                 </div>
               </div>
-              <div class="ov-two-col">
-                <div>
-                  <div class="ov-section-label">
-                    <span>Database Behavior</span>
-                    <span class="ov-kpi-chip">${escapeHtml(data.sql_total_count || 0)} queries</span>
+            </div>
+            <div class="perf-section">
+              <div class="perf-section-label">Database & Response</div>
+              <div class="perf-two-col">
+                <div class="perf-group-card">
+                  <div class="perf-group-head">
+                    <div class="perf-group-title">Database Behavior</div>
                   </div>
-                  <div class="ov-stat-grid">
-                    <div class="ov-stat-card">
-                      <div class="ov-stat-label">SQL Time</div>
-                      <div class="ov-stat-value">${escapeHtml(perfSqlMs.toFixed(2))} ms</div>
-                      <div class="ov-stat-note">Combined database execution time.</div>
-                    </div>
-                    <div class="ov-stat-card">
-                      <div class="ov-stat-label">Slow Queries</div>
-                      <div class="ov-stat-value">${escapeHtml(data.sql_slow_count || 0)}</div>
-                      <div class="ov-stat-note">Queries above the Insight slow threshold.</div>
-                    </div>
-                    <div class="ov-stat-card">
-                      <div class="ov-stat-label">Duplicate Groups</div>
-                      <div class="ov-stat-value">${escapeHtml(data.sql_duplicate_group_count || 0)}</div>
-                      <div class="ov-stat-note">Repeated SQL fingerprints in this request.</div>
-                    </div>
-                    <div class="ov-stat-card">
-                      <div class="ov-stat-label">N+1 Hints</div>
-                      <div class="ov-stat-value">${escapeHtml(data.sql_n_plus_one_count || 0)}</div>
-                      <div class="ov-stat-note">Potential repeated select patterns with varying bindings.</div>
-                    </div>
-                    <div class="ov-stat-card">
-                      <div class="ov-stat-label">Slow Threshold</div>
-                      <div class="ov-stat-value">${escapeHtml(data.sql_slow_threshold_ms || 0)} ms</div>
-                      <div class="ov-stat-note">Current threshold used to mark slow queries.</div>
-                    </div>
-                    <div class="ov-stat-card">
-                      <div class="ov-stat-label">Result Pressure</div>
-                      <div class="ov-stat-value">${escapeHtml(data.sql_duplicate_total_count || 0)}</div>
-                      <div class="ov-stat-note">Total repeated statements across duplicate groups.</div>
-                    </div>
-                  </div>
+                  ${buildPerfMetricGrid([
+                    { label: 'SQL Time', value: `${escapeHtml(perfSqlMs.toFixed(2))} ms` },
+                    { label: 'Slow Queries', value: escapeHtml(data.sql_slow_count || 0) },
+                    { label: 'Duplicate Groups', value: escapeHtml(data.sql_duplicate_group_count || 0) },
+                    { label: 'N+1 Hints', value: escapeHtml(data.sql_n_plus_one_count || 0) },
+                    { label: 'Slow Threshold', value: `${escapeHtml(data.sql_slow_threshold_ms || 0)} ms` },
+                    { label: 'Result Pressure', value: escapeHtml(data.sql_duplicate_total_count || 0) },
+                  ])}
                 </div>
-                <div>
-                  <div class="ov-section-label">
-                    <span>Response + Cache</span>
-                    <span class="ov-kpi-chip">${escapeHtml(data.response_content_type || data.content_type || 'unknown')}</span>
+                <div class="perf-group-card">
+                  <div class="perf-group-head">
+                    <div class="perf-group-title">Response + Cache</div>
                   </div>
-                  <div class="ov-stat-grid">
-                    <div class="ov-stat-card">
-                      <div class="ov-stat-label">Cache Hit Rate</div>
-                      <div class="ov-stat-value">${perfCacheHitRate}%</div>
-                      <div class="ov-stat-note">${escapeHtml(data.cache_hits || 0)} hits / ${escapeHtml(data.cache_misses || 0)} misses in current request.</div>
-                    </div>
-                    <div class="ov-stat-card">
-                      <div class="ov-stat-label">Cache Ops</div>
-                      <div class="ov-stat-value">${escapeHtml(data.cache_total || 0)}</div>
-                      <div class="ov-stat-note">${escapeHtml(data.cache_lock_operations || 0)} lock event${Number(data.cache_lock_operations || 0) === 1 ? '' : 's'} included.</div>
-                    </div>
-                    <div class="ov-stat-card">
-                      <div class="ov-stat-label">Outbound Calls</div>
-                      <div class="ov-stat-value">${escapeHtml(data.http_requests_count || 0)}</div>
-                      <div class="ov-stat-note">${escapeHtml(perfOutboundMs.toFixed(2))} ms spent on external IO.</div>
-                    </div>
-                    <div class="ov-stat-card">
-                      <div class="ov-stat-label">Logs</div>
-                      <div class="ov-stat-value">${escapeHtml(data.logs_total_count || 0)}</div>
-                      <div class="ov-stat-note">Runtime log entries emitted during this request.</div>
-                    </div>
-                    <div class="ov-stat-card">
-                      <div class="ov-stat-label">Redirects</div>
-                      <div class="ov-stat-value">${escapeHtml(data.redirect_count || 0)}</div>
-                      <div class="ov-stat-note">${data.redirect_count ? 'Redirect chain was captured for this request.' : 'No redirect chain captured.'}</div>
-                    </div>
-                    <div class="ov-stat-card">
-                      <div class="ov-stat-label">Response Size</div>
-                      <div class="ov-stat-value">${formatBytes(data.response_body_size || 0)}</div>
-                      <div class="ov-stat-note">Useful for spotting oversized HTML or JSON payloads.</div>
-                    </div>
-                  </div>
+                  ${buildPerfMetricGrid([
+                    { label: 'Cache Hit Rate', value: `${perfCacheHitRate}%` },
+                    { label: 'Cache Ops', value: escapeHtml(data.cache_total || 0) },
+                    { label: 'Outbound Calls', value: escapeHtml(data.http_requests_count || 0) },
+                    { label: 'Logs', value: escapeHtml(data.logs_total_count || 0) },
+                    { label: 'Redirects', value: escapeHtml(data.redirect_count || 0) },
+                    { label: 'Response Size', value: formatBytes(data.response_body_size || 0) },
+                  ])}
                 </div>
               </div>
             </div>
@@ -3308,11 +3567,6 @@ window.DopparProfiler = {
         const responseStatusCode = Number(data.response_status ?? data.status ?? 0);
         const responseStatusText = data.response_status_text || '';
         const responseStatusLabel = responseStatusCode ? (responseStatusText ? `${responseStatusCode} - ${responseStatusText}` : String(responseStatusCode)) : 'Unknown';
-        const responseStatusChipClass = responseStatusCode >= 500
-          ? 'response-status-chip response-status-chip-error'
-          : responseStatusCode >= 300
-            ? 'response-status-chip response-status-chip-warning'
-            : 'response-status-chip response-status-chip-success';
         const responseHeaderCount = Number(data.response_header_count || (hasEntries(data.response_headers) ? Object.keys(data.response_headers).length : 0));
         const responseRedirectChain = Array.isArray(data.redirect_chain) ? data.redirect_chain : [];
         const responseRedirectCount = responseRedirectChain.length + (data.is_redirect ? 1 : 0);
@@ -3324,65 +3578,62 @@ window.DopparProfiler = {
         if (responseHeaderCount > 0) responseInfo['Header Count'] = responseHeaderCount;
 
         const responseHighlightSection = hasEntries(data.response_header_highlights)
-          ? buildSubsection('Header Highlights', buildPropertyTable(data.response_header_highlights, 'Header', 'Value', 'response-highlight-table'))
+          ? buildResponseBlock('Header Highlights', buildPropertyTable(data.response_header_highlights, 'Header', 'Value', 'request-table'))
           : '';
         const responseAllHeadersSection = hasEntries(data.response_headers)
-          ? buildSubsection('All Headers', buildPropertyTable(data.response_headers, 'Header', 'Value', 'response-highlight-table'))
+          ? buildResponseBlock('All Headers', buildPropertyTable(data.response_headers, 'Header', 'Value', 'request-table'))
           : '';
 
         const responseRedirectSummary = (data.is_redirect && data.redirect_url) || responseRedirectCount > 0
-          ? buildSubsection('Redirect Summary', buildPropertyTable({
+          ? buildResponseBlock('Redirect Summary', buildPropertyTable({
               Redirected: data.is_redirect ? 'Yes' : 'No',
               'Redirect Count': responseRedirectCount,
               ...(data.redirect_url ? { Location: data.redirect_url } : {}),
-            }, 'Property', 'Value'))
+            }, 'Property', 'Value', 'request-table'))
           : '';
 
         const responsePreviewSection = data.response_preview
-          ? `
-            <div class="subsection">
-              <div class="subsection-title">Body Preview</div>
-              <div class="api-response-shell">
-                <div class="api-response-head">
-                  <span class="api-response-title">${escapeHtml(data.response_preview_format || 'text')} preview</span>
-                  <span class="api-meta">
-                    ${data.response_classification ? `<span class="api-meta-chip api-chip-teal">${escapeHtml(data.response_classification)}</span>` : ''}
-                    ${data.response_preview_truncated ? `<span class="api-meta-chip api-chip-mono">Truncated</span>` : ''}
-                  </span>
-                </div>
-                <div class="response-preview-scroll">${buildCodeBlock(data.response_preview)}</div>
+          ? buildResponseBlock('Body Preview', `
+              <div class="response-preview-head">
+                <span class="api-meta">
+                  <span class="api-meta-chip api-chip-mono">${escapeHtml(data.response_preview_format || 'text')} preview</span>
+                  ${data.response_classification ? `<span class="api-meta-chip api-chip-teal">${escapeHtml(data.response_classification)}</span>` : ''}
+                  ${data.response_preview_truncated ? `<span class="api-meta-chip api-chip-mono">Truncated</span>` : ''}
+                </span>
               </div>
-            </div>
-          `
-          : buildSubsection('Body Preview', `<div class="no-data">${data.response_classification === 'File Download' || data.response_classification === 'File Response' ? 'Preview skipped for file or binary response' : 'No response body preview captured'}</div>`);
+              <div class="response-preview-scroll">${buildCodeBlock(data.response_preview)}</div>
+            `)
+          : buildResponseBlock('Body Preview', `<div class="no-data">${data.response_classification === 'File Download' || data.response_classification === 'File Response' ? 'Preview skipped for file or binary response' : 'No response body preview captured'}</div>`);
 
         const responseSection = `
-          <div class="section">
-            <div class="section-title"><span class="section-title-main">Response Details</span></div>
-            <div class="section-stack">
-              <div class="summary-grid">
-                <div class="summary-card">
-                  <div class="summary-label">Status</div>
-                  <div class="summary-value"><span class="${responseStatusChipClass}">${escapeHtml(responseStatusLabel)}</span></div>
-                  <div class="summary-note">Resolved from the final response code.</div>
-                </div>
-                <div class="summary-card">
-                  <div class="summary-label">Classification</div>
-                  <div class="summary-value">${escapeHtml(data.response_classification || 'HTTP Response')}</div>
-                  <div class="summary-note">Quick response type classification for fast triage.</div>
-                </div>
-                <div class="summary-card">
-                  <div class="summary-label">Body Size</div>
-                  <div class="summary-value">${formatBytes(data.response_body_size || 0)}</div>
-                  <div class="summary-note">Captured response body size before toolbar injection.</div>
-                </div>
-                <div class="summary-card">
-                  <div class="summary-label">Headers</div>
-                  <div class="summary-value">${escapeHtml(responseHeaderCount || 0)}</div>
-                  <div class="summary-note">${escapeHtml(responseRedirectCount)} redirect hop${responseRedirectCount === 1 ? '' : 's'} observed for this request.</div>
-                </div>
+          <div class="response-shell">
+            <div class="section-title">
+              <span class="section-title-main">Response Details</span>
+              <span>
+                <span class="badge ${responseStatusCode >= 500 ? 'badge-error' : responseStatusCode >= 300 ? 'badge-warning' : 'badge-success'}">${escapeHtml(responseStatusLabel)}</span>
+                <span class="badge badge-info">${escapeHtml(responseHeaderCount || 0)} headers</span>
+              </span>
+            </div>
+            <div class="cache-kpis">
+              <div class="cache-kpi">
+                <div class="cache-kpi-label">Classification</div>
+                <div class="cache-kpi-value">${escapeHtml(data.response_classification || 'HTTP Response')}</div>
               </div>
-              ${buildSubsection('Response', buildPropertyTable(responseInfo, 'Property', 'Value'))}
+              <div class="cache-kpi">
+                <div class="cache-kpi-label">Body Size</div>
+                <div class="cache-kpi-value">${formatBytes(data.response_body_size || 0)}</div>
+              </div>
+              <div class="cache-kpi">
+                <div class="cache-kpi-label">Headers</div>
+                <div class="cache-kpi-value">${escapeHtml(responseHeaderCount || 0)}</div>
+              </div>
+              <div class="cache-kpi">
+                <div class="cache-kpi-label">Redirects</div>
+                <div class="cache-kpi-value">${escapeHtml(responseRedirectCount)}</div>
+              </div>
+            </div>
+            <div class="response-stack">
+              ${buildResponseBlock('Response', buildPropertyTable(responseInfo, 'Property', 'Value', 'request-table'))}
               ${responseHighlightSection}
               ${responseAllHeadersSection}
               ${responseRedirectSummary}
@@ -3453,7 +3704,7 @@ window.DopparProfiler = {
 
             return `
               <details class="cache-value-details">
-                <summary class="cache-value-summary">${escapeHtml(preview)}</summary>
+                <summary class="cache-value-summary"><span class="cache-value-summary-text">${escapeHtml(preview)}</span></summary>
                 <div class="cache-value-body">${body}</div>
               </details>
             `;
@@ -3465,52 +3716,69 @@ window.DopparProfiler = {
           return '<span class="muted-value">No payload</span>';
         };
         const cacheSection = `
-          <div class="section">
-            <div class="section-title"><span class="section-title-main">Cache Activity</span></div>
+          <div class="cache-shell">
+            <div class="section-title">
+              <span class="section-title-main">Cache Activity</span>
+              ${cacheOperations.length ? `
+                <span>
+                  <span class="badge badge-info">${escapeHtml(cacheOperations.length)} events</span>
+                  <span class="badge badge-success">${cacheHitRate}% hit rate</span>
+                </span>
+              ` : ''}
+            </div>
             ${cacheOperations.length ? `
-              <div class="summary-grid">
-                <div class="summary-card"><div class="summary-label">Operations</div><div class="summary-value">${escapeHtml(data.cache_total || cacheOperations.length)}</div><div class="summary-note">Total captured cache events.</div></div>
-                <div class="summary-card"><div class="summary-label">Hit Rate</div><div class="summary-value">${cacheHitRate}%</div><div class="summary-note">${escapeHtml(data.cache_hits || 0)} hits / ${escapeHtml(data.cache_misses || 0)} misses</div></div>
-                <div class="summary-card"><div class="summary-label">Writes</div><div class="summary-value">${escapeHtml(data.cache_writes || 0)}</div><div class="summary-note">Set and forever style writes.</div></div>
-                <div class="summary-card"><div class="summary-label">Deletes</div><div class="summary-value">${escapeHtml(data.cache_deletes || 0)}</div><div class="summary-note">Forget and delete operations.</div></div>
-                <div class="summary-card"><div class="summary-label">Locks</div><div class="summary-value">${escapeHtml(data.cache_lock_operations || 0)}</div><div class="summary-note">Atomic lock lifecycle events.</div></div>
+              <div class="cache-kpis">
+                <div class="cache-kpi">
+                  <div class="cache-kpi-label">Operations</div>
+                  <div class="cache-kpi-value">${escapeHtml(data.cache_total || cacheOperations.length)}</div>
+                </div>
+                <div class="cache-kpi">
+                  <div class="cache-kpi-label">Hit Rate</div>
+                  <div class="cache-kpi-value">${cacheHitRate}%</div>
+                </div>
+                <div class="cache-kpi">
+                  <div class="cache-kpi-label">Writes</div>
+                  <div class="cache-kpi-value">${escapeHtml(data.cache_writes || 0)}</div>
+                </div>
+                <div class="cache-kpi">
+                  <div class="cache-kpi-label">Deletes</div>
+                  <div class="cache-kpi-value">${escapeHtml(data.cache_deletes || 0)}</div>
+                </div>
+                <div class="cache-kpi">
+                  <div class="cache-kpi-label">Locks</div>
+                  <div class="cache-kpi-value">${escapeHtml(data.cache_lock_operations || 0)}</div>
+                </div>
               </div>
-              <div class="cache-table-shell">
-                <div class="cache-table-head">
-                  <span class="cache-table-count">${escapeHtml(cacheOperations.length)} cache events</span>
-                  <span class="cache-table-note">Current request cache reads, writes, TTLs, misses, and lock activity.</span>
-                </div>
-                <div class="cache-table-scroll">
-                  <table class="cache-detail-table">
-                    <thead>
+              <div class="cache-table-scroll">
+                <table class="cache-detail-table">
+                  <thead>
+                    <tr>
+                      <th class="cache-col-type">Type</th>
+                      <th class="cache-col-key">Key</th>
+                      <th class="cache-col-value">Value</th>
+                      <th class="cache-col-store">Store</th>
+                      <th class="cache-col-status">Status</th>
+                      <th class="cache-col-meta">Details</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${cacheOperations.map((operation) => `
                       <tr>
-                        <th class="cache-col-type">Type</th>
-                        <th class="cache-col-key">Key</th>
-                        <th class="cache-col-value">Value</th>
-                        <th class="cache-col-store">Store</th>
-                        <th class="cache-col-status">Status</th>
-                        <th class="cache-col-meta">Details</th>
+                        <td class="cache-col-type"><span class="cache-type-chip">${escapeHtml(operation.type || 'unknown')}</span></td>
+                        <td class="cache-col-key"><span class="cache-key-cell">${escapeHtml(operation.key || 'N/A')}</span></td>
+                        <td class="cache-col-value">${buildCacheValueCell(operation)}</td>
+                        <td class="cache-col-store">
+                          <div class="cache-store-cell">
+                            <span class="cache-store-name">${escapeHtml(operation.store_name || 'default')}</span>
+                            <span class="cache-store-driver">${escapeHtml(String(operation.store_driver || 'unknown').toUpperCase())}</span>
+                          </div>
+                        </td>
+                        <td class="cache-col-status">${buildCacheStatusBadge(operation)}</td>
+                        <td class="cache-col-meta">${buildCacheMetaLines(operation)}</td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      ${cacheOperations.map((operation) => `
-                        <tr>
-                          <td class="cache-col-type"><span class="cache-type-chip">${escapeHtml(operation.type || 'unknown')}</span></td>
-                          <td class="cache-col-key"><span class="cache-key-cell">${escapeHtml(operation.key || 'N/A')}</span></td>
-                          <td class="cache-col-value">${buildCacheValueCell(operation)}</td>
-                          <td class="cache-col-store">
-                            <div class="cache-store-cell">
-                              <span class="cache-store-name">${escapeHtml(operation.store_name || 'default')}</span>
-                              <span class="cache-store-driver">${escapeHtml(String(operation.store_driver || 'unknown').toUpperCase())}</span>
-                            </div>
-                          </td>
-                          <td class="cache-col-status">${buildCacheStatusBadge(operation)}</td>
-                          <td class="cache-col-meta">${buildCacheMetaLines(operation)}</td>
-                        </tr>
-                      `).join('')}
-                    </tbody>
-                  </table>
-                </div>
+                    `).join('')}
+                  </tbody>
+                </table>
               </div>
             ` : '<div class="no-data">No cache operations detected</div>'}
           </div>
@@ -3525,8 +3793,11 @@ window.DopparProfiler = {
 
         const logsList = Array.isArray(data.logs) ? data.logs : [];
         const logsSection = `
-          <div class="section">
-            <div class="section-title"><span class="section-title-main">Runtime Logs</span></div>
+          <div class="logs-shell">
+            <div class="section-title">
+              <span class="section-title-main">Runtime Logs</span>
+              ${logsList.length ? `<span class="badge badge-info">${escapeHtml(logsList.length)} entries</span>` : ''}
+            </div>
             ${logsList.length ? `
               <div class="log-list">
                 ${logsList.map((log) => `
@@ -3547,7 +3818,7 @@ window.DopparProfiler = {
         const outgoingRequests = Array.isArray(data.http_requests) ? data.http_requests : [];
         const jsonApiPath = `/_insight/api/${escapeHtml(data.id)}`;
         const jsonApiSection = `
-          <div class="section">
+          <div class="json-api-shell">
             <div class="section-title">
               <span class="section-title-main">JSON API</span>
               <a class="api-open-btn" href="${jsonApiPath}" target="_blank" rel="noreferrer">
@@ -3555,30 +3826,27 @@ window.DopparProfiler = {
                 Open in Browser
               </a>
             </div>
-            <p class="section-copy">Access the raw profiler payload for this request via the REST endpoint below.</p>
-            <div class="api-shell">
-              <div class="api-operation">
-                <div class="api-eyebrow">Profiler Endpoint</div>
-                <div class="api-line">
-                  <span class="api-method">GET</span>
-                  <span class="api-path">${jsonApiPath}</span>
-                </div>
-                <div class="api-meta">
-                  <span class="api-meta-chip api-chip-success">● 200 OK</span>
-                  <span class="api-meta-chip api-chip-teal">application/json</span>
-                  <span class="api-meta-chip api-chip-mono">${escapeHtml(data.id.slice(0, 12))}…</span>
-                </div>
+            <div class="api-group-card">
+              <div class="perf-group-title">Profiler Endpoint</div>
+              <div class="api-line">
+                <span class="api-method">GET</span>
+                <span class="api-path">${jsonApiPath}</span>
               </div>
-              <div class="api-response-shell">
-                <div class="api-response-head">
-                  <span class="api-response-title">Response Payload</span>
-                  <button class="copy-action" type="button" data-action="json-api-copy">
-                    <span class="copy-icon" aria-hidden="true"></span>
-                    Copy JSON
-                  </button>
-                </div>
-                <div class="response-preview-scroll">${buildCodeBlock(data)}</div>
+              <div class="api-meta">
+                <span class="api-meta-chip api-chip-success">● 200 OK</span>
+                <span class="api-meta-chip api-chip-teal">application/json</span>
+                <span class="api-meta-chip api-chip-mono">${escapeHtml(data.id.slice(0, 12))}…</span>
               </div>
+            </div>
+            <div class="api-group-card api-payload-card">
+              <div class="api-payload-head">
+                <span class="perf-group-title">Response Payload</span>
+                <button class="copy-action" type="button" data-action="json-api-copy">
+                  <span class="copy-icon" aria-hidden="true"></span>
+                  Copy JSON
+                </button>
+              </div>
+              <div class="response-preview-scroll">${buildCodeBlock(data)}</div>
             </div>
           </div>
         `;
