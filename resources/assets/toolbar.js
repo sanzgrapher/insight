@@ -109,19 +109,36 @@ window.DopparProfiler = {
   },
   syncPanelPosition(){
     const host = document.getElementById('doppar-profiler-panel');
+    if(!host){
+      return;
+    }
+    host.style.display = 'flex';
     const bounds = this.getToolbarBounds();
-    if(!host || !bounds){
+    if(!bounds){
       return;
     }
 
-    const gap = 14;
+    const gap = 16;
     const availableHeight = Math.max(220, bounds.top - gap - 12);
+    const panelHeight = Math.min(500, availableHeight);
+    // Panel is wider than the dock; keep them decoupled.
+    const panelWidth = Math.min(1200, window.innerWidth - 24);
+    const left = Math.max(12, Math.min(
+      bounds.left + ((bounds.width - panelWidth) / 2),
+      window.innerWidth - panelWidth - 12
+    ));
+    const panelTop = Math.max(12, bounds.top - gap - panelHeight);
 
-    host.style.left = bounds.left + 'px';
+    host.style.left = left + 'px';
     host.style.right = 'auto';
-    host.style.width = bounds.width + 'px';
-    host.style.bottom = (window.innerHeight - bounds.top + gap) + 'px';
-    host.style.setProperty('--dp-panel-available-height', availableHeight + 'px');
+    host.style.width = panelWidth + 'px';
+    host.style.height = panelHeight + 'px';
+    host.style.top = panelTop + 'px';
+    host.style.bottom = 'auto';
+    host.style.transform = '';
+    host.style.boxSizing = 'border-box';
+    host.style.overflow = 'hidden';
+    host.style.setProperty('--dp-panel-height', panelHeight + 'px');
   },
   ensurePanelRoot(){
     let host = document.getElementById('doppar-profiler-panel');
@@ -303,41 +320,45 @@ window.DopparProfiler = {
           .panel {
             --dp-scrollbar-size: 2px;
             --dp-scrollbar-track: transparent;
-            --dp-scrollbar-thumb: rgba(132,134,255,0.22);
-            --dp-scrollbar-thumb-hover: rgba(132,134,255,0.34);
+            --dp-scrollbar-thumb: rgba(255,255,255,0.18);
+            --dp-scrollbar-thumb-hover: rgba(255,255,255,0.28);
+            box-sizing: border-box;
             width: 100%;
-            max-height: min(78vh, var(--dp-panel-available-height, 78vh));
-            overflow: auto;
-            border-radius: 26px;
+            height: 100%;
+            max-height: var(--dp-panel-height, 500px);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border-radius: 12px;
             padding: 14px;
-            color: #142133;
-            font: 14px/1.65 "Aptos", "Segoe UI Variable", "Segoe UI", sans-serif;
-            background:
-              radial-gradient(circle at top right, rgba(132, 134, 255, 0.16), transparent 22%),
-              radial-gradient(circle at bottom left, rgba(15, 139, 141, 0.14), transparent 26%),
-              linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(245, 247, 255, 0.95));
-            border: 1px solid rgba(132, 134, 255, 0.24);
-            box-shadow:
-              0 28px 64px rgba(57, 72, 102, 0.18),
-              inset 0 1px 0 rgba(255,255,255,0.8);
-            backdrop-filter: blur(16px);
+            padding-right: 0;
+            color: #ebebf0;
+            font: 13px/1.55 "Aptos", "Segoe UI Variable", "Segoe UI", sans-serif;
+            background: rgba(20, 20, 24, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
             position: relative;
             scrollbar-width: thin;
             scrollbar-color: var(--dp-scrollbar-thumb) var(--dp-scrollbar-track);
           }
           .panel::-webkit-scrollbar,
           .sidebar-nav::-webkit-scrollbar,
+          .canvas::-webkit-scrollbar,
           .history-table-scroll::-webkit-scrollbar {
             width: var(--dp-scrollbar-size);
             height: var(--dp-scrollbar-size);
           }
           .panel::-webkit-scrollbar-track,
           .sidebar-nav::-webkit-scrollbar-track,
+          .canvas::-webkit-scrollbar-track,
           .history-table-scroll::-webkit-scrollbar-track {
             background: var(--dp-scrollbar-track);
           }
           .panel::-webkit-scrollbar-button,
           .sidebar-nav::-webkit-scrollbar-button,
+          .canvas::-webkit-scrollbar-button,
           .history-table-scroll::-webkit-scrollbar-button {
             display: none;
             width: 0;
@@ -345,97 +366,86 @@ window.DopparProfiler = {
           }
           .panel::-webkit-scrollbar-thumb,
           .sidebar-nav::-webkit-scrollbar-thumb,
+          .canvas::-webkit-scrollbar-thumb,
           .history-table-scroll::-webkit-scrollbar-thumb {
             background: var(--dp-scrollbar-thumb);
             border-radius: 999px;
           }
           .panel::-webkit-scrollbar-thumb:hover,
           .sidebar-nav::-webkit-scrollbar-thumb:hover,
+          .canvas::-webkit-scrollbar-thumb:hover,
           .history-table-scroll::-webkit-scrollbar-thumb:hover {
             background: var(--dp-scrollbar-thumb-hover);
           }
 
           .panel::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: 26px;
-            pointer-events: none;
-            background: linear-gradient(180deg, rgba(255,255,255,0.56), transparent 22%);
+            display: none;
           }
 
           .workspace {
             position: relative;
             z-index: 1;
             display: grid;
-            grid-template-columns: 210px minmax(0, 1fr);
-            gap: 14px;
-            min-height: 420px;
-            align-items: start;
+            grid-template-columns: 48px minmax(0, 1fr);
+            gap: 0;
+            flex: 1 1 auto;
+            min-height: 0;
+            margin: -14px 0 -14px -14px;
+            overflow: hidden;
           }
           .sidebar {
-            position: sticky;
-            top: 0;
-            align-self: start;
-            display: grid;
-            grid-template-rows: auto minmax(0, 1fr);
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            width: 48px;
+            height: 100%;
             min-height: 0;
-            max-height: calc(min(78vh, var(--dp-panel-available-height, 78vh)) - 28px);
-            padding: 12px;
-            border-radius: 20px;
-            background: #18181B;
-            border: 1px solid rgba(255, 255, 255, 0.07);
-            color: #ebebf0;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+            padding: 0;
+            border-radius: 0;
+            background: transparent;
+            border: 0;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            color: #888899;
+            box-shadow: none;
             overflow: hidden;
           }
           .sidebar-brand {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 8px 10px 10px;
-            margin-bottom: 6px;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
+            justify-content: center;
+            flex: 0 0 auto;
+            padding: 14px 0 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
           }
           .sidebar-mark {
-            width: 40px;
-            height: 40px;
+            width: auto;
+            height: auto;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            flex: 0 0 40px;
-            border-radius: 14px;
-            background:
-              linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)),
-              linear-gradient(180deg, rgba(143,146,255,0.22), rgba(116,121,255,0.18));
-            border: 1px solid rgba(132, 134, 255, 0.2);
-            box-shadow:
-              0 10px 20px rgba(132, 134, 255, 0.24),
-              inset 0 1px 0 rgba(255,255,255,0.14);
+            flex: 0 0 auto;
+            border-radius: 0;
+            background: transparent;
+            border: 0;
+            box-shadow: none;
           }
           .sidebar-mark img {
-            width: 18px;
-            height: 18px;
+            width: 22px;
+            height: 22px;
           }
-          .sidebar-title {
-            font-size: 15px;
-            font-weight: 800;
-            color: #ebebf0;
-            line-height: 1.08;
-          }
+          .sidebar-title,
           .sidebar-copy {
-            margin-top: 4px;
-            font-size: 11px;
-            color: #55566a;
+            display: none;
           }
           .sidebar-nav {
-            display: grid;
-            gap: 3px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
             min-height: 0;
+            flex: 1 1 auto;
             overflow-y: auto;
             overflow-x: hidden;
             padding-right: 0;
-            margin-right: -6px;
             overscroll-behavior: contain;
             scrollbar-width: thin;
             scrollbar-color: var(--dp-scrollbar-thumb) var(--dp-scrollbar-track);
@@ -443,31 +453,67 @@ window.DopparProfiler = {
           .sidebar-nav::-webkit-scrollbar-track {
             margin-block: 4px;
           }
-          .nav-section-label {
-            padding: 10px 10px 2px;
-            font-size: 10px;
-            letter-spacing: .16em;
-            text-transform: uppercase;
-            color: #55566a;
-            font-weight: 800;
-          }
-          .nav-section-copy {
-            padding: 0 10px 8px;
-            font-size: 11px;
-            line-height: 1.35;
-            color: #6a7184;
-            font-weight: 600;
-          }
-          .nav-section-divider {
-            height: 1px;
-            margin: 6px 10px 4px;
-            background: rgba(255,255,255,0.06);
-          }
-          .nav-main {
+          .nav-group {
+            position: relative;
             display: flex;
+            flex-direction: column;
+            gap: 4px;
+          }
+          .nav-group-divider {
+            height: 1px;
+            margin: 1px 3px;
+            background: rgba(255, 255, 255, 0.08);
+          }
+          .nav-rail {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+          }
+          .nav-rail-button {
+            appearance: none;
+            border: 0;
+            width: 48px;
+            height: 36px;
+            margin: 0;
+            padding: 0;
+            border-radius: 0;
+            background: transparent;
+            color: #888899;
+            cursor: pointer;
+            display: inline-flex;
             align-items: center;
-            gap: 12px;
-            min-width: 0;
+            justify-content: center;
+            position: relative;
+            transition: background 0.18s ease, opacity 0.18s ease;
+          }
+          .nav-rail-tooltip {
+            position: fixed;
+            padding: 7px 10px;
+            background: rgba(20, 20, 24, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 1;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            visibility: hidden;
+            z-index: 2147483646;
+            transition: opacity 0.12s ease, visibility 0.12s ease;
+          }
+          .nav-rail-tooltip.is-visible {
+            opacity: 1;
+            visibility: visible;
+          }
+          .nav-rail-button:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: #ffffff;
+          }
+          .nav-rail-button.active {
+            background: rgba(255, 255, 255, 0.06);
+            color: #ffffff;
+            box-shadow: none;
           }
           .nav-icon {
             width: 18px;
@@ -476,7 +522,11 @@ window.DopparProfiler = {
             background-repeat: no-repeat;
             background-position: center;
             background-size: 18px 18px;
-            opacity: 0.9;
+            opacity: 0.72;
+          }
+          .nav-rail-button:hover .nav-icon,
+          .nav-rail-button.active .nav-icon {
+            opacity: 1;
           }
           .nav-icon-overview { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='7' height='7' rx='1.5'/%3E%3Crect x='14' y='3' width='7' height='7' rx='1.5'/%3E%3Crect x='3' y='14' width='7' height='7' rx='1.5'/%3E%3Crect x='14' y='14' width='7' height='7' rx='1.5'/%3E%3C/svg%3E"); }
           .nav-icon-history { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 8v5l3 2'/%3E%3Cpath d='M3.05 11A9 9 0 1 1 6 17.3'/%3E%3Cpath d='M3 4v5h5'/%3E%3C/svg%3E"); }
@@ -490,39 +540,6 @@ window.DopparProfiler = {
           .nav-icon-session { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='16' height='16' rx='2'/%3E%3Cpath d='M8 9h8'/%3E%3Cpath d='M8 13h8'/%3E%3Cpath d='M8 17h5'/%3E%3C/svg%3E"); }
           .nav-icon-logs { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3h8l4 4v14H4V3h4'/%3E%3Cpath d='M14 3v5h5'/%3E%3Cpath d='M8 13h8'/%3E%3Cpath d='M8 17h6'/%3E%3C/svg%3E"); }
           .nav-icon-json { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dce7f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 8c-1.5 0-2.5 1-2.5 2.5v3C5.5 15 4.5 16 3 16'/%3E%3Cpath d='M16 8c1.5 0 2.5 1 2.5 2.5v3c0 1 1 2 2.5 2'/%3E%3Cpath d='M10 6 8 18'/%3E%3Cpath d='M14 6l2 12'/%3E%3C/svg%3E"); }
-          .nav-label {
-            color: inherit;
-            font-size: 13px;
-            font-weight: 800;
-          }
-          .nav-button {
-            appearance: none;
-            border: 0;
-            width: 100%;
-            text-align: left;
-            padding: 9px 10px;
-            border-radius: 14px;
-            background: transparent;
-            color: #888899;
-            font: inherit;
-            font-size: 13px;
-            font-weight: 700;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            gap: 12px;
-            transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
-          }
-          .nav-button:hover {
-            background: rgba(255,255,255,0.06);
-            color: #ebebf0;
-          }
-          .nav-button.active {
-            background: linear-gradient(135deg, rgba(15, 139, 141, 0.18), rgba(42, 114, 212, 0.14));
-            color: #2ab4b6;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
-          }
           .nav-kicker {
             font-size: 10px;
             letter-spacing: .14em;
@@ -531,6 +548,13 @@ window.DopparProfiler = {
           }
           .canvas {
             min-width: 0;
+            min-height: 0;
+            height: 100%;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 14px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--dp-scrollbar-thumb) var(--dp-scrollbar-track);
           }
           .view-section {
             display: none;
@@ -539,13 +563,12 @@ window.DopparProfiler = {
             display: block;
           }
           .hero {
-            padding: 18px;
-            border-radius: 22px;
-            background: rgba(255,255,255,0.72);
-            border: 1px solid rgba(132,134,255,0.12);
-            box-shadow:
-              inset 0 1px 0 rgba(255,255,255,0.8),
-              0 8px 20px rgba(37, 51, 77, 0.06);
+            padding: 0 0 16px;
+            border-radius: 0;
+            background: transparent;
+            border: 0;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            box-shadow: none;
             margin-bottom: 16px;
           }
           .hero-top {
@@ -590,15 +613,13 @@ window.DopparProfiler = {
             box-sizing: border-box;
             width: 100%;
             max-width: 100%;
-            min-height: 60px;
-            padding: 12px 16px;
-            border-radius: 16px;
-            background: #ffffff;
-            border: 1px solid rgba(17, 40, 61, 0.1);
-            box-shadow:
-              0 1px 2px rgba(15, 23, 42, 0.04),
-              0 10px 20px rgba(37, 51, 77, 0.04),
-              inset 0 1px 0 rgba(255,255,255,0.96);
+            min-height: 44px;
+            padding: 10px 0;
+            border-radius: 0;
+            background: transparent;
+            border: 0;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            box-shadow: none;
             margin: 0 0 12px;
             overflow: hidden;
           }
@@ -751,46 +772,50 @@ window.DopparProfiler = {
             gap: 12px;
           }
           .metric {
-            padding: 14px;
-            border-radius: 18px;
-            background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(246,248,255,0.9));
-            border: 1px solid rgba(132,134,255,0.12);
-            box-shadow: 0 4px 12px rgba(37, 51, 77, 0.05);
+            padding: 12px 0;
+            border-radius: 0;
+            background: transparent;
+            border: 0;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            box-shadow: none;
           }
           .metric-label {
             font-size: 10px;
             text-transform: uppercase;
-            letter-spacing: .16em;
-            color: #74829a;
-            font-weight: 800;
-            margin-bottom: 8px;
+            letter-spacing: .14em;
+            color: #888899;
+            font-weight: 700;
+            margin-bottom: 6px;
           }
           .metric-value {
-            font-size: 26px;
+            font-size: 22px;
             line-height: 1;
             font-weight: 800;
-            letter-spacing: -.04em;
-            color: #172033;
+            letter-spacing: -.03em;
+            color: #ffffff;
+            font-variant-numeric: tabular-nums;
           }
           .metric-note {
-            margin-top: 8px;
-            color: #66758d;
+            margin-top: 6px;
+            color: #55566a;
             font-size: 12px;
           }
 
           .section {
-            padding: 18px;
-            border-radius: 22px;
-            background: rgba(255,255,255,0.74);
-            border: 1px solid rgba(132,134,255,0.12);
-            box-shadow:
-              inset 0 1px 0 rgba(255,255,255,0.82),
-              0 10px 24px rgba(37, 51, 77, 0.05);
+            padding: 14px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: none;
+            margin-bottom: 12px;
+          }
+          .section:last-child {
+            margin-bottom: 0;
           }
           .section-title {
-            font-size: 17px;
-            font-weight: 800;
-            margin-bottom: 14px;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 12px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -801,11 +826,12 @@ window.DopparProfiler = {
             display: inline-flex;
             align-items: center;
             gap: 10px;
-            color: #172033;
+            color: #ffffff;
           }
           .section-copy {
-            color: #607089;
-            margin-bottom: 14px;
+            color: #888899;
+            margin-bottom: 12px;
+            font-size: 12px;
           }
           .api-shell {
             display: grid;
@@ -821,11 +847,11 @@ window.DopparProfiler = {
           }
           .api-operation {
             display: grid;
-            gap: 14px;
-            padding: 18px;
-            border-radius: 16px;
+            gap: 12px;
+            padding: 14px;
+            border-radius: 8px;
             background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.08);
           }
           .api-line {
             display: flex;
@@ -837,26 +863,27 @@ window.DopparProfiler = {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            min-width: 58px;
-            padding: 8px 12px;
-            border-radius: 10px;
+            min-width: 52px;
+            padding: 6px 10px;
+            border-radius: 2px;
             background: rgba(34, 197, 94, 0.14);
             color: #22c55e;
             border: 1px solid rgba(34, 197, 94, 0.22);
             font-size: 11px;
-            font-weight: 900;
-            letter-spacing: .14em;
+            font-weight: 800;
+            letter-spacing: .12em;
             text-transform: uppercase;
           }
           .api-path {
             display: inline-flex;
             align-items: center;
             flex: 1;
-            min-height: 38px;
-            padding: 0 14px;
-            border-radius: 10px;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.07);
+            min-height: 32px;
+            padding: 0 10px;
+            border-radius: 0;
+            background: transparent;
+            border: 0;
+            border-left: 1px solid rgba(255,255,255,0.1);
             color: #ebebf0;
             font: 13px/1.4 "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
             word-break: break-all;
@@ -869,10 +896,10 @@ window.DopparProfiler = {
             display: inline-flex;
             align-items: center;
             gap: 5px;
-            padding: 7px 12px;
-            border-radius: 10px;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.08);
+            padding: 6px 10px;
+            border-radius: 2px;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.1);
             color: #888899;
             font-size: 11px;
             font-weight: 700;
@@ -882,7 +909,7 @@ window.DopparProfiler = {
             transition: background .18s ease, color .18s ease;
           }
           .api-open-btn:hover {
-            background: rgba(255,255,255,0.09);
+            background: rgba(255,255,255,0.06);
             color: #ebebf0;
           }
           .api-actions {
@@ -900,10 +927,10 @@ window.DopparProfiler = {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 5px 10px;
-            border-radius: 999px;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.08);
+            padding: 4px 8px;
+            border-radius: 2px;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.1);
             color: #888899;
             font-size: 11px;
             font-weight: 700;
@@ -927,8 +954,9 @@ window.DopparProfiler = {
           .api-response-shell {
             display: grid;
             gap: 0;
-            border-radius: 16px;
-            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.03);
             overflow: hidden;
           }
           .api-response-head {
@@ -952,21 +980,20 @@ window.DopparProfiler = {
             display: inline-flex;
             align-items: center;
             gap: 7px;
-            padding: 6px 14px;
-            border-radius: 8px;
-            background: rgba(15, 139, 141, 0.16);
-            border: 1px solid rgba(15, 139, 141, 0.28);
-            color: #2ab4b6;
+            padding: 6px 10px;
+            border-radius: 2px;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #ebebf0;
             font-size: 11px;
-            font-weight: 800;
-            letter-spacing: .06em;
+            font-weight: 700;
+            letter-spacing: .04em;
             cursor: pointer;
-            transition: background .18s ease, color .18s ease, transform .16s ease;
+            transition: background .18s ease, color .18s ease;
           }
           .copy-action:hover {
-            transform: translateY(-1px);
-            background: rgba(15, 139, 141, 0.22);
-            color: #3dcacb;
+            background: rgba(255,255,255,0.06);
+            color: #ffffff;
           }
           .copy-action.is-success {
             background: rgba(34, 197, 94, 0.14);
@@ -1002,10 +1029,10 @@ window.DopparProfiler = {
             gap: 10px;
           }
           .subsection-title {
-            color: #4f5d75;
-            font-size: 12px;
-            font-weight: 800;
-            letter-spacing: .14em;
+            color: #888899;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .12em;
             text-transform: uppercase;
           }
 
@@ -1013,80 +1040,82 @@ window.DopparProfiler = {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 6px 12px;
-            border-radius: 999px;
+            padding: 4px 8px;
+            border-radius: 2px;
             font-size: 11px;
-            font-weight: 800;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: .12em;
+            letter-spacing: .08em;
             border: 1px solid transparent;
           }
-          .badge-info { background: rgba(132, 134, 255, 0.1); color: #5a5ef0; border-color: rgba(132, 134, 255, 0.16); }
-          .badge-success { background: rgba(20, 125, 100, 0.12); color: #147d64; border-color: rgba(20, 125, 100, 0.16); }
-          .badge-warning { background: rgba(242, 193, 78, 0.18); color: #b66912; border-color: rgba(242, 193, 78, 0.18); }
-          .badge-error { background: rgba(239, 68, 68, 0.12); color: #c9485b; border-color: rgba(239, 68, 68, 0.16); }
+          .badge-info { background: rgba(255,255,255,0.06); color: #ebebf0; border-color: rgba(255,255,255,0.1); }
+          .badge-success { background: rgba(34, 197, 94, 0.12); color: #22c55e; border-color: rgba(34, 197, 94, 0.2); }
+          .badge-warning { background: rgba(245, 158, 11, 0.12); color: #f59e0b; border-color: rgba(245, 158, 11, 0.2); }
+          .badge-error { background: rgba(239, 68, 68, 0.12); color: #ef4444; border-color: rgba(239, 68, 68, 0.2); }
 
           .row {
-            margin: 10px 0;
+            margin: 0;
             display: flex;
             align-items: flex-start;
             gap: 14px;
-            padding: 12px 14px;
-            border-radius: 14px;
-            background: rgba(255,255,255,0.78);
-            border: 1px solid rgba(132,134,255,0.1);
+            padding: 10px 0;
+            border-radius: 0;
+            background: transparent;
+            border: 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
           }
           .key {
             min-width: 108px;
-            color: #728198;
+            color: #888899;
             font-size: 11px;
-            font-weight: 800;
-            letter-spacing: .12em;
+            font-weight: 700;
+            letter-spacing: .1em;
             text-transform: uppercase;
           }
           .val {
             flex: 1;
-            color: #172033;
-            font-weight: 700;
+            color: #ebebf0;
+            font-weight: 600;
             word-break: break-word;
           }
 
           .stats-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 14px;
+            gap: 0 24px;
           }
           .summary-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 12px;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
           }
           .summary-card {
-            padding: 16px;
-            border-radius: 18px;
-            background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(246,248,255,0.92));
-            border: 1px solid rgba(132,134,255,0.12);
-            box-shadow: 0 6px 14px rgba(37, 51, 77, 0.05);
+            padding: 14px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: none;
           }
           .summary-label {
             font-size: 10px;
             text-transform: uppercase;
-            letter-spacing: .16em;
-            font-weight: 800;
-            color: #76829a;
-            margin-bottom: 10px;
+            letter-spacing: .14em;
+            font-weight: 700;
+            color: #888899;
+            margin-bottom: 8px;
           }
           .summary-value {
-            color: #172033;
-            font-size: 22px;
+            color: #ffffff;
+            font-size: 20px;
             line-height: 1.08;
-            letter-spacing: -.03em;
+            letter-spacing: -.02em;
             font-weight: 800;
+            font-variant-numeric: tabular-nums;
           }
           .summary-note {
-            margin-top: 8px;
+            margin-top: 6px;
             font-size: 12px;
-            color: #63738b;
+            color: #55566a;
           }
           .response-status-chip {
             display: inline-flex;
@@ -1121,33 +1150,33 @@ window.DopparProfiler = {
           }
           .history-loading {
             padding: 18px;
-            border-radius: 16px;
-            border: 1px dashed rgba(255,255,255,0.10);
-            background: rgba(255,255,255,0.03);
+            border-radius: 0;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: transparent;
             color: #888899;
             text-align: center;
             font-size: 13px;
-            font-weight: 700;
+            font-weight: 600;
           }
           .history-list {
             display: grid;
-            gap: 10px;
+            gap: 8px;
           }
           .history-item {
             display: grid;
             grid-template-columns: minmax(0, 1fr) auto;
             gap: 14px;
             align-items: center;
-            padding: 14px 16px;
-            border-radius: 16px;
+            padding: 12px 14px;
+            border-radius: 8px;
             text-decoration: none;
-            background: #18181B;
-            border: 1px solid rgba(255,255,255,0.07);
-            transition: border-color .18s ease, background .18s ease;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            transition: background .18s ease, border-color .18s ease;
           }
           .history-item:hover {
-            border-color: rgba(42,180,182,0.22);
-            background: rgba(255,255,255,0.04);
+            border-color: rgba(255,255,255,0.14);
+            background: rgba(255,255,255,0.05);
           }
           .history-main {
             min-width: 0;
@@ -1240,26 +1269,26 @@ window.DopparProfiler = {
           }
           .history-range-pill {
             appearance: none;
-            border: 1px solid rgba(255,255,255,0.08);
-            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            background: transparent;
             color: #888899;
-            padding: 6px 11px;
-            border-radius: 8px;
+            padding: 5px 9px;
+            border-radius: 2px;
             font-size: 11px;
-            font-weight: 800;
+            font-weight: 700;
             letter-spacing: .06em;
             text-transform: uppercase;
             cursor: pointer;
             transition: background .18s ease, color .18s ease, border-color .18s ease;
           }
           .history-range-pill:hover {
-            background: rgba(255,255,255,0.07);
+            background: rgba(255,255,255,0.06);
             color: #ebebf0;
           }
           .history-range-pill.active {
-            background: rgba(15, 139, 141, 0.16);
-            border-color: rgba(15, 139, 141, 0.28);
-            color: #2ab4b6;
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(255,255,255,0.16);
+            color: #ffffff;
           }
           .history-shell {
             gap: 18px;
@@ -1270,10 +1299,10 @@ window.DopparProfiler = {
             gap: 12px;
           }
           .history-card {
-            padding: 16px;
-            border-radius: 16px;
-            background: #18181B;
-            border: 1px solid rgba(255,255,255,0.07);
+            padding: 14px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
           }
           .history-card-wide {
             grid-column: 1 / -1;
@@ -1287,12 +1316,12 @@ window.DopparProfiler = {
             flex-wrap: wrap;
           }
           .history-card-title {
-            font-size: 10px;
-            letter-spacing: .16em;
-            text-transform: uppercase;
-            color: #55566a;
-            font-weight: 800;
-            margin-bottom: 8px;
+            font-size: 13px;
+            letter-spacing: -.01em;
+            text-transform: none;
+            color: #ffffff;
+            font-weight: 700;
+            margin-bottom: 0;
           }
           .history-card-value {
             color: #ebebf0;
@@ -1320,10 +1349,14 @@ window.DopparProfiler = {
             margin-bottom: 14px;
           }
           .history-kpi {
-            padding: 12px;
-            border-radius: 14px;
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.06);
+            padding: 10px 0;
+            border-radius: 0;
+            background: transparent;
+            border: 0;
+            border-right: 1px solid rgba(255,255,255,0.08);
+          }
+          .history-kpi:last-child {
+            border-right: 0;
           }
           .history-kpi-label {
             color: #55566a;
@@ -1459,43 +1492,47 @@ window.DopparProfiler = {
           }
           .history-toggle-group {
             display: inline-flex;
-            gap: 4px;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.07);
-            border-radius: 10px;
-            padding: 3px;
+            gap: 0;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 0;
+            padding: 0;
             flex-wrap: nowrap;
           }
           .history-toggle {
             appearance: none;
-            border: 1px solid transparent;
+            border: 0;
+            border-right: 1px solid rgba(255,255,255,0.1);
             background: transparent;
             color: #888899;
             padding: 6px 11px;
-            border-radius: 8px;
+            border-radius: 0;
             font-size: 11px;
-            font-weight: 800;
+            font-weight: 700;
             cursor: pointer;
             white-space: nowrap;
-            transition: background .18s ease, color .18s ease, border-color .18s ease;
+            transition: background .18s ease, color .18s ease;
+          }
+          .history-toggle:last-child {
+            border-right: 0;
           }
           .history-toggle:hover {
             color: #ebebf0;
             background: rgba(255,255,255,0.06);
           }
           .history-toggle.active {
-            background: rgba(15, 139, 141, 0.18);
-            border-color: rgba(15, 139, 141, 0.26);
-            color: #2ab4b6;
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(255,255,255,0.1);
+            color: #ffffff;
           }
           .history-route-table {
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
             overflow: hidden;
-            border-radius: 14px;
-            border: 1px solid rgba(255,255,255,0.07);
-            background: #18181B;
+            border-radius: 0;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: transparent;
             table-layout: auto;
             min-width: 520px;
           }
@@ -1535,7 +1572,7 @@ window.DopparProfiler = {
             max-width: 100%;
             max-height: 380px;
             overflow: auto;
-            border-radius: 14px;
+            border-radius: 0;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: thin;
             scrollbar-color: var(--dp-scrollbar-thumb) var(--dp-scrollbar-track);
@@ -1588,8 +1625,8 @@ window.DopparProfiler = {
             align-items: center;
             justify-content: center;
             min-width: 28px;
-            padding: 3px 1px;
-            border-radius: 999px;
+            padding: 3px 8px;
+            border-radius: 2px;
             font-size: 12px;
             font-weight: 800;
             line-height: 1;
@@ -1610,14 +1647,15 @@ window.DopparProfiler = {
           .history-col-avg,
           .history-col-max { width: 68px; }
           .history-empty-state {
-            padding: 24px 16px;
-            border-radius: 14px;
-            background: rgba(255,255,255,0.02);
-            border: 1px dashed rgba(255,255,255,0.09);
-            color: #55566a;
+            padding: 18px 0;
+            border-radius: 0;
+            background: transparent;
+            border: 0;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            color: #888899;
             font-size: 13px;
-            font-weight: 700;
-            text-align: center;
+            font-weight: 600;
+            text-align: left;
           }
           .cache-table-shell {
             display: grid;
@@ -1647,7 +1685,7 @@ window.DopparProfiler = {
             max-width: 100%;
             overflow-x: auto;
             overflow-y: hidden;
-            border-radius: 14px;
+            border-radius: 0;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: thin;
             scrollbar-color: var(--dp-scrollbar-thumb) var(--dp-scrollbar-track);
@@ -1657,9 +1695,9 @@ window.DopparProfiler = {
             border-collapse: separate;
             border-spacing: 0;
             overflow: hidden;
-            border-radius: 14px;
-            border: 1px solid rgba(255,255,255,0.07);
-            background: #18181B;
+            border-radius: 0;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: transparent;
             table-layout: auto;
             min-width: 780px;
           }
@@ -1731,7 +1769,7 @@ window.DopparProfiler = {
             justify-content: center;
             min-width: 58px;
             padding: 4px 8px;
-            border-radius: 999px;
+            border-radius: 2px;
             font-size: 10px;
             font-weight: 900;
             letter-spacing: .10em;
@@ -1866,27 +1904,27 @@ window.DopparProfiler = {
             border-collapse: separate;
             border-spacing: 0;
             overflow: hidden;
-            border-radius: 16px;
-            border: 1px solid rgba(132,134,255,0.12);
-            background: rgba(255,255,255,0.86);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.03);
           }
           .property-table th,
           .property-table td {
-            padding: 13px 14px;
+            padding: 12px 14px;
             text-align: left;
-            border-bottom: 1px solid rgba(132,134,255,0.08);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
             vertical-align: top;
           }
           .property-table th {
-            background: rgba(132,134,255,0.08);
-            color: #53617a;
+            background: rgba(255,255,255,0.03);
+            color: #888899;
             font-size: 11px;
             letter-spacing: .12em;
             text-transform: uppercase;
-            font-weight: 800;
+            font-weight: 700;
           }
           .property-table td {
-            color: #172033;
+            color: #ebebf0;
             font-size: 13px;
             font-weight: 600;
             word-break: break-word;
@@ -1941,28 +1979,28 @@ window.DopparProfiler = {
             overflow-x: auto;
           }
           .api-response-shell > .code-block:last-child {
-            border-radius: 0 0 15px 15px;
+            border-radius: 0;
           }
           .response-preview-scroll {
             max-height: 460px;
             overflow: auto;
           }
           .response-preview-scroll > .code-block {
-            border-radius: 0 0 15px 15px;
+            border-radius: 0;
           }
           .code-block-compact {
             padding: 10px 12px;
-            border-radius: 12px;
+            border-radius: 0;
             font-size: 11px;
           }
           .json {
             font: 12px/1.6 "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
-            color: #172033;
-            background: rgba(246,248,255,0.96);
-            border: 1px solid rgba(132,134,255,0.1);
-            border-radius: 16px;
+            color: #ebebf0;
+            background: #0d0d10;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 0;
             padding: 14px 16px;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+            box-shadow: none;
           }
           .json > .json__item {
             display: block;
@@ -2053,13 +2091,13 @@ window.DopparProfiler = {
           }
           .log-list {
             display: grid;
-            gap: 12px;
+            gap: 10px;
           }
           .log-card {
             padding: 14px;
-            border-radius: 16px;
-            border: 1px solid rgba(132,134,255,0.1);
-            background: rgba(255,255,255,0.82);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.03);
           }
           .log-head {
             display: flex;
@@ -2067,148 +2105,161 @@ window.DopparProfiler = {
             justify-content: space-between;
             gap: 10px;
             flex-wrap: wrap;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
           }
           .log-level {
             display: inline-flex;
             align-items: center;
-            padding: 5px 10px;
-            border-radius: 999px;
+            padding: 3px 8px;
+            border-radius: 2px;
             font-size: 10px;
-            letter-spacing: .14em;
+            letter-spacing: .1em;
             text-transform: uppercase;
-            font-weight: 800;
-            background: rgba(132,134,255,0.1);
-            color: #5a5ef0;
+            font-weight: 700;
+            background: rgba(255,255,255,0.06);
+            color: #ebebf0;
+            border: 1px solid rgba(255,255,255,0.1);
           }
           .log-time {
-            color: #728198;
+            color: #888899;
             font-size: 12px;
-            font-weight: 700;
+            font-weight: 600;
           }
           .log-message {
-            color: #172033;
-            font-weight: 700;
-            margin-bottom: 10px;
+            color: #ebebf0;
+            font-weight: 600;
+            margin-bottom: 8px;
             word-break: break-word;
           }
           .pill-row {
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
-            margin-top: 10px;
+            margin-top: 8px;
           }
           .pill {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 6px 10px;
-            border-radius: 999px;
-            background: rgba(132,134,255,0.08);
-            border: 1px solid rgba(132,134,255,0.12);
-            color: #4f5d75;
+            padding: 4px 8px;
+            border-radius: 2px;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #888899;
             font-size: 11px;
-            font-weight: 700;
+            font-weight: 600;
           }
 
-          .sql-list { display: grid; gap: 12px; }
+          .sql-list { display: grid; gap: 10px; }
           .sql-item,
           .redirect-chain-item {
-            padding: 16px;
-            border-radius: 16px;
-            background: rgba(255,255,255,0.86);
-            border: 1px solid rgba(132,134,255,0.12);
+            padding: 14px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
           }
           .sql-header,
           .redirect-chain-header {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: wrap;
             align-items: center;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
           }
           .sql-time,
           .redirect-chain-duration {
-            color: #147d64;
-            font-weight: 800;
+            color: #22c55e;
+            font-weight: 700;
             font-size: 12px;
-            padding: 4px 10px;
-            border-radius: 999px;
-            background: rgba(20, 125, 100, 0.12);
+            padding: 3px 8px;
+            border-radius: 2px;
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.18);
           }
           .sql-rows,
           .redirect-chain-method,
           .redirect-chain-status {
             font-size: 11px;
-            font-weight: 800;
-            border-radius: 999px;
-            padding: 4px 10px;
-            background: rgba(132,134,255,0.08);
-            color: #596883;
+            font-weight: 700;
+            border-radius: 2px;
+            padding: 3px 8px;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #888899;
           }
           .sql-query,
           .sql-bindings,
           .redirect-chain-arrow {
-            background: rgba(246,248,255,0.96);
-            border: 1px solid rgba(132,134,255,0.1);
-            border-radius: 14px;
+            background: #0d0d10;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 0;
             padding: 12px 14px;
             font-family: "Berkeley Mono", "SFMono-Regular", Consolas, monospace;
           }
           .sql-query,
           .redirect-chain-path {
-            color: #172033;
+            color: #ebebf0;
             word-break: break-word;
           }
           .sql-bindings,
           .redirect-chain-arrow {
             margin-top: 10px;
-            color: #607089;
+            color: #888899;
             font-size: 12px;
           }
           .sql-error {
             margin-top: 10px;
-            color: #bf3c44;
-            background: rgba(191, 60, 68, 0.08);
-            border: 1px solid rgba(191, 60, 68, 0.14);
-            border-radius: 12px;
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.16);
+            border-radius: 0;
             padding: 10px 12px;
             font-weight: 700;
           }
           .no-data {
-            color: #728198;
-            font-style: italic;
-            text-align: center;
-            padding: 30px 16px;
-            background: rgba(255,255,255,0.56);
-            border-radius: 16px;
-            border: 1px dashed rgba(132,134,255,0.18);
+            color: #888899;
+            font-style: normal;
+            padding: 18px 0;
+            text-align: left;
+            background: transparent;
+            border-radius: 0;
+            border: 0;
+            border-top: 1px solid rgba(255,255,255,0.08);
           }
 
           .panel[data-theme="dark"] {
             color: #ebebf0;
-            background: #09090B;
+            background: rgba(20, 20, 24, 0.98);
             border-color: rgba(255, 255, 255, 0.08);
-            box-shadow:
-              0 28px 64px rgba(0, 0, 0, 0.6),
-              inset 0 1px 0 rgba(255,255,255,0.04);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
           }
           .panel[data-theme="dark"]::before {
-            background: none;
+            display: none;
           }
           .panel[data-theme="dark"] .hero,
           .panel[data-theme="dark"] .section,
           .panel[data-theme="dark"] .summary-card,
-          .panel[data-theme="dark"] .metric,
           .panel[data-theme="dark"] .sql-item,
           .panel[data-theme="dark"] .redirect-chain-item,
           .panel[data-theme="dark"] .log-card,
+          .panel[data-theme="dark"] .history-card,
+          .panel[data-theme="dark"] .history-item {
+            background: rgba(255,255,255,0.03);
+            border-color: rgba(255,255,255,0.08);
+            box-shadow: none;
+          }
+          .panel[data-theme="dark"] .metric,
           .panel[data-theme="dark"] .cache-op-card,
-          .panel[data-theme="dark"] .property-table,
-          .panel[data-theme="dark"] .row {
-            background: #18181B;
-            border-color: rgba(255,255,255,0.07);
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+          .panel[data-theme="dark"] .row,
+          .panel[data-theme="dark"] .history-kpi {
+            background: transparent;
+            border-color: rgba(255,255,255,0.08);
+            box-shadow: none;
+          }
+          .panel[data-theme="dark"] .property-table {
+            background: rgba(255,255,255,0.03);
+            border-color: rgba(255,255,255,0.08);
+            box-shadow: none;
           }
           .panel[data-theme="dark"] .hero-request-bar,
           .panel[data-theme="dark"] .code-block,
@@ -2219,13 +2270,12 @@ window.DopparProfiler = {
             background: #0d0d10;
             border-color: rgba(255,255,255,0.08);
             color: #ebebf0;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+            box-shadow: none;
           }
           .panel[data-theme="dark"] .hero-url,
           .panel[data-theme="dark"] .hero-copy,
           .panel[data-theme="dark"] .summary-note,
           .panel[data-theme="dark"] .metric-note,
-          .panel[data-theme="dark"] .nav-section-label,
           .panel[data-theme="dark"] .history-duration,
           .panel[data-theme="dark"] .history-captured,
           .panel[data-theme="dark"] .history-request-id,
@@ -2248,7 +2298,6 @@ window.DopparProfiler = {
           .panel[data-theme="dark"] .summary-value,
           .panel[data-theme="dark"] .metric-value,
           .panel[data-theme="dark"] .section-title-main,
-          .panel[data-theme="dark"] .nav-section-copy,
           .panel[data-theme="dark"] .history-route,
           .panel[data-theme="dark"] .history-card-value,
           .panel[data-theme="dark"] .history-route-count,
@@ -2287,7 +2336,7 @@ window.DopparProfiler = {
           .panel[data-theme="dark"] .history-item,
           .panel[data-theme="dark"] .history-card,
           .panel[data-theme="dark"] .history-kpi,
-          .panel[data-theme="dark"] .nav-section-divider,
+          .panel[data-theme="dark"] .nav-group-divider,
           .panel[data-theme="dark"] .history-route-table,
           .panel[data-theme="dark"] .cache-detail-table,
           .panel[data-theme="dark"] .history-error-item,
@@ -2298,9 +2347,14 @@ window.DopparProfiler = {
             border-color: rgba(255,255,255,0.07);
           }
           .panel[data-theme="dark"] .history-item {
-            background: #18181B;
+            background: rgba(255,255,255,0.03);
+            border-color: rgba(255,255,255,0.08);
           }
-          .panel[data-theme="dark"] .history-card,
+          .panel[data-theme="dark"] .history-card {
+            background: rgba(255,255,255,0.03);
+            border-color: rgba(255,255,255,0.08);
+            box-shadow: none;
+          }
           .panel[data-theme="dark"] .history-kpi,
           .panel[data-theme="dark"] .history-route-table,
           .panel[data-theme="dark"] .cache-detail-table,
@@ -2309,10 +2363,10 @@ window.DopparProfiler = {
           .panel[data-theme="dark"] .history-toggle,
           .panel[data-theme="dark"] .history-range-pill,
           .panel[data-theme="dark"] .history-empty-state {
-            background: #18181B;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+            background: transparent;
+            box-shadow: none;
           }
-          .panel[data-theme="dark"] .nav-section-divider {
+          .panel[data-theme="dark"] .nav-group-divider {
             background: rgba(255,255,255,0.06);
             box-shadow: none;
           }
@@ -2344,14 +2398,14 @@ window.DopparProfiler = {
           .panel[data-theme="dark"] .history-method-chip[data-method="OPTIONS"] { color: #60a5fa; }
           .panel[data-theme="dark"] .history-method-chip[data-method="HEAD"] { color: #c4b5fd; }
           .panel[data-theme="dark"] .history-toggle.active {
-            background: rgba(15, 139, 141, 0.18);
-            border-color: rgba(15, 139, 141, 0.26);
-            color: #2ab4b6;
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(255,255,255,0.1);
+            color: #ffffff;
           }
           .panel[data-theme="dark"] .history-range-pill.active {
-            background: rgba(15, 139, 141, 0.16);
-            border-color: rgba(15, 139, 141, 0.28);
-            color: #2ab4b6;
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(255,255,255,0.16);
+            color: #ffffff;
           }
           .panel[data-theme="dark"] .history-route-table th {
             background: rgba(255,255,255,0.04);
@@ -2491,29 +2545,56 @@ window.DopparProfiler = {
 
           .ov-dashboard {
             display: grid;
-            gap: 14px;
+            gap: 22px;
             margin-top: 4px;
+            margin-bottom: 45px;
           }
-          .ov-section-label {
+          .ov-group {
+            display: grid;
+            gap: 12px;
+            min-width: 0;
+          }
+          .ov-group + .ov-group {
+            padding-top: 18px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+          }
+          .ov-group-label {
             font-size: 10px;
-            letter-spacing: .18em;
+            letter-spacing: .16em;
             text-transform: uppercase;
             color: #55566a;
-            font-weight: 800;
-            padding-bottom: 8px;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
+            font-weight: 700;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 10px;
+          }
+          .ov-group-label span {
+            color: #55566a;
+            font-weight: 600;
+            letter-spacing: .08em;
+          }
+          .ov-section-label {
+            font-size: 13px;
+            letter-spacing: -.01em;
+            text-transform: none;
+            color: #ffffff;
+            font-weight: 700;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
           }
           .ov-two-col {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
+            gap: 12px;
           }
           .ov-app-stack {
             display: grid;
-            gap: 14px;
+            gap: 12px;
           }
           .ov-kpi-chip {
             font-size: 11px;
@@ -2552,10 +2633,16 @@ window.DopparProfiler = {
           }
           .ov-stat-card {
             min-width: 0;
-            padding: 10px 12px;
-            border-radius: 10px;
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.06);
+            padding: 10px 0;
+            border-radius: 0;
+            background: transparent;
+            border: 0;
+            border-right: 1px solid rgba(255,255,255,0.08);
+            padding-right: 12px;
+          }
+          .ov-stat-card:last-child {
+            border-right: 0;
+            padding-right: 0;
           }
           .ov-stat-label {
             font-size: 10px;
@@ -2594,13 +2681,13 @@ window.DopparProfiler = {
             gap: 6px;
             min-width: 0;
             max-width: 100%;
-            padding: 6px 9px;
-            border-radius: 999px;
-            border: 1px solid rgba(255,255,255,0.07);
-            background: rgba(255,255,255,0.03);
-            color: #cdd5e4;
+            padding: 4px 8px;
+            border-radius: 2px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: transparent;
+            color: #888899;
             font-size: 11px;
-            font-weight: 800;
+            font-weight: 700;
           }
           .ov-chip-value {
             color: #ebebf0;
@@ -2639,15 +2726,15 @@ window.DopparProfiler = {
           }
           .perf-bar-track {
             position: relative;
-            height: 8px;
-            border-radius: 999px;
-            background: rgba(255,255,255,0.06);
+            height: 4px;
+            border-radius: 0;
+            background: rgba(255,255,255,0.08);
             overflow: hidden;
           }
           .perf-bar-fill {
             position: absolute;
             inset: 0 auto 0 0;
-            border-radius: 999px;
+            border-radius: 0;
           }
           .perf-bar-fill-sql {
             background: linear-gradient(90deg, rgba(96,165,250,0.95), rgba(59,130,246,0.7));
@@ -2683,9 +2770,9 @@ window.DopparProfiler = {
             margin-top: 12px;
             max-height: 320px;
             overflow: auto;
-            border-radius: 14px;
-            border: 1px solid rgba(255,255,255,0.06);
-            background: rgba(255,255,255,0.02);
+            border-radius: 0;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: transparent;
             -webkit-overflow-scrolling: touch;
           }
           .ov-slow-table {
@@ -2754,14 +2841,15 @@ window.DopparProfiler = {
             white-space: nowrap;
           }
           .ov-empty {
-            padding: 20px 16px;
-            color: #55566a;
+            padding: 16px 0;
+            color: #888899;
             font-size: 13px;
-            font-weight: 700;
-            text-align: center;
-            background: rgba(255,255,255,0.02);
-            border-radius: 12px;
-            border: 1px dashed rgba(255,255,255,0.07);
+            font-weight: 600;
+            text-align: left;
+            background: transparent;
+            border-radius: 0;
+            border: 0;
+            border-top: 1px solid rgba(255,255,255,0.08);
             margin-top: 10px;
           }
 
@@ -2779,8 +2867,14 @@ window.DopparProfiler = {
           }
           @media (max-width: 820px) {
             .panel { width: 100%; padding: 12px; }
-            .workspace { grid-template-columns: 1fr; }
-            .sidebar-nav { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+            .workspace {
+              grid-template-columns: 48px minmax(0, 1fr);
+              gap: 0;
+              margin: -12px 0 -12px -12px;
+            }
+            .sidebar { width: 48px; padding: 0; }
+            .sidebar-brand { padding-top: 12px; }
+            .canvas { padding: 12px; }
             .hero-top, .row { flex-direction: column; }
             .hero-head {
               width: 100%;
@@ -3498,28 +3592,29 @@ window.DopparProfiler = {
             <aside class="sidebar">
               <div class="sidebar-brand">
                 <span class="sidebar-mark">${sidebarLogo}</span>
-                <div>
-                  <div class="sidebar-title">Insight</div>
-                </div>
               </div>
               <nav class="sidebar-nav">
-                <div class="nav-section-label">Cross-Request Views</div>
-                <div class="nav-section-copy">Overview and History combine this request with recent captured traffic.</div>
-                <button class="nav-button active" type="button" data-view="overview"><span class="nav-main"><span class="nav-icon nav-icon-overview"></span><span class="nav-label">Overview</span></span></button>
-                <button class="nav-button" type="button" data-view="history"><span class="nav-main"><span class="nav-icon nav-icon-history"></span><span class="nav-label">History</span></span></button>
-                <div class="nav-section-divider" aria-hidden="true"></div>
-                <div class="nav-section-label">Current Request</div>
-                <div class="nav-section-copy">Everything below is captured from the request currently open in this panel.</div>
-                <button class="nav-button" type="button" data-view="http"><span class="nav-main"><span class="nav-icon nav-icon-http"></span><span class="nav-label">HTTP</span></span></button>
-                <button class="nav-button" type="button" data-view="database"><span class="nav-main"><span class="nav-icon nav-icon-database"></span><span class="nav-label">Database</span></span></button>
-                <button class="nav-button" type="button" data-view="cache"><span class="nav-main"><span class="nav-icon nav-icon-cache"></span><span class="nav-label">Cache</span></span></button>
-                <button class="nav-button" type="button" data-view="auth"><span class="nav-main"><span class="nav-icon nav-icon-auth"></span><span class="nav-label">Auth</span></span></button>
-                <button class="nav-button" type="button" data-view="request"><span class="nav-main"><span class="nav-icon nav-icon-request"></span><span class="nav-label">Request</span></span></button>
-                <button class="nav-button" type="button" data-view="response"><span class="nav-main"><span class="nav-icon nav-icon-response"></span><span class="nav-label">Response</span></span></button>
-                <button class="nav-button" type="button" data-view="performance"><span class="nav-main"><span class="nav-icon nav-icon-performance"></span><span class="nav-label">Performance</span></span></button>
-                <button class="nav-button" type="button" data-view="session"><span class="nav-main"><span class="nav-icon nav-icon-session"></span><span class="nav-label">Session</span></span></button>
-                <button class="nav-button" type="button" data-view="logs"><span class="nav-main"><span class="nav-icon nav-icon-logs"></span><span class="nav-label">Logs</span></span></button>
-                <button class="nav-button" type="button" data-view="json-api"><span class="nav-main"><span class="nav-icon nav-icon-json"></span><span class="nav-label">JSON API</span></span></button>
+                <div class="nav-group">
+                  <div class="nav-rail">
+                    <button class="nav-rail-button active" type="button" data-view="overview" data-nav-label="Overview" aria-label="Overview"><span class="nav-icon nav-icon-overview"></span></button>
+                    <button class="nav-rail-button" type="button" data-view="history" data-nav-label="History" aria-label="History"><span class="nav-icon nav-icon-history"></span></button>
+                  </div>
+                </div>
+                <div class="nav-group-divider" aria-hidden="true"></div>
+                <div class="nav-group">
+                  <div class="nav-rail">
+                    <button class="nav-rail-button" type="button" data-view="http" data-nav-label="HTTP" aria-label="HTTP"><span class="nav-icon nav-icon-http"></span></button>
+                    <button class="nav-rail-button" type="button" data-view="database" data-nav-label="Database" aria-label="Database"><span class="nav-icon nav-icon-database"></span></button>
+                    <button class="nav-rail-button" type="button" data-view="cache" data-nav-label="Cache" aria-label="Cache"><span class="nav-icon nav-icon-cache"></span></button>
+                    <button class="nav-rail-button" type="button" data-view="auth" data-nav-label="Auth" aria-label="Auth"><span class="nav-icon nav-icon-auth"></span></button>
+                    <button class="nav-rail-button" type="button" data-view="request" data-nav-label="Request" aria-label="Request"><span class="nav-icon nav-icon-request"></span></button>
+                    <button class="nav-rail-button" type="button" data-view="response" data-nav-label="Response" aria-label="Response"><span class="nav-icon nav-icon-response"></span></button>
+                    <button class="nav-rail-button" type="button" data-view="performance" data-nav-label="Performance" aria-label="Performance"><span class="nav-icon nav-icon-performance"></span></button>
+                    <button class="nav-rail-button" type="button" data-view="session" data-nav-label="Session" aria-label="Session"><span class="nav-icon nav-icon-session"></span></button>
+                    <button class="nav-rail-button" type="button" data-view="logs" data-nav-label="Logs" aria-label="Logs"><span class="nav-icon nav-icon-logs"></span></button>
+                    <button class="nav-rail-button" type="button" data-view="json-api" data-nav-label="JSON API" aria-label="JSON API"><span class="nav-icon nav-icon-json"></span></button>
+                  </div>
+                </div>
               </nav>
             </aside>
             <main class="canvas">
@@ -3566,17 +3661,43 @@ window.DopparProfiler = {
         `;
         root.appendChild(style);
         root.appendChild(wrap);
+        const navTooltip = document.createElement('div');
+        navTooltip.className = 'nav-rail-tooltip';
+        navTooltip.setAttribute('role', 'tooltip');
+        root.appendChild(navTooltip);
+        const hideNavTooltip = () => navTooltip.classList.remove('is-visible');
+        const positionNavTooltip = (button) => {
+          const label = button.getAttribute('data-nav-label');
+          if(!label){
+            return;
+          }
+          const rect = button.getBoundingClientRect();
+          navTooltip.textContent = label;
+          navTooltip.style.left = `${rect.right + 8}px`;
+          navTooltip.style.top = `${rect.top + (rect.height / 2)}px`;
+          navTooltip.style.transform = 'translateY(-50%)';
+          navTooltip.classList.add('is-visible');
+        };
         const navButtons = wrap.querySelectorAll('[data-view]');
         const viewSections = wrap.querySelectorAll('[data-view-section]');
-        navButtons.forEach((button) => {
-          button.addEventListener('click', () => {
-            const target = button.getAttribute('data-view');
-            navButtons.forEach((item) => item.classList.toggle('active', item === button));
-            viewSections.forEach((section) => {
-              section.classList.toggle('active', section.getAttribute('data-view-section') === target);
-            });
+        const setActiveView = (target) => {
+          navButtons.forEach((item) => {
+            item.classList.toggle('active', item.getAttribute('data-view') === target);
           });
+          viewSections.forEach((section) => {
+            section.classList.toggle('active', section.getAttribute('data-view-section') === target);
+          });
+        };
+        navButtons.forEach((button) => {
+          button.addEventListener('click', () => setActiveView(button.getAttribute('data-view')));
         });
+        wrap.querySelectorAll('.nav-rail-button[data-nav-label]').forEach((button) => {
+          button.addEventListener('mouseenter', () => positionNavTooltip(button));
+          button.addEventListener('mouseleave', hideNavTooltip);
+          button.addEventListener('focus', () => positionNavTooltip(button));
+          button.addEventListener('blur', hideNavTooltip);
+        });
+        wrap.querySelector('.sidebar-nav')?.addEventListener('scroll', hideNavTooltip);
         const overviewShell = wrap.querySelector('[data-overview-shell]');
         const historyShell = wrap.querySelector('[data-history-shell]');
         const historyRanges = wrap.querySelector('[data-history-ranges]');
@@ -4203,118 +4324,122 @@ window.DopparProfiler = {
               .sort((a, b) => b.maxDuration - a.maxDuration);
             overviewShell.innerHTML = `
               <div class="ov-dashboard">
-                <div class="ov-section-label">Activity <span>24h</span></div>
-                <div class="ov-two-col">
-                  <div class="history-card">
-                    <div class="history-card-header">
-                      <div class="history-card-title">Requests</div>
-                      <div class="history-card-meta">
-                        <span class="badge badge-success">${escapeHtml(formatCompactNumber(status123xx))} 1/2/3XX</span>
-                        <span class="badge badge-warning">${escapeHtml(formatCompactNumber(status4xx))} 4XX</span>
-                        <span class="badge badge-error">${escapeHtml(formatCompactNumber(status5xx))} 5XX</span>
+                <section class="ov-group">
+                  <div class="ov-group-label">Activity <span>24h</span></div>
+                  <div class="ov-two-col">
+                    <div class="history-card">
+                      <div class="history-card-header">
+                        <div class="history-card-title">Requests</div>
+                        <div class="history-card-meta">
+                          <span class="badge badge-success">${escapeHtml(formatCompactNumber(status123xx))} 1/2/3XX</span>
+                          <span class="badge badge-warning">${escapeHtml(formatCompactNumber(status4xx))} 4XX</span>
+                          <span class="badge badge-error">${escapeHtml(formatCompactNumber(status5xx))} 5XX</span>
+                        </div>
                       </div>
-                    </div>
-                    <div class="history-card-value">${escapeHtml(formatCompactNumber(totalRequests))}</div>
-                    <div class="history-chart-wrap">
-                      ${buildBarChart(buckets)}
-                      <div class="history-chart-axis"><span>${escapeHtml(axisStart)}</span><span>${escapeHtml(axisEnd)}</span></div>
-                    </div>
-                  </div>
-                  <div class="history-card">
-                    <div class="history-card-header">
-                      <div class="history-card-title">Duration</div>
-                      <div class="history-card-meta">
-                        <span class="ov-kpi-chip">AVG ${escapeHtml(formatDuration(avgDuration))}</span>
-                        <span class="ov-kpi-chip ov-kpi-warn">P95 ${escapeHtml(formatDuration(p95))}</span>
-                      </div>
-                    </div>
-                    <div class="history-card-value">${escapeHtml(durationRange)}</div>
-                    <div class="history-chart-wrap">
-                      ${buildLineChart(buckets)}
-                      <div class="history-chart-axis"><span>${escapeHtml(axisStart)}</span><span>${escapeHtml(axisEnd)}</span></div>
-                    </div>
-                  </div>
-                </div>
-                <div class="ov-section-label">Application</div>
-                <div class="ov-app-stack">
-                  <div class="history-card">
-                    <div class="history-card-header">
-                      <div class="history-card-title">Exceptions</div>
-                      <div class="history-card-meta">
-                        <span class="badge badge-warning">${escapeHtml(formatCompactNumber(status4xx))} 4XX</span>
-                        <span class="badge badge-error">${escapeHtml(formatCompactNumber(status5xx))} 5XX</span>
-                      </div>
-                    </div>
-                    ${errorCount > 0 ? `
-                      <div class="ov-app-headline">${escapeHtml(formatCompactNumber(errorCount))} exception${errorCount !== 1 ? 's' : ''} in 24h</div>
-                      <div class="ov-app-sub">Errors across ${escapeHtml(String(errorRoutes.size))} unique route${errorRoutes.size !== 1 ? 's' : ''}</div>
-                      <div class="ov-chart-wrap">
-                        ${buildExceptionChart(buckets)}
+                      <div class="history-card-value">${escapeHtml(formatCompactNumber(totalRequests))}</div>
+                      <div class="history-chart-wrap">
+                        ${buildBarChart(buckets)}
                         <div class="history-chart-axis"><span>${escapeHtml(axisStart)}</span><span>${escapeHtml(axisEnd)}</span></div>
                       </div>
-                      <div class="ov-stat-grid">
-                        <div class="ov-stat-card">
-                          <div class="ov-stat-label">Error Routes</div>
-                          <div class="ov-stat-value">${escapeHtml(String(errorRoutes.size))}</div>
-                          <div class="ov-stat-note">Unique endpoints returning 4XX or 5XX.</div>
-                        </div>
-                        <div class="ov-stat-card">
-                          <div class="ov-stat-label">Exception Types</div>
-                          <div class="ov-stat-value">${escapeHtml(String(errorTypes.size))}</div>
-                          <div class="ov-stat-note">Distinct exception families seen in 24h.</div>
-                        </div>
-                        <div class="ov-stat-card">
-                          <div class="ov-stat-label">Latest Error</div>
-                          <div class="ov-stat-value">${escapeHtml(latestErrorTime)}</div>
-                          <div class="ov-stat-note">${escapeHtml(hottestErrorRoute)}</div>
+                    </div>
+                    <div class="history-card">
+                      <div class="history-card-header">
+                        <div class="history-card-title">Duration</div>
+                        <div class="history-card-meta">
+                          <span class="ov-kpi-chip">AVG ${escapeHtml(formatDuration(avgDuration))}</span>
+                          <span class="ov-kpi-chip ov-kpi-warn">P95 ${escapeHtml(formatDuration(p95))}</span>
                         </div>
                       </div>
-                      <div class="ov-chip-row">
-                        ${topErrorRoutes.map((route) => `
-                          <span class="ov-chip">
-                            ${renderMethodLabel(route.method)}
-                            <span class="ov-chip-value" title="${escapeHtml(route.route)}">${escapeHtml(route.route)} • ${escapeHtml(formatCompactNumber(route.status4xx + route.status5xx))}</span>
-                          </span>
-                        `).join('')}
+                      <div class="history-card-value">${escapeHtml(durationRange)}</div>
+                      <div class="history-chart-wrap">
+                        ${buildLineChart(buckets)}
+                        <div class="history-chart-axis"><span>${escapeHtml(axisStart)}</span><span>${escapeHtml(axisEnd)}</span></div>
                       </div>
-                    ` : '<div class="ov-empty">No exceptions recorded in 24h.</div>'}
+                    </div>
                   </div>
-                  <div class="history-card">
-                    <div class="history-card-title">Slow Routes</div>
-                    ${slowRoutes.length > 0 ? `
-                      <div class="ov-app-headline">${slowRoutes.length} route${slowRoutes.length !== 1 ? 's' : ''} slower than 1s</div>
-                      <div class="ov-app-sub">Sorted by worst observed response time. The table stays capped and scrollable when many slow routes are captured.</div>
-                      <div class="ov-slow-table-scroll">
-                        <table class="ov-slow-table">
-                          <thead>
-                            <tr>
-                              <th class="ov-slow-col-route">Route</th>
-                              <th class="ov-slow-col-requests">Hits</th>
-                              <th class="ov-slow-col-min">Min</th>
-                              <th class="ov-slow-col-avg">Avg</th>
-                              <th class="ov-slow-col-peak">Peak</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            ${slowRoutes.map((route) => `
+                </section>
+                <section class="ov-group">
+                  <div class="ov-group-label">Application</div>
+                  <div class="ov-app-stack">
+                    <div class="history-card">
+                      <div class="history-card-header">
+                        <div class="history-card-title">Exceptions</div>
+                        <div class="history-card-meta">
+                          <span class="badge badge-warning">${escapeHtml(formatCompactNumber(status4xx))} 4XX</span>
+                          <span class="badge badge-error">${escapeHtml(formatCompactNumber(status5xx))} 5XX</span>
+                        </div>
+                      </div>
+                      ${errorCount > 0 ? `
+                        <div class="ov-app-headline">${escapeHtml(formatCompactNumber(errorCount))} exception${errorCount !== 1 ? 's' : ''} in 24h</div>
+                        <div class="ov-app-sub">Errors across ${escapeHtml(String(errorRoutes.size))} unique route${errorRoutes.size !== 1 ? 's' : ''}</div>
+                        <div class="ov-chart-wrap">
+                          ${buildExceptionChart(buckets)}
+                          <div class="history-chart-axis"><span>${escapeHtml(axisStart)}</span><span>${escapeHtml(axisEnd)}</span></div>
+                        </div>
+                        <div class="ov-stat-grid">
+                          <div class="ov-stat-card">
+                            <div class="ov-stat-label">Error Routes</div>
+                            <div class="ov-stat-value">${escapeHtml(String(errorRoutes.size))}</div>
+                            <div class="ov-stat-note">Unique endpoints returning 4XX or 5XX.</div>
+                          </div>
+                          <div class="ov-stat-card">
+                            <div class="ov-stat-label">Exception Types</div>
+                            <div class="ov-stat-value">${escapeHtml(String(errorTypes.size))}</div>
+                            <div class="ov-stat-note">Distinct exception families seen in 24h.</div>
+                          </div>
+                          <div class="ov-stat-card">
+                            <div class="ov-stat-label">Latest Error</div>
+                            <div class="ov-stat-value">${escapeHtml(latestErrorTime)}</div>
+                            <div class="ov-stat-note">${escapeHtml(hottestErrorRoute)}</div>
+                          </div>
+                        </div>
+                        <div class="ov-chip-row">
+                          ${topErrorRoutes.map((route) => `
+                            <span class="ov-chip">
+                              ${renderMethodLabel(route.method)}
+                              <span class="ov-chip-value" title="${escapeHtml(route.route)}">${escapeHtml(route.route)} • ${escapeHtml(formatCompactNumber(route.status4xx + route.status5xx))}</span>
+                            </span>
+                          `).join('')}
+                        </div>
+                      ` : '<div class="ov-empty">No exceptions recorded in 24h.</div>'}
+                    </div>
+                    <div class="history-card">
+                      <div class="history-card-title">Slow Routes</div>
+                      ${slowRoutes.length > 0 ? `
+                        <div class="ov-app-headline">${slowRoutes.length} route${slowRoutes.length !== 1 ? 's' : ''} slower than 1s</div>
+                        <div class="ov-app-sub">Sorted by worst observed response time. The table stays capped and scrollable when many slow routes are captured.</div>
+                        <div class="ov-slow-table-scroll">
+                          <table class="ov-slow-table">
+                            <thead>
                               <tr>
-                                <td class="ov-slow-col-route">
-                                  <span class="ov-slow-route-cell">
-                                    ${renderMethodLabel(route.method)}${renderPathLabel(route.route)}
-                                  </span>
-                                </td>
-                                <td class="ov-slow-col-requests"><span class="history-cell-number">${escapeHtml(formatCompactNumber(route.requests))}</span></td>
-                                <td class="ov-slow-col-min"><span class="history-cell-number">${escapeHtml(formatDuration(route.minDuration))}</span></td>
-                                <td class="ov-slow-col-avg">${escapeHtml(formatDuration(route.avgDuration))}</td>
-                                <td class="ov-slow-col-peak"><span class="ov-p95-chip">MAX ${escapeHtml(formatDuration(route.maxDuration))}</span></td>
+                                <th class="ov-slow-col-route">Route</th>
+                                <th class="ov-slow-col-requests">Hits</th>
+                                <th class="ov-slow-col-min">Min</th>
+                                <th class="ov-slow-col-avg">Avg</th>
+                                <th class="ov-slow-col-peak">Peak</th>
                               </tr>
-                            `).join('')}
-                          </tbody>
-                        </table>
-                      </div>
-                    ` : '<div class="ov-empty">No slow routes detected in 24h.</div>'}
+                            </thead>
+                            <tbody>
+                              ${slowRoutes.map((route) => `
+                                <tr>
+                                  <td class="ov-slow-col-route">
+                                    <span class="ov-slow-route-cell">
+                                      ${renderMethodLabel(route.method)}${renderPathLabel(route.route)}
+                                    </span>
+                                  </td>
+                                  <td class="ov-slow-col-requests"><span class="history-cell-number">${escapeHtml(formatCompactNumber(route.requests))}</span></td>
+                                  <td class="ov-slow-col-min"><span class="history-cell-number">${escapeHtml(formatDuration(route.minDuration))}</span></td>
+                                  <td class="ov-slow-col-avg">${escapeHtml(formatDuration(route.avgDuration))}</td>
+                                  <td class="ov-slow-col-peak"><span class="ov-p95-chip">MAX ${escapeHtml(formatDuration(route.maxDuration))}</span></td>
+                                </tr>
+                              `).join('')}
+                            </tbody>
+                          </table>
+                        </div>
+                      ` : '<div class="ov-empty">No slow routes detected in 24h.</div>'}
+                    </div>
                   </div>
-                </div>
+                </section>
               </div>
             `;
           };

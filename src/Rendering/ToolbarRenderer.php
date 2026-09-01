@@ -57,6 +57,7 @@ class ToolbarRenderer
             '{{MEMORY_PEAK}}' => $this->formatMemoryPeak($data),
             '{{SQL_COUNT}}' => (string)($data['sql_total_count'] ?? 0),
             '{{SQL_TIME}}' => number_format($data['sql_total_time_ms'] ?? 0, 1),
+            '{{SQL_SUMMARY}}' => $this->formatSqlSummary($data),
             '{{CACHE_SUMMARY}}' => $this->formatCacheSummary($data),
             '{{LOGS_COUNT}}' => (string)($data['logs_total_count'] ?? 0),
             '{{SESSION_COUNT}}' => (string)count((array)($data['session_data'] ?? [])),
@@ -131,9 +132,17 @@ class ToolbarRenderer
      */
     protected function formatCacheSummary(array $data): string
     {
-        $total = (int) ($data['cache_total'] ?? 0);
+        return (string) (int) ($data['cache_total'] ?? 0);
+    }
 
-        return $total . ' cache ' . ($total === 1 ? 'op' : 'ops');
+    /**
+     * Compact SQL summary for toolbar display
+     *
+     * @param array<string, mixed> $data
+     */
+    protected function formatSqlSummary(array $data): string
+    {
+        return (string) (int) ($data['sql_total_count'] ?? 0);
     }
 
     protected function formatPathDisplay(string $path, int $maxLength = 54): string
