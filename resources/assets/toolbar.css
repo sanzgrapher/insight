@@ -147,13 +147,33 @@
   font-variant-numeric: tabular-nums;
 }
 
+.dp-status-2xx { color: #4ade80; }
+.dp-status-3xx { color: #60a5fa; }
+.dp-status-4xx { color: #fbbf24; }
+.dp-status-5xx { color: #f87171; }
+.dp-status-1xx { color: #a8b0c0; }
+
+.dp-redirect {
+  color: #60a5fa;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .dp-method {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #ffffff;
+  color: #c8c8d4;
 }
+
+.dp-method-get { color: #61affe; }
+.dp-method-post { color: #49cc90; }
+.dp-method-put { color: #fca130; }
+.dp-method-patch { color: #50e3c2; }
+.dp-method-delete { color: #f93e3e; }
+.dp-method-options { color: #9b9b9b; }
+.dp-method-head { color: #90a4ae; }
 
 .dp-route {
   color: #ffffff;

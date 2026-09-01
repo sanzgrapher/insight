@@ -50,7 +50,9 @@ class ToolbarRenderer
             '{{LOGO}}' => $this->getLogo(),
             '{{ID}}' => $this->escape($data['id'] ?? ''),
             '{{STATUS}}' => (string)($data['status'] ?? 0),
+            '{{STATUS_CLASS}}' => $this->statusClass($data),
             '{{METHOD}}' => $this->escape($data['method'] ?? ''),
+            '{{METHOD_CLASS}}' => $this->methodClass((string) ($data['method'] ?? '')),
             '{{PATH}}' => $this->escape($data['route'] ?? ''),
             '{{PATH_DISPLAY}}' => $this->escape($this->formatPathDisplay((string) ($data['route'] ?? ''))),
             '{{DURATION}}' => $this->formatDuration($data),
@@ -161,6 +163,50 @@ class ToolbarRenderer
         $tail = 18;
 
         return mb_substr($path, 0, $head) . '...' . mb_substr($path, -$tail);
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    protected function statusClass(array $data): string
+    {
+        $status = (int) ($data['status'] ?? 0);
+
+        if ($status >= 500) {
+            return 'dp-status-5xx';
+        }
+
+        if ($status >= 400) {
+            return 'dp-status-4xx';
+        }
+
+        if ($status >= 300) {
+            return 'dp-status-3xx';
+        }
+
+        if ($status >= 200) {
+            return 'dp-status-2xx';
+        }
+
+        if ($status >= 100) {
+            return 'dp-status-1xx';
+        }
+
+        return '';
+    }
+
+    protected function methodClass(string $method): string
+    {
+        return match (strtoupper($method)) {
+            'GET' => 'dp-method-get',
+            'POST' => 'dp-method-post',
+            'PUT' => 'dp-method-put',
+            'PATCH' => 'dp-method-patch',
+            'DELETE' => 'dp-method-delete',
+            'OPTIONS' => 'dp-method-options',
+            'HEAD' => 'dp-method-head',
+            default => '',
+        };
     }
 
     /**
