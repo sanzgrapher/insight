@@ -558,6 +558,7 @@ window.DopparProfiler = {
           }
           .view-section {
             display: none;
+            margin-bottom: 24px;
           }
           .view-section.active {
             display: block;
@@ -1253,6 +1254,9 @@ window.DopparProfiler = {
           .history-dashboard {
             display: grid;
             gap: 14px;
+          }
+          .history-dashboard .history-table-shell {
+            margin-top: 2px;
           }
           .history-header {
             display: flex;
@@ -2151,6 +2155,10 @@ window.DopparProfiler = {
           }
 
           .sql-list { display: grid; gap: 10px; }
+          .sql-shell {
+            display: grid;
+            gap: 12px;
+          }
           .sql-item,
           .redirect-chain-item {
             padding: 14px;
@@ -2165,6 +2173,26 @@ window.DopparProfiler = {
             flex-wrap: wrap;
             align-items: center;
             margin-bottom: 10px;
+          }
+          .sql-header > div > .badge,
+          .sql-header > div > .sql-time,
+          .sql-header > div > .sql-rows {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            height: 22px;
+            padding: 0 8px;
+            line-height: 1;
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 2px;
+            vertical-align: middle;
+          }
+          .sql-header > div > .badge {
+            gap: 0;
+            text-transform: none;
+            letter-spacing: 0;
           }
           .sql-time,
           .redirect-chain-duration {
@@ -2220,9 +2248,9 @@ window.DopparProfiler = {
             color: #888899;
             font-style: normal;
             padding: 18px 0;
-            text-align: left;
+            text-align: center;
             background: transparent;
-            border-radius: 0;
+            border-radius: 0px 8px;
             border: 0;
             border-top: 1px solid rgba(255,255,255,0.08);
           }
@@ -2547,7 +2575,6 @@ window.DopparProfiler = {
             display: grid;
             gap: 22px;
             margin-top: 4px;
-            margin-bottom: 45px;
           }
           .ov-group {
             display: grid;
@@ -2925,7 +2952,7 @@ window.DopparProfiler = {
           const nPlusOneCount = Number(data.sql_n_plus_one_count || 0);
           const nPlusOneHints = Array.isArray(data.sql_n_plus_one_hints) ? data.sql_n_plus_one_hints : [];
           sqlSection = `
-            <div class="section">
+            <div class="sql-shell">
               <div class="section-title">
                 <span class="section-title-main">Database Queries</span>
                 <span>
@@ -2986,7 +3013,7 @@ window.DopparProfiler = {
           `;
         } else {
           sqlSection = `
-            <div class="section">
+            <div class="sql-shell">
               <div class="section-title"><span class="section-title-main">Database Queries</span></div>
               <div class="no-data">No database queries detected</div>
             </div>
@@ -3087,7 +3114,7 @@ window.DopparProfiler = {
         `;
 
         const historySection = `
-          <div class="section history-dashboard">
+          <div class="history-dashboard">
             <div class="history-header">
               <div>
                 <div class="section-title"><span class="section-title-main">Requests</span></div>
